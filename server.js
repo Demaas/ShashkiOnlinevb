@@ -168,28 +168,41 @@ class CheckersGameServer {
         }
 
         const rowDiff = toRow - fromRow;
-        const direction = piece.color === 'white' ? -1 : 1;
 
         // Проверка обязательных взятий
         const forcedCaptures = this.getForcedCaptures(this.currentPlayer);
         if (forcedCaptures.length > 0) {
-            const isCaptureMove = Math.abs(rowDiff) === 2;
+            const isCaptureMove = Math.abs(rowDiff) >= 2; // Для дамки ход может быть больше 2 клеток
             if (!isCaptureMove) {
                 return { valid: false, message: 'Обязательно брать шашку!' };
             }
             
-            const captureRow = fromRow + rowDiff / 2;
-            const captureCol = fromCol + (toCol - fromCol) / 2;
-            const capturedPiece = this.getPiece(captureRow, captureCol);
-            
-            if (!capturedPiece || capturedPiece.color === piece.color) {
-                return { valid: false, message: 'Неверное взятие' };
+            // Для дамки проверяем, что на пути есть ровно одна вражеская шашка
+            if (piece.isKing) {
+                const captureInfo = this.findKingCapture(fromRow, fromCol, toRow, toCol);
+                if (!captureInfo) {
+                    return { valid: false, message: 'Неверное взятие для дамки' };
+                }
+                
+                return { 
+                    valid: true, 
+                    capturedPiece: captureInfo 
+                };
+            } else {
+                // Для простой шашки
+                const captureRow = fromRow + rowDiff / 2;
+                const captureCol = fromCol + (toCol - fromCol) / 2;
+                const capturedPiece = this.getPiece(captureRow, captureCol);
+                
+                if (!capturedPiece || capturedPiece.color === piece.color) {
+                    return { valid: false, message: 'Неверное взятие' };
+                }
+                
+                return { 
+                    valid: true, 
+                    capturedPiece: { row: captureRow, col: captureCol } 
+                };
             }
-            
-            return { 
-                valid: true, 
-                capturedPiece: { row: captureRow, col: captureCol } 
-            };
         }
 
         // Проверка обычного хода для простой шашки
@@ -197,7 +210,6 @@ class CheckersGameServer {
             if (Math.abs(rowDiff) !== 1) {
                 return { valid: false, message: 'Простая шашка ходит на одну клетку' };
             }
-            // Убрана проверка на направление - можно ходить назад при обычных ходах
         }
 
         // Для дамки проверяем свободный путь
@@ -206,6 +218,32 @@ class CheckersGameServer {
         }
 
         return { valid: true };
+    }
+
+    findKingCapture(fromRow, fromCol, toRow, toCol) {
+        const rowStep = toRow > fromRow ? 1 : -1;
+        const colStep = toCol > fromCol ? 1 : -1;
+        
+        let currentRow = fromRow + rowStep;
+        let currentCol = fromCol + colStep;
+        let foundOpponent = null;
+        
+        while (currentRow !== toRow || currentCol !== toCol) {
+            const piece = this.getPiece(currentRow, currentCol);
+            if (piece) {
+                if (piece.color !== this.currentPlayer && !foundOpponent) {
+                    // Нашли вражескую шашку
+                    foundOpponent = { row: currentRow, col: currentCol };
+                } else {
+                    // Нашли вторую шашку - невалидный ход
+                    return null;
+                }
+            }
+            currentRow += rowStep;
+            currentCol += colStep;
+        }
+        
+        return foundOpponent;
     }
 
     executeMove(moveData, validation) {
@@ -249,53 +287,54 @@ class CheckersGameServer {
 
     getPossibleCaptures(piece) {
         const captures = [];
-        // И простые шашки, и дамки могут бить в обе стороны
-        const directions = [-1, 1];
         
-        directions.forEach(rowDir => {
-            [-1, 1].forEach(colDir => {
-                if (piece.isKing) {
-                    // Логика взятия для дамки
-                    let currentRow = piece.row + rowDir;
-                    let currentCol = piece.col + colDir;
+        if (piece.isKing) {
+            // ЛОГИКА ДЛЯ ДАМКИ - бить по всей длине
+            for (let rowDir of [-1, 1]) {
+                for (let colDir of [-1, 1]) {
                     let foundOpponent = false;
+                    let captureRow, captureCol;
                     
-                    while (this.isValidPosition(currentRow, currentCol)) {
-                        const targetPiece = this.getPiece(currentRow, currentCol);
+                    // Проверяем все клетки по диагонали
+                    for (let distance = 1; distance < 8; distance++) {
+                        const checkRow = piece.row + rowDir * distance;
+                        const checkCol = piece.col + colDir * distance;
+                        
+                        // Если вышли за границы - прерываем
+                        if (!this.isValidPosition(checkRow, checkCol)) break;
+                        
+                        const targetPiece = this.getPiece(checkRow, checkCol);
                         
                         if (targetPiece) {
                             if (targetPiece.color !== piece.color && !foundOpponent) {
+                                // Нашли вражескую шашку для взятия
                                 foundOpponent = true;
-                                let nextRow = currentRow + rowDir;
-                                let nextCol = currentCol + colDir;
-                                
-                                while (this.isValidPosition(nextRow, nextCol)) {
-                                    if (!this.getPiece(nextRow, nextCol)) {
-                                        captures.push({
-                                            fromRow: piece.row,
-                                            fromCol: piece.col,
-                                            toRow: nextRow,
-                                            toCol: nextCol,
-                                            captureRow: currentRow,
-                                            captureCol: currentCol
-                                        });
-                                    } else {
-                                        break;
-                                    }
-                                    nextRow += rowDir;
-                                    nextCol += colDir;
-                                }
+                                captureRow = checkRow;
+                                captureCol = checkCol;
                             } else {
+                                // Нашли свою шашку или вторую вражескую - прерываем
                                 break;
                             }
+                        } else if (foundOpponent) {
+                            // Нашли свободную клетку после вражеской шашки - добавляем ход
+                            captures.push({
+                                fromRow: piece.row,
+                                fromCol: piece.col,
+                                toRow: checkRow,
+                                toCol: checkCol,
+                                captureRow: captureRow,
+                                captureCol: captureCol
+                            });
                         }
-                        
-                        if (foundOpponent) break;
-                        currentRow += rowDir;
-                        currentCol += colDir;
                     }
-                } else {
-                    // Логика взятия для простой шашки - теперь в 4 направлениях
+                }
+            }
+        } else {
+            // ЛОГИКА ДЛЯ ПРОСТОЙ ШАШКИ
+            const directions = [-1, 1];
+            
+            directions.forEach(rowDir => {
+                [-1, 1].forEach(colDir => {
                     const captureRow = piece.row + rowDir;
                     const captureCol = piece.col + colDir;
                     const landRow = piece.row + 2 * rowDir;
@@ -317,9 +356,9 @@ class CheckersGameServer {
                             });
                         }
                     }
-                }
+                });
             });
-        });
+        }
         
         return captures;
     }
@@ -346,6 +385,7 @@ class CheckersGameServer {
         let currentRow = fromRow + rowStep;
         let currentCol = fromCol + colStep;
         
+        // Проверяем все клетки до целевой (исключая целевую)
         while (currentRow !== toRow || currentCol !== toCol) {
             if (this.getPiece(currentRow, currentCol)) {
                 return false;
