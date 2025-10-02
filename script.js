@@ -1,8 +1,10 @@
-// script.js - ФИНАЛЬНАЯ ВЕРСИЯ для шашек
+// script.js - ФИНАЛЬНАЯ ВЕРСИЯ для шашек с рестартом
 class CheckersGame {
     constructor() {
         this.board = document.getElementById('board');
         this.status = document.getElementById('status');
+        this.restartContainer = document.getElementById('restartContainer');
+        this.restartButton = document.getElementById('restartButton');
         this.currentPlayer = 'white';
         this.selectedPiece = null;
         this.possibleMoves = [];
@@ -11,6 +13,7 @@ class CheckersGame {
         
         this.initializeGame();
         this.setupWebSocket();
+        this.setupRestartButton();
     }
 
     initializeGame() {
@@ -125,6 +128,50 @@ class CheckersGame {
         };
     }
 
+    setupRestartButton() {
+        this.restartButton.addEventListener('click', () => {
+            this.restartGame();
+        });
+    }
+
+    restartGame() {
+        console.log('Restarting game...');
+        
+        // Скрываем блок рестарта
+        this.restartContainer.style.display = 'none';
+        
+        // Показываем доску и статус
+        this.board.style.display = 'grid';
+        this.status.style.display = 'block';
+        
+        // Сбрасываем состояние игры
+        this.selectedPiece = null;
+        this.possibleMoves = [];
+        this.playerColor = null;
+        this.currentPlayer = 'white';
+        
+        // Обновляем статус
+        this.updateStatus('Перезапуск игры...');
+        
+        // Очищаем доску
+        this.clearBoard();
+        
+        // Переподключаемся к серверу
+        if (this.ws) {
+            this.ws.close();
+        }
+        
+        // Перезагружаем игру через небольшой таймаут
+        setTimeout(() => {
+            this.setupWebSocket();
+        }, 1000);
+    }
+
+    clearBoard() {
+        // Очищаем все шашки с доски
+        document.querySelectorAll('.piece').forEach(piece => piece.remove());
+    }
+
     handleServerMessage(message) {
         switch (message.type) {
             case 'playerAssigned':
@@ -149,16 +196,7 @@ class CheckersGame {
                 break;
                 
             case 'gameOver':
-                const winnerText = message.winner ? 
-                    `🏆 Победитель: ${message.winner === 'white' ? 'белые' : 'черные'}` : 
-                    '🤝 Ничья!';
-                this.updateStatus(`Игра окончена! ${winnerText}`);
-                
-                setTimeout(() => {
-                    if (confirm('Игра завершена. Хотите сыграть еще?')) {
-                        location.reload();
-                    }
-                }, 1500);
+                this.handleGameOver(message);
                 break;
                 
             case 'error':
@@ -172,7 +210,7 @@ class CheckersGame {
 
     updateGameState(gameState) {
         // Очищаем доску
-        document.querySelectorAll('.piece').forEach(piece => piece.remove());
+        this.clearBoard();
         
         // Расставляем шашки согласно состоянию игры
         gameState.pieces.forEach(piece => {
@@ -242,6 +280,25 @@ class CheckersGame {
         document.querySelectorAll('.cell').forEach(cell => {
             cell.classList.remove('selected', 'possible-move');
         });
+    }
+
+    handleGameOver(result) {
+        const winnerText = result.winner ? 
+            `🏆 Победитель: ${result.winner === 'white' ? 'белые' : 'черные'}` : 
+            '🤝 Ничья!';
+        this.updateStatus(`Игра окончена! ${winnerText}`);
+        
+        // Показываем блок рестарта
+        this.showRestartContainer();
+    }
+
+    showRestartContainer() {
+        // Скрываем доску и статус
+        this.board.style.display = 'none';
+        this.status.style.display = 'none';
+        
+        // Показываем блок рестарта
+        this.restartContainer.style.display = 'block';
     }
 
     updateStatus(message) {
