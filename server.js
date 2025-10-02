@@ -426,57 +426,62 @@ class CheckersGameServer {
     }
 
     getPossibleMoves(piece) {
-        // Сначала проверяем обязательные взятия
-        const captures = this.getPossibleCaptures(piece);
-        if (captures.length > 0) {
-            return captures;
-        }
-        
-        // Затем обычные ходы
-        const moves = [];
-        // Простые шашки могут ходить в обе стороны
+    // Сначала проверяем обязательные взятия
+    const captures = this.getPossibleCaptures(piece);
+    if (captures.length > 0) {
+        return captures;
+    }
+    
+    // Затем обычные ходы
+    const moves = [];
+    
+    if (piece.isKing) {
+        // Дамка может ходить на несколько клеток в любом направлении
         const directions = [-1, 1];
         
         directions.forEach(rowDir => {
             [-1, 1].forEach(colDir => {
-                if (piece.isKing) {
-                    // Дамка может ходить на несколько клеток
-                    let currentRow = piece.row + rowDir;
-                    let currentCol = piece.col + colDir;
-                    
-                    while (this.isValidPosition(currentRow, currentCol)) {
-                        if (!this.getPiece(currentRow, currentCol)) {
-                            moves.push({
-                                fromRow: piece.row,
-                                fromCol: piece.col,
-                                toRow: currentRow,
-                                toCol: currentCol
-                            });
-                            currentRow += rowDir;
-                            currentCol += colDir;
-                        } else {
-                            break;
-                        }
-                    }
-                } else {
-                    // Простая шашка - только на 1 клетку, но в любом направлении
-                    const newRow = piece.row + rowDir;
-                    const newCol = piece.col + colDir;
-                    
-                    if (this.isValidPosition(newRow, newCol) && !this.getPiece(newRow, newCol)) {
+                let currentRow = piece.row + rowDir;
+                let currentCol = piece.col + colDir;
+                
+                while (this.isValidPosition(currentRow, currentCol)) {
+                    if (!this.getPiece(currentRow, currentCol)) {
                         moves.push({
                             fromRow: piece.row,
                             fromCol: piece.col,
-                            toRow: newRow,
-                            toCol: newCol
+                            toRow: currentRow,
+                            toCol: currentCol
                         });
+                        currentRow += rowDir;
+                        currentCol += colDir;
+                    } else {
+                        break;
                     }
                 }
             });
         });
+    } else {
+        // ПРОСТЫЕ ШАШКИ - ходят только ВПЕРЕД
+        const direction = piece.color === 'white' ? -1 : 1; // Белые - вверх, черные - вниз
         
-        return moves;
+        // Проверяем ходы вперед по диагонали
+        [-1, 1].forEach(colDir => {
+            const newRow = piece.row + direction;
+            const newCol = piece.col + colDir;
+            
+            if (this.isValidPosition(newRow, newCol) && !this.getPiece(newRow, newCol)) {
+                moves.push({
+                    fromRow: piece.row,
+                    fromCol: piece.col,
+                    toRow: newRow,
+                    toCol: newCol
+                });
+            }
+        });
     }
+    
+    return moves;
+}
 
     endGame(winner) {
         this.gameState = 'finished';
@@ -587,3 +592,4 @@ server.listen(PORT, '0.0.0.0', () => {
     console.log(`Server running on port ${PORT}`);
     console.log(`Health check available at http://localhost:${PORT}/health`);
 });
+
