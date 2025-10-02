@@ -28,7 +28,6 @@ body {
     box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
     border: 1px solid rgba(255, 255, 255, 0.2);
     max-width: 90%;
-    /* Добавляем: */
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -53,7 +52,7 @@ h1 {
 #status {
     color: #ffeb3b;
     font-size: 1.3em;
-    margin-bottom: 25px;
+    margin-bottom: 10px;
     font-weight: bold;
     text-shadow: 1px 1px 3px rgba(0, 0, 0, 0.7);
     padding: 10px;
@@ -82,6 +81,7 @@ h1 {
     justify-content: center;
     align-items: center;
     position: relative;
+    transition: all 0.3s ease;
 }
 
 .cell.white {
@@ -157,18 +157,20 @@ h1 {
 }
 
 .info {
-    margin-top: 25px;
+    margin-top: 10px;
     color: #e0e0e0;
     font-size: 1em;
     background: rgba(0, 0, 0, 0.4);
     padding: 15px;
     border-radius: 10px;
     border: 1px solid rgba(255, 255, 255, 0.1);
+    text-align: center;
 }
 
 .info p {
     margin: 5px 0;
     text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.7);
+    font-weight: bold;
 }
 
 .rules {
@@ -179,10 +181,16 @@ h1 {
     font-size: 0.9em;
 }
 
+.rules p {
+    margin: 3px 0;
+    font-weight: normal;
+}
+
 /* Адаптивность для мобильных устройств */
 @media (max-width: 768px) {
-    .game-container {
-        gap: 15px;
+    .container {
+        padding: 15px;
+        margin: 10px;
     }
     
     h1 {
@@ -192,7 +200,11 @@ h1 {
     
     #status {
         font-size: 1.1em;
-        margin-bottom: 20px;
+        margin-bottom: 5px;
+    }
+    
+    .game-container {
+        gap: 15px;
     }
     
     .board {
@@ -218,13 +230,14 @@ h1 {
         width: 20px;
         height: 20px;
     }
+    
+    .info {
+        font-size: 0.9em;
+        padding: 12px;
+    }
 }
 
 @media (max-width: 480px) {
-    .game-container {
-        gap: 10px;
-    }
-    
     .board {
         grid-template-columns: repeat(8, 35px);
         grid-template-rows: repeat(8, 35px);
@@ -256,6 +269,15 @@ h1 {
     #status {
         font-size: 1em;
     }
+    
+    .game-container {
+        gap: 10px;
+    }
+    
+    .info {
+        font-size: 0.8em;
+        padding: 10px;
+    }
 }
 
 /* Эффекты загрузки */
@@ -272,5 +294,3 @@ h1 {
 @keyframes spin {
     to { transform: rotate(360deg); }
 }
-
-
