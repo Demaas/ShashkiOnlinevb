@@ -8,24 +8,31 @@
 </head>
 <body>
     <div class="container">
-        <h1>Шашки Онлайн</h1>
+        <h1>🎯 Шашки Онлайн</h1>
         <div class="game-container">
             <div id="status">Загрузка...</div>
             <div class="board" id="board"></div>
             <div class="info">
-                <p>Правила:</p>
+                <p>Правила русских шашек:</p>
                 <div class="rules">
                     <p>• Обязательное взятие при возможности</p>
-                    <p>• Простые шашки бьют вперед и назад</p>
                     <p>• Простые шашки ходят только вперед</p>
+                    <p>• Простые шашки бьют вперед и назад</p>
                     <p>• Дамка ходит и бьет на любое расстояние</p>
                     <p>• Превращение в дамку на последней горизонтали</p>
                 </div>
+            </div>
+        </div>
+
+        <!-- Блок рестарта игры (изначально скрыт) -->
+        <div id="restartContainer" class="restart-container" style="display: none;">
+            <h2 style="color: #ffeb3b; margin-bottom: 20px; text-shadow: 2px 2px 4px rgba(0,0,0,0.5);">Игра Завершена!</h2>
+            <button id="restartButton" class="restart-button">Новая Игра</button>
+            <div class="gif-container">
+                <img src="https://media1.tenor.com/m/w_PLu8IF2Y8AAAAd/sml-joseph.gif" alt="Celebration" class="celebration-gif">
             </div>
         </div>
     </div>
     <script src="script.js"></script>
 </body>
 </html>
-
-
