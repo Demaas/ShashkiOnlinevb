@@ -7,34 +7,47 @@
 
 body {
     font-family: 'Arial', sans-serif;
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    background: linear-gradient(rgba(0, 0, 0, 0.7), rgba(0, 0, 0, 0.7)), 
+                url('https://img.freepik.com/premium-photo/empty-chess-board-with-smoke-float-up-dark-background_168415-189.jpg?semt=ais_items_boosted&w=740');
+    background-size: cover;
+    background-position: center;
+    background-attachment: fixed;
     min-height: 100vh;
     display: flex;
     justify-content: center;
     align-items: center;
+    color: white;
 }
 
 .container {
     text-align: center;
     background: rgba(255, 255, 255, 0.1);
-    backdrop-filter: blur(10px);
-    padding: 20px;
-    border-radius: 15px;
-    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+    backdrop-filter: blur(15px);
+    padding: 25px;
+    border-radius: 20px;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    max-width: 90%;
 }
 
 h1 {
     color: white;
     margin-bottom: 20px;
-    text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
+    text-shadow: 2px 2px 8px rgba(0, 0, 0, 0.8);
+    font-size: 2.5em;
+    font-weight: bold;
 }
 
 #status {
-    color: white;
-    font-size: 1.2em;
-    margin-bottom: 20px;
+    color: #ffeb3b;
+    font-size: 1.3em;
+    margin-bottom: 25px;
     font-weight: bold;
-    text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.5);
+    text-shadow: 1px 1px 3px rgba(0, 0, 0, 0.7);
+    padding: 10px;
+    background: rgba(0, 0, 0, 0.3);
+    border-radius: 10px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
 }
 
 .board {
@@ -42,9 +55,10 @@ h1 {
     grid-template-columns: repeat(8, 60px);
     grid-template-rows: repeat(8, 60px);
     gap: 0;
-    border: 3px solid #5d4037;
-    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+    border: 4px solid #8B4513;
+    box-shadow: 0 6px 25px rgba(0, 0, 0, 0.7);
     margin: 0 auto;
+    background: #8B4513;
 }
 
 .cell {
@@ -54,6 +68,7 @@ h1 {
     justify-content: center;
     align-items: center;
     position: relative;
+    transition: all 0.3s ease;
 }
 
 .cell.white {
@@ -65,34 +80,45 @@ h1 {
 }
 
 .cell.selected {
-    background-color: #aec6cf !important;
+    background-color: #4CAF50 !important;
+    box-shadow: inset 0 0 15px rgba(255, 255, 255, 0.6);
 }
 
 .cell.possible-move::before {
     content: '';
     position: absolute;
-    width: 20px;
-    height: 20px;
-    background-color: rgba(76, 175, 80, 0.6);
+    width: 25px;
+    height: 25px;
+    background-color: rgba(76, 175, 80, 0.7);
     border-radius: 50%;
     z-index: 1;
+    border: 2px solid white;
+    animation: pulse 1.5s infinite;
+}
+
+@keyframes pulse {
+    0% { transform: scale(0.8); opacity: 0.7; }
+    50% { transform: scale(1.1); opacity: 1; }
+    100% { transform: scale(0.8); opacity: 0.7; }
 }
 
 .piece {
-    width: 45px;
-    height: 45px;
+    width: 50px;
+    height: 50px;
     border-radius: 50%;
     display: flex;
     justify-content: center;
     align-items: center;
     cursor: pointer;
-    transition: transform 0.2s;
+    transition: all 0.3s ease;
     z-index: 2;
     position: relative;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.4);
 }
 
 .piece:hover {
-    transform: scale(1.05);
+    transform: scale(1.1);
+    box-shadow: 0 6px 12px rgba(0, 0, 0, 0.6);
 }
 
 .piece img {
@@ -100,33 +126,97 @@ h1 {
     height: 100%;
     border-radius: 50%;
     object-fit: cover;
-    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
+    border: 2px solid rgba(0, 0, 0, 0.3);
+}
+
+.piece.king {
+    box-shadow: 0 0 20px gold, 0 4px 8px rgba(0, 0, 0, 0.4);
 }
 
 .piece.king::after {
     content: '♔';
     position: absolute;
-    font-size: 16px;
+    font-size: 18px;
     color: gold;
-    text-shadow: 1px 1px 2px black;
+    text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.8);
     z-index: 3;
+    font-weight: bold;
 }
 
 .info {
-    margin-top: 20px;
-    color: white;
+    margin-top: 25px;
+    color: #e0e0e0;
+    font-size: 1em;
+    background: rgba(0, 0, 0, 0.4);
+    padding: 15px;
+    border-radius: 10px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.info p {
+    margin: 5px 0;
+    text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.7);
+}
+
+.rules {
+    background: rgba(139, 69, 19, 0.3);
+    padding: 10px;
+    border-radius: 8px;
+    margin-top: 10px;
     font-size: 0.9em;
 }
 
-@media (max-width: 600px) {
+/* Адаптивность для мобильных устройств */
+@media (max-width: 768px) {
+    .container {
+        padding: 15px;
+        margin: 10px;
+    }
+    
+    h1 {
+        font-size: 2em;
+        margin-bottom: 15px;
+    }
+    
+    #status {
+        font-size: 1.1em;
+        margin-bottom: 20px;
+    }
+    
     .board {
-        grid-template-columns: repeat(8, 40px);
-        grid-template-rows: repeat(8, 40px);
+        grid-template-columns: repeat(8, 45px);
+        grid-template-rows: repeat(8, 45px);
     }
     
     .cell {
-        width: 40px;
-        height: 40px;
+        width: 45px;
+        height: 45px;
+    }
+    
+    .piece {
+        width: 38px;
+        height: 38px;
+    }
+    
+    .piece.king::after {
+        font-size: 14px;
+    }
+    
+    .cell.possible-move::before {
+        width: 20px;
+        height: 20px;
+    }
+}
+
+@media (max-width: 480px) {
+    .board {
+        grid-template-columns: repeat(8, 35px);
+        grid-template-rows: repeat(8, 35px);
+    }
+    
+    .cell {
+        width: 35px;
+        height: 35px;
     }
     
     .piece {
@@ -138,15 +228,31 @@ h1 {
         font-size: 12px;
     }
     
-    .container {
-        padding: 15px;
+    .cell.possible-move::before {
+        width: 15px;
+        height: 15px;
     }
     
     h1 {
-        font-size: 1.5em;
+        font-size: 1.7em;
     }
     
     #status {
         font-size: 1em;
     }
+}
+
+/* Эффекты загрузки */
+.loading {
+    display: inline-block;
+    width: 20px;
+    height: 20px;
+    border: 3px solid rgba(255, 255, 255, 0.3);
+    border-radius: 50%;
+    border-top-color: #fff;
+    animation: spin 1s ease-in-out infinite;
+}
+
+@keyframes spin {
+    to { transform: rotate(360deg); }
 }
