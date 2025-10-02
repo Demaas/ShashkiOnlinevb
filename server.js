@@ -197,9 +197,7 @@ class CheckersGameServer {
             if (Math.abs(rowDiff) !== 1) {
                 return { valid: false, message: 'Простая шашка ходит на одну клетку' };
             }
-            if (rowDiff * direction < 0) {
-                return { valid: false, message: 'Простая шашка не может ходить назад' };
-            }
+            // Убрана проверка на направление - можно ходить назад при обычных ходах
         }
 
         // Для дамки проверяем свободный путь
@@ -251,11 +249,13 @@ class CheckersGameServer {
 
     getPossibleCaptures(piece) {
         const captures = [];
-        const directions = piece.isKing ? [-1, 1] : [piece.color === 'white' ? -1 : 1];
+        // И простые шашки, и дамки могут бить в обе стороны
+        const directions = [-1, 1];
         
         directions.forEach(rowDir => {
             [-1, 1].forEach(colDir => {
                 if (piece.isKing) {
+                    // Логика взятия для дамки
                     let currentRow = piece.row + rowDir;
                     let currentCol = piece.col + colDir;
                     let foundOpponent = false;
@@ -295,6 +295,7 @@ class CheckersGameServer {
                         currentCol += colDir;
                     }
                 } else {
+                    // Логика взятия для простой шашки - теперь в 4 направлениях
                     const captureRow = piece.row + rowDir;
                     const captureCol = piece.col + colDir;
                     const landRow = piece.row + 2 * rowDir;
@@ -385,17 +386,21 @@ class CheckersGameServer {
     }
 
     getPossibleMoves(piece) {
+        // Сначала проверяем обязательные взятия
         const captures = this.getPossibleCaptures(piece);
         if (captures.length > 0) {
             return captures;
         }
         
+        // Затем обычные ходы
         const moves = [];
-        const directions = piece.isKing ? [-1, 1] : [piece.color === 'white' ? -1 : 1];
+        // Простые шашки могут ходить в обе стороны
+        const directions = [-1, 1];
         
         directions.forEach(rowDir => {
             [-1, 1].forEach(colDir => {
                 if (piece.isKing) {
+                    // Дамка может ходить на несколько клеток
                     let currentRow = piece.row + rowDir;
                     let currentCol = piece.col + colDir;
                     
@@ -414,6 +419,7 @@ class CheckersGameServer {
                         }
                     }
                 } else {
+                    // Простая шашка - только на 1 клетку, но в любом направлении
                     const newRow = piece.row + rowDir;
                     const newCol = piece.col + colDir;
                     
