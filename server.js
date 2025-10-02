@@ -144,81 +144,86 @@ class CheckersGameServer {
     }
 
     validateMove(moveData) {
-        const { fromRow, fromCol, toRow, toCol } = moveData;
+    const { fromRow, fromCol, toRow, toCol } = moveData;
+    
+    if (!this.isValidPosition(fromRow, fromCol) || !this.isValidPosition(toRow, toCol)) {
+        return { valid: false, message: 'Неверные координаты' };
+    }
+
+    const piece = this.getPiece(fromRow, fromCol);
+    if (!piece) {
+        return { valid: false, message: 'Шашка не найдена' };
+    }
+
+    if (piece.color !== this.currentPlayer) {
+        return { valid: false, message: 'Это не ваша шашка' };
+    }
+
+    if (this.getPiece(toRow, toCol)) {
+        return { valid: false, message: 'Целевая клетка занята' };
+    }
+
+    if (Math.abs(toRow - fromRow) !== Math.abs(toCol - fromCol)) {
+        return { valid: false, message: 'Ход должен быть по диагонали' };
+    }
+
+    const rowDiff = toRow - fromRow;
+
+    // Проверка обязательных взятий
+    const forcedCaptures = this.getForcedCaptures(this.currentPlayer);
+    if (forcedCaptures.length > 0) {
+        const isCaptureMove = Math.abs(rowDiff) >= 2; // Для дамки ход может быть больше 2 клеток
+        if (!isCaptureMove) {
+            return { valid: false, message: 'Обязательно брать шашку!' };
+        }
         
-        if (!this.isValidPosition(fromRow, fromCol) || !this.isValidPosition(toRow, toCol)) {
-            return { valid: false, message: 'Неверные координаты' };
-        }
-
-        const piece = this.getPiece(fromRow, fromCol);
-        if (!piece) {
-            return { valid: false, message: 'Шашка не найдена' };
-        }
-
-        if (piece.color !== this.currentPlayer) {
-            return { valid: false, message: 'Это не ваша шашка' };
-        }
-
-        if (this.getPiece(toRow, toCol)) {
-            return { valid: false, message: 'Целевая клетка занята' };
-        }
-
-        if (Math.abs(toRow - fromRow) !== Math.abs(toCol - fromCol)) {
-            return { valid: false, message: 'Ход должен быть по диагонали' };
-        }
-
-        const rowDiff = toRow - fromRow;
-
-        // Проверка обязательных взятий
-        const forcedCaptures = this.getForcedCaptures(this.currentPlayer);
-        if (forcedCaptures.length > 0) {
-            const isCaptureMove = Math.abs(rowDiff) >= 2; // Для дамки ход может быть больше 2 клеток
-            if (!isCaptureMove) {
-                return { valid: false, message: 'Обязательно брать шашку!' };
+        // Для дамки проверяем, что на пути есть ровно одна вражеская шашка
+        if (piece.isKing) {
+            const captureInfo = this.findKingCapture(fromRow, fromCol, toRow, toCol);
+            if (!captureInfo) {
+                return { valid: false, message: 'Неверное взятие для дамки' };
             }
             
-            // Для дамки проверяем, что на пути есть ровно одна вражеская шашка
-            if (piece.isKing) {
-                const captureInfo = this.findKingCapture(fromRow, fromCol, toRow, toCol);
-                if (!captureInfo) {
-                    return { valid: false, message: 'Неверное взятие для дамки' };
-                }
-                
-                return { 
-                    valid: true, 
-                    capturedPiece: captureInfo 
-                };
-            } else {
-                // Для простой шашки
-                const captureRow = fromRow + rowDiff / 2;
-                const captureCol = fromCol + (toCol - fromCol) / 2;
-                const capturedPiece = this.getPiece(captureRow, captureCol);
-                
-                if (!capturedPiece || capturedPiece.color === piece.color) {
-                    return { valid: false, message: 'Неверное взятие' };
-                }
-                
-                return { 
-                    valid: true, 
-                    capturedPiece: { row: captureRow, col: captureCol } 
-                };
+            return { 
+                valid: true, 
+                capturedPiece: captureInfo 
+            };
+        } else {
+            // Для простой шашки
+            const captureRow = fromRow + rowDiff / 2;
+            const captureCol = fromCol + (toCol - fromCol) / 2;
+            const capturedPiece = this.getPiece(captureRow, captureCol);
+            
+            if (!capturedPiece || capturedPiece.color === piece.color) {
+                return { valid: false, message: 'Неверное взятие' };
             }
+            
+            return { 
+                valid: true, 
+                capturedPiece: { row: captureRow, col: captureCol } 
+            };
         }
-
-        // Проверка обычного хода для простой шашки
-        if (!piece.isKing) {
-            if (Math.abs(rowDiff) !== 1) {
-                return { valid: false, message: 'Простая шашка ходит на одну клетку' };
-            }
-        }
-
-        // Для дамки проверяем свободный путь
-        if (piece.isKing && !this.isPathClear(fromRow, fromCol, toRow, toCol)) {
-            return { valid: false, message: 'Путь для дамки занят' };
-        }
-
-        return { valid: true };
     }
+
+    // Проверка обычного хода для простой шашки
+    if (!piece.isKing) {
+        if (Math.abs(rowDiff) !== 1) {
+            return { valid: false, message: 'Простая шашка ходит на одну клетку' };
+        }
+        // ПРОВЕРКА НАПРАВЛЕНИЯ: белые - вверх, черные - вниз
+        const direction = piece.color === 'white' ? -1 : 1;
+        if (rowDiff !== direction) {
+            return { valid: false, message: 'Простая шашка ходит только вперед' };
+        }
+    }
+
+    // Для дамки проверяем свободный путь
+    if (piece.isKing && !this.isPathClear(fromRow, fromCol, toRow, toCol)) {
+        return { valid: false, message: 'Путь для дамки занят' };
+    }
+
+    return { valid: true };
+}
 
     findKingCapture(fromRow, fromCol, toRow, toCol) {
         const rowStep = toRow > fromRow ? 1 : -1;
@@ -592,4 +597,5 @@ server.listen(PORT, '0.0.0.0', () => {
     console.log(`Server running on port ${PORT}`);
     console.log(`Health check available at http://localhost:${PORT}/health`);
 });
+
 
