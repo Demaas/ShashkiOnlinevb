@@ -181,9 +181,8 @@ h1 {
 
 /* Адаптивность для мобильных устройств */
 @media (max-width: 768px) {
-    .container {
-        padding: 15px;
-        margin: 10px;
+    .game-container {
+        gap: 15px;
     }
     
     h1 {
@@ -222,6 +221,10 @@ h1 {
 }
 
 @media (max-width: 480px) {
+    .game-container {
+        gap: 10px;
+    }
+    
     .board {
         grid-template-columns: repeat(8, 35px);
         grid-template-rows: repeat(8, 35px);
@@ -269,4 +272,5 @@ h1 {
 @keyframes spin {
     to { transform: rotate(360deg); }
 }
+
 
