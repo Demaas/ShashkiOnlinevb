@@ -181,9 +181,9 @@ class CheckersGame {
     createMoveArrow(fromRow, fromCol, toRow, toCol) {
         // Удаляем предыдущую стрелку, если есть
         // Автоматически удаляем стрелку через 5 секунды
-setTimeout(() => {
-    this.removeMoveArrow();
-}, 5000); // ← ЭТА СТРОКА (3000 мс = 5 секунды)
+        setTimeout(() => {
+            this.removeMoveArrow();
+        }, 5000); // ← ЭТА СТРОКА (3000 мс = 5 секунды)
         
         const fromCell = this.getCell(fromRow, fromCol);
         const toCell = this.getCell(toRow, toCol);
@@ -447,4 +447,5 @@ document.addEventListener('visibilitychange', () => {
         console.log('Page became visible, checking connection...');
     }
 });
+
 
