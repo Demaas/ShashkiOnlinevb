@@ -53,17 +53,21 @@ class CheckersGameServer {
         return pieces;
     }
 
-    addPlayer(ws) {
+    addPlayer(ws, username) {
         if (this.players.length < 2) {
             const color = this.players.length === 0 ? 'white' : 'black';
-            this.players.push({ ws, color });
+            const player = { ws, color, username: username || 'Игрок' };
+            this.players.push(player);
             
             ws.send(JSON.stringify({
                 type: 'playerAssigned',
                 color: color
             }));
 
-            console.log(`Player joined as ${color}. Total players: ${this.players.length}`);
+            console.log(`Player ${player.username} joined as ${color}. Total players: ${this.players.length}`);
+            
+            // Отправляем информацию об игроках всем подключенным
+            this.sendPlayersInfo();
             
             if (this.players.length === 2) {
                 this.startGame();
@@ -72,6 +76,19 @@ class CheckersGameServer {
             return color;
         }
         return null;
+    }
+
+    sendPlayersInfo() {
+        // Отправляем информацию об игроках всем подключенным
+        const playersInfo = this.players.map(player => ({
+            username: player.username,
+            color: player.color
+        }));
+        
+        this.broadcast(JSON.stringify({
+            type: 'playersInfo',
+            data: playersInfo
+        }));
     }
 
     startGame() {
@@ -84,9 +101,9 @@ class CheckersGameServer {
     removePlayer(ws) {
         const playerIndex = this.players.findIndex(player => player.ws === ws);
         if (playerIndex !== -1) {
-            const playerColor = this.players[playerIndex].color;
+            const player = this.players[playerIndex];
             this.players.splice(playerIndex, 1);
-            console.log(`Player ${playerColor} disconnected. Remaining players: ${this.players.length}`);
+            console.log(`Player ${player.username} (${player.color}) disconnected. Remaining players: ${this.players.length}`);
             
             if (this.gameState === 'playing') {
                 this.gameState = 'finished';
@@ -119,7 +136,7 @@ class CheckersGameServer {
             this.executeMove(moveData, validation);
             this.checkForKing(moveData.toRow, moveData.toCol);
             
-            // ОТПРАВЛЯЕМ ИНФОРМАЦИЮ О ХОДЕ ВСЕМ ИГРОКАМ
+            // Отправляем информацию о ходе всем игрокам
             this.broadcast(JSON.stringify({
                 type: 'moveMade',
                 data: {
@@ -127,12 +144,13 @@ class CheckersGameServer {
                     fromCol: moveData.fromCol,
                     toRow: moveData.toRow,
                     toCol: moveData.toCol,
-                    player: player.color
+                    player: player.color,
+                    username: player.username
                 }
             }));
             
             if (validation.capturedPiece && this.canContinueCapture(moveData.toRow, moveData.toCol)) {
-                console.log(`Player ${player.color} can continue capturing`);
+                console.log(`Player ${player.username} can continue capturing`);
                 this.broadcastGameState();
             } else {
                 this.switchPlayer();
@@ -503,7 +521,9 @@ class CheckersGameServer {
     endGame(winner) {
         this.gameState = 'finished';
         this.winner = winner;
-        console.log(`Game over! Winner: ${winner}`);
+        const winnerPlayer = this.players.find(p => p.color === winner);
+        const winnerName = winnerPlayer ? winnerPlayer.username : winner;
+        console.log(`Game over! Winner: ${winnerName} (${winner})`);
         this.broadcastGameOver();
     }
 
@@ -547,41 +567,50 @@ const game = new CheckersGameServer();
 wss.on('connection', (ws, req) => {
     console.log('New WebSocket connection');
     
+    let playerUsername = 'Игрок'; // Значение по умолчанию
+    
     ws.on('error', (error) => {
         console.error('WebSocket error:', error);
     });
-
-    const playerColor = game.addPlayer(ws);
-    
-    if (playerColor === null) {
-        ws.send(JSON.stringify({
-            type: 'error',
-            message: 'Game is full. Please try again later.'
-        }));
-        ws.close();
-        return;
-    }
-
-    ws.send(JSON.stringify({
-        type: 'gameState',
-        data: game.getGameState()
-    }));
 
     ws.on('message', (message) => {
         try {
             const data = JSON.parse(message);
             
             switch (data.type) {
+                case 'join':
+                    // Обрабатываем подключение с ником
+                    playerUsername = data.username || 'Игрок';
+                    const playerColor = game.addPlayer(ws, playerUsername);
+                    
+                    if (playerColor === null) {
+                        ws.send(JSON.stringify({
+                            type: 'error',
+                            message: 'Игра уже заполнена. Попробуйте позже.'
+                        }));
+                        ws.close();
+                        return;
+                    }
+                    
+                    // Отправляем текущее состояние игры
+                    ws.send(JSON.stringify({
+                        type: 'gameState',
+                        data: game.getGameState()
+                    }));
+                    break;
+                    
                 case 'move':
                     game.handleMove(data.data, ws);
                     break;
+                    
                 case 'ping':
                     ws.send(JSON.stringify({ type: 'pong' }));
                     break;
+                    
                 case 'restart':
-                    // Обработка рестарта игры
                     console.log('Player requested restart');
                     break;
+                    
                 default:
                     console.log('Unknown message type:', data.type);
             }
@@ -589,13 +618,13 @@ wss.on('connection', (ws, req) => {
             console.error('Error parsing message:', error);
             ws.send(JSON.stringify({
                 type: 'error',
-                message: 'Invalid message format'
+                message: 'Неверный формат сообщения'
             }));
         }
     });
 
     ws.on('close', () => {
-        console.log('WebSocket connection closed');
+        console.log(`WebSocket connection closed for ${playerUsername}`);
         game.removePlayer(ws);
     });
 });
