@@ -7,15 +7,25 @@
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
+    <!-- Модальное окно входа -->
+    <div id="loginModal" class="modal">
+        <div class="modal-content">
+            <h2>Вход в игру</h2>
+            <p>Введите ваш никнейм для начала игры</p>
+            <input type="text" id="usernameInput" placeholder="Введите ваш ник" maxlength="15">
+            <button id="startGameButton" class="start-button">Начать игру</button>
+        </div>
+    </div>
+
     <div class="container">
-        <h1>Шашки Онлайн</h1>
+        <h1>🎯 Шашки Онлайн</h1>
         <div class="game-container">
             <div id="status">Загрузка...</div>
             <div class="board" id="board"></div>
             <div class="info">
-                <p>Правила:</p>
+                <p>Правила русских шашек:</p>
                 <div class="rules">
-                    <p>• Обязательное срубание при возможности</p>
+                    <p>• Обязательное взятие при возможности</p>
                     <p>• Простые шашки ходят только вперед</p>
                     <p>• Простые шашки бьют вперед и назад</p>
                     <p>• Дамка ходит и бьет на любое расстояние</p>
@@ -24,7 +34,7 @@
             </div>
         </div>
 
-        <!-- Блок рестарта игры (изначально скрыт) -->
+        <!-- Блок рестарта игры -->
         <div id="restartContainer" class="restart-container" style="display: none;">
             <h2 style="color: #ffeb3b; margin-bottom: 20px; text-shadow: 2px 2px 4px rgba(0,0,0,0.5);">Игра Завершена!</h2>
             <button id="restartButton" class="restart-button">Новая Игра</button>
@@ -36,4 +46,3 @@
     <script src="script.js"></script>
 </body>
 </html>
-
