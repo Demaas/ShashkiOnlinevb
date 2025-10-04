@@ -1,4 +1,4 @@
-// script.js - ФИНАЛЬНАЯ ВЕРСИЯ для шашек с рестартом и стрелкой направления
+// script.js - ФИНАЛЬНАЯ ВЕРСИЯ для шашек с рестартом и стрелкой направления для обоих игроков
 class CheckersGame {
     constructor() {
         this.board = document.getElementById('board');
@@ -10,7 +10,6 @@ class CheckersGame {
         this.possibleMoves = [];
         this.playerColor = null;
         this.ws = null;
-        this.lastMove = null; // Для хранения последнего хода
         this.currentArrow = null; // Для хранения текущей стрелки
         
         this.initializeGame();
@@ -84,9 +83,6 @@ class CheckersGame {
             toCol: toCol
         };
 
-        // Сохраняем информацию о ходе для показа стрелки
-        this.lastMove = { fromRow, fromCol, toRow, toCol };
-        
         console.log('Sending move:', moveData);
         this.ws.send(JSON.stringify({
             type: 'move',
@@ -95,8 +91,7 @@ class CheckersGame {
         
         this.updateStatus('Ход отправляется...');
         
-        // Показываем стрелку для своего хода
-        this.createMoveArrow(fromRow, fromCol, toRow, toCol);
+        // Стрелка теперь показывается через серверное сообщение moveMade
     }
 
     setupWebSocket() {
@@ -160,7 +155,6 @@ class CheckersGame {
         this.possibleMoves = [];
         this.playerColor = null;
         this.currentPlayer = 'white';
-        this.lastMove = null; // Сбрасываем последний ход
         
         // Обновляем статус
         this.updateStatus('Перезапуск игры...');
@@ -299,6 +293,10 @@ class CheckersGame {
                 }
                 break;
                 
+            case 'moveMade': // НОВЫЙ CASE - обработка хода от любого игрока
+                this.handleMoveMade(message.data);
+                break;
+                
             case 'gameOver':
                 this.handleGameOver(message);
                 break;
@@ -312,6 +310,23 @@ class CheckersGame {
         }
     }
 
+    handleMoveMade(moveData) {
+        console.log('Move made by:', moveData.player, moveData);
+        
+        // Показываем стрелку для ЛЮБОГО хода, независимо от того, кто его сделал
+        this.createMoveArrow(
+            moveData.fromRow, 
+            moveData.fromCol, 
+            moveData.toRow, 
+            moveData.toCol
+        );
+        
+        // Обновляем статус, если ход сделал противник
+        if (moveData.player !== this.playerColor) {
+            this.updateStatus('⏳ Ход противника...');
+        }
+    }
+
     updateGameState(gameState) {
         // Очищаем доску
         this.clearBoard();
@@ -320,19 +335,6 @@ class CheckersGame {
         gameState.pieces.forEach(piece => {
             this.placePiece(piece.row, piece.col, piece.color, piece.isKing);
         });
-        
-        // Показываем стрелку, если был совершен ход противника
-        if (this.lastMove && gameState.currentPlayer === this.playerColor) {
-            // Ход был сделан противником, показываем стрелку
-            setTimeout(() => {
-                this.createMoveArrow(
-                    this.lastMove.fromRow, 
-                    this.lastMove.fromCol, 
-                    this.lastMove.toRow, 
-                    this.lastMove.toCol
-                );
-            }, 100);
-        }
         
         // Обновляем текущего игрока
         this.currentPlayer = gameState.currentPlayer;
