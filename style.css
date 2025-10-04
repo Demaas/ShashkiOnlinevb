@@ -303,6 +303,90 @@ h1 {
     font-weight: normal;
 }
 
+/* Стили для кнопок управления игрой */
+.game-controls {
+    display: flex;
+    gap: 15px;
+    margin-top: 20px;
+    justify-content: center;
+    flex-wrap: wrap;
+}
+
+.control-button {
+    padding: 12px 25px;
+    font-size: 1.1em;
+    font-weight: bold;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+}
+
+.control-button:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+}
+
+.control-button:active {
+    transform: translateY(0);
+}
+
+.new-game-btn {
+    background: linear-gradient(45deg, #2196F3, #1976D2);
+    color: white;
+}
+
+.draw-offer-btn {
+    background: linear-gradient(45deg, #FF9800, #F57C00);
+    color: white;
+}
+
+.control-button:disabled {
+    background: #cccccc;
+    cursor: not-allowed;
+    transform: none;
+    box-shadow: none;
+}
+
+/* Стили для модальных окон кнопок */
+.modal-buttons {
+    display: flex;
+    gap: 15px;
+    justify-content: center;
+    margin-top: 25px;
+}
+
+.modal-btn {
+    padding: 12px 30px;
+    font-size: 1.1em;
+    font-weight: bold;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    min-width: 100px;
+}
+
+.confirm-btn {
+    background: linear-gradient(45deg, #4CAF50, #45a049);
+    color: white;
+}
+
+.cancel-btn {
+    background: linear-gradient(45deg, #f44336, #d32f2f);
+    color: white;
+}
+
+.modal-btn:hover {
+    transform: scale(1.05);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+}
+
+.modal-btn:active {
+    transform: scale(0.95);
+}
+
 /* Стили для стрелки направления */
 .move-arrow {
     position: absolute;
@@ -465,6 +549,26 @@ h1 {
         padding: 12px;
     }
     
+    .game-controls {
+        gap: 10px;
+        margin-top: 15px;
+    }
+    
+    .control-button {
+        padding: 10px 20px;
+        font-size: 1em;
+    }
+    
+    .modal-buttons {
+        flex-direction: column;
+        gap: 10px;
+    }
+    
+    .modal-btn {
+        width: 100%;
+        padding: 10px 20px;
+    }
+    
     .restart-button {
         padding: 12px 25px;
         font-size: 1.1em;
@@ -554,6 +658,16 @@ h1 {
     .info {
         font-size: 0.8em;
         padding: 10px;
+    }
+    
+    .game-controls {
+        flex-direction: column;
+        align-items: center;
+    }
+    
+    .control-button {
+        width: 100%;
+        max-width: 200px;
     }
     
     .restart-button {
