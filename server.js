@@ -1,640 +1,832 @@
-const express = require('express');
-const WebSocket = require('ws');
-const http = require('http');
-const path = require('path');
+const WebSocket = require("ws");
+const http = require("http");
+const express = require("express");
+const path = require("path");
+
+const app = express();
+const server = http.createServer(app);
+const wss = new WebSocket.Server({ server });
+
+// Обслуживание статических файлов из текущей директории
+app.use(express.static(__dirname));
+
+// Явно обрабатываем корневой путь
+app.get("/", (req, res) => {
+  res.sendFile(path.join(__dirname, "index.html"));
+});
+
+// Маршрут для проверки работы сервера
+app.get("/health", (req, res) => {
+  res.json({ status: "OK", message: "Checkers server is running" });
+});
 
 class CheckersGameServer {
-    constructor() {
-        this.app = express();
-        this.server = http.createServer(this.app);
-        this.wss = new WebSocket.Server({ server: this.server });
-        
-        this.players = [];
-        this.whitePlayer = null;
-        this.blackPlayer = null;
-        this.currentPlayer = 'white';
-        this.gameBoard = this.createInitialBoard();
-        this.gameActive = false;
-        
-        this.setupExpress();
-        this.setupWebSocket();
-    }
+  constructor() {
+    this.players = [];
+    this.currentPlayer = "white";
+    this.pieces = this.initializePieces();
+    this.gameState = "waiting";
+    this.winner = null;
+    this.drawOffer = null; // Для хранения предложения ничьи
+  }
 
-    setupExpress() {
-        this.app.use(express.static(path.join(__dirname)));
-        
-        this.app.get('/', (req, res) => {
-            res.sendFile(path.join(__dirname, 'index.html'));
-        });
-    }
+  initializePieces() {
+    const pieces = [];
 
-    setupWebSocket() {
-        this.wss.on('connection', (ws) => {
-            console.log('New player connected');
-            
-            ws.on('message', (message) => {
-                try {
-                    const data = JSON.parse(message);
-                    this.handleMessage(ws, data);
-                } catch (error) {
-                    console.error('Error parsing message:', error);
-                    ws.send(JSON.stringify({
-                        type: 'error',
-                        message: 'Invalid message format'
-                    }));
-                }
-            });
-
-            ws.on('close', () => {
-                console.log('Player disconnected');
-                this.handleDisconnection(ws);
-            });
-
-            // Отправляем текущее состояние новому игроку
-            this.sendGameState();
-        });
-    }
-
-    handleMessage(ws, data) {
-        switch (data.type) {
-            case 'join':
-                this.handleJoin(ws, data.nickname);
-                break;
-            case 'move':
-                this.handleMove(ws, data.from, data.to);
-                break;
-            case 'getValidMoves':
-                this.handleGetValidMoves(ws, data.row, data.col);
-                break;
-            case 'newGame':
-                this.handleNewGame(ws);
-                break;
-            case 'drawOffer':
-                this.handleDrawOffer(ws);
-                break;
-            case 'drawResponse':
-                this.handleDrawResponse(ws, data.accepted);
-                break;
+    // Черные шашки (верхняя часть)
+    for (let row = 0; row < 3; row++) {
+      for (let col = 0; col < 8; col++) {
+        if ((row + col) % 2 !== 0) {
+          pieces.push({ row, col, color: "black", isKing: false });
         }
+      }
     }
 
-    handleJoin(ws, nickname) {
-        // Проверяем, не подключен ли уже игрок с таким ником
-        const existingPlayer = this.players.find(player => 
-            player.nickname === nickname && player.ws.readyState === WebSocket.OPEN
+    // Белые шашки (нижняя часть)
+    for (let row = 5; row < 8; row++) {
+      for (let col = 0; col < 8; col++) {
+        if ((row + col) % 2 !== 0) {
+          pieces.push({ row, col, color: "white", isKing: false });
+        }
+      }
+    }
+
+    return pieces;
+  }
+
+  addPlayer(ws, username) {
+    if (this.players.length < 2) {
+      const color = this.players.length === 0 ? "white" : "black";
+      const player = { ws, color, username: username || "Игрок" };
+      this.players.push(player);
+
+      ws.send(
+        JSON.stringify({
+          type: "playerAssigned",
+          color: color,
+        })
+      );
+
+      console.log(
+        `Player ${player.username} joined as ${color}. Total players: ${this.players.length}`
+      );
+
+      // Отправляем информацию об игроках всем подключенным
+      this.sendPlayersInfo();
+
+      if (this.players.length === 2) {
+        this.startGame();
+      }
+
+      return color;
+    }
+    return null;
+  }
+
+  sendPlayersInfo() {
+    // Отправляем информацию об игроках всем подключенным
+    const playersInfo = this.players.map((player) => ({
+      username: player.username,
+      color: player.color,
+    }));
+
+    this.broadcast(
+      JSON.stringify({
+        type: "playersInfo",
+        data: playersInfo,
+      })
+    );
+  }
+
+  startGame() {
+    this.gameState = "playing";
+    this.currentPlayer = "white";
+    this.drawOffer = null; // Сбрасываем предложение ничьи
+    console.log("Game started! White moves first.");
+    this.broadcastGameState();
+  }
+
+  removePlayer(ws) {
+    const playerIndex = this.players.findIndex((player) => player.ws === ws);
+    if (playerIndex !== -1) {
+      const player = this.players[playerIndex];
+      this.players.splice(playerIndex, 1);
+      console.log(
+        `Player ${player.username} (${player.color}) disconnected. Remaining players: ${this.players.length}`
+      );
+
+      if (this.gameState === "playing") {
+        this.gameState = "finished";
+        this.winner = this.players[0] ? this.players[0].color : null;
+        this.broadcastGameOver();
+      }
+    }
+  }
+
+  handleMove(moveData, ws) {
+    const player = this.players.find((p) => p.ws === ws);
+    if (!player) {
+      ws.send(
+        JSON.stringify({
+          type: "error",
+          message: "Игрок не найден",
+        })
+      );
+      return;
+    }
+
+    if (player.color !== this.currentPlayer) {
+      ws.send(
+        JSON.stringify({
+          type: "error",
+          message: "Сейчас не ваш ход",
+        })
+      );
+      return;
+    }
+
+    const validation = this.validateMove(moveData);
+    if (validation.valid) {
+      this.executeMove(moveData, validation);
+      this.checkForKing(moveData.toRow, moveData.toCol);
+
+      // Сохраняем текущего игрока ДО смены хода
+      const previousPlayer = this.currentPlayer;
+
+      if (
+        validation.capturedPiece &&
+        this.canContinueCapture(moveData.toRow, moveData.toCol)
+      ) {
+        console.log(`Player ${player.username} can continue capturing`);
+        this.broadcastGameState();
+      } else {
+        this.switchPlayer();
+        this.broadcastGameState();
+      }
+
+      // Отправляем информацию о ходе всем игрокам с указанием нового текущего игрока
+      this.broadcast(
+        JSON.stringify({
+          type: "moveMade",
+          data: {
+            fromRow: moveData.fromRow,
+            fromCol: moveData.fromCol,
+            toRow: moveData.toRow,
+            toCol: moveData.toCol,
+            player: player.color,
+            username: player.username,
+            currentPlayer: this.currentPlayer, // Добавляем информацию о том, чей ход теперь
+          },
+        })
+      );
+
+      this.checkGameOver();
+
+      ws.send(
+        JSON.stringify({
+          type: "moveResult",
+          valid: true,
+          gameState: this.getGameState(),
+        })
+      );
+    } else {
+      ws.send(
+        JSON.stringify({
+          type: "moveResult",
+          valid: false,
+          message: validation.message,
+        })
+      );
+    }
+  }
+
+  // Обработка предложения ничьи
+  handleDrawOffer(ws, fromUsername) {
+    const player = this.players.find((p) => p.ws === ws);
+    if (!player) return;
+
+    // Проверяем, что игра идет
+    if (this.gameState !== "playing") {
+      ws.send(
+        JSON.stringify({
+          type: "error",
+          message: "Нельзя предложить ничью вне игры",
+        })
+      );
+      return;
+    }
+
+    // Находим противника
+    const opponent = this.players.find((p) => p.ws !== ws);
+    if (!opponent) return;
+
+    console.log(`Player ${fromUsername} offered draw to ${opponent.username}`);
+
+    // Сохраняем предложение ничьи
+    this.drawOffer = {
+      from: player.username,
+      fromColor: player.color,
+      to: opponent.username,
+    };
+
+    // Отправляем предложение ничьи противнику
+    opponent.ws.send(
+      JSON.stringify({
+        type: "drawOfferReceived",
+        from: fromUsername,
+      })
+    );
+
+    // Уведомляем отправителя
+    ws.send(
+      JSON.stringify({
+        type: "drawOfferSent",
+        to: opponent.username,
+      })
+    );
+  }
+
+  // Обработка ответа на предложение ничьи
+  handleDrawResponse(ws, accepted) {
+    const player = this.players.find((p) => p.ws === ws);
+    if (!player) return;
+
+    // Проверяем, что есть активное предложение ничьи
+    if (!this.drawOffer) {
+      ws.send(
+        JSON.stringify({
+          type: "error",
+          message: "Нет активного предложения ничьи",
+        })
+      );
+      return;
+    }
+
+    // Проверяем, что это ответ от правильного игрока
+    if (this.drawOffer.to !== player.username) {
+      ws.send(
+        JSON.stringify({
+          type: "error",
+          message: "Вы не являетесь получателем предложения ничьи",
+        })
+      );
+      return;
+    }
+
+    if (accepted) {
+      console.log(
+        `Player ${player.username} accepted draw offer from ${this.drawOffer.from}`
+      );
+
+      // Завершаем игру ничьей
+      this.endGame(null); // null означает ничью
+
+      // Уведомляем обоих игроков
+      this.broadcast(
+        JSON.stringify({
+          type: "drawAccepted",
+          by: player.username,
+        })
+      );
+    } else {
+      console.log(
+        `Player ${player.username} rejected draw offer from ${this.drawOffer.from}`
+      );
+
+      // Уведомляем другого игрока об отказе
+      const opponent = this.players.find(
+        (p) => p.username === this.drawOffer.from
+      );
+      if (opponent) {
+        opponent.ws.send(
+          JSON.stringify({
+            type: "drawRejected",
+            by: player.username,
+          })
         );
-        
-        if (existingPlayer) {
-            ws.send(JSON.stringify({
-                type: 'error',
-                message: 'Игрок с таким ником уже подключен'
-            }));
-            return;
-        }
+      }
 
-        // Удаляем старые подключения этого игрока
-        this.players = this.players.filter(player => 
-            player.nickname !== nickname || player.ws.readyState !== WebSocket.OPEN
+      // Сбрасываем предложение ничьи
+      this.drawOffer = null;
+    }
+  }
+
+  validateMove(moveData) {
+    const { fromRow, fromCol, toRow, toCol } = moveData;
+
+    if (
+      !this.isValidPosition(fromRow, fromCol) ||
+      !this.isValidPosition(toRow, toCol)
+    ) {
+      return { valid: false, message: "Неверные координаты" };
+    }
+
+    const piece = this.getPiece(fromRow, fromCol);
+    if (!piece) {
+      return { valid: false, message: "Шашка не найдена" };
+    }
+
+    if (piece.color !== this.currentPlayer) {
+      return { valid: false, message: "Это не ваша шашка" };
+    }
+
+    if (this.getPiece(toRow, toCol)) {
+      return { valid: false, message: "Целевая клетка занята" };
+    }
+
+    if (Math.abs(toRow - fromRow) !== Math.abs(toCol - fromCol)) {
+      return { valid: false, message: "Ход должен быть по диагонали" };
+    }
+
+    const rowDiff = toRow - fromRow;
+
+    // Проверка обязательных взятий
+    const forcedCaptures = this.getForcedCaptures(this.currentPlayer);
+    if (forcedCaptures.length > 0) {
+      const isCaptureMove = Math.abs(rowDiff) >= 2; // Для дамки ход может быть больше 2 клеток
+      if (!isCaptureMove) {
+        return { valid: false, message: "Обязательно брать шашку!" };
+      }
+
+      // Для дамки проверяем, что на пути есть ровно одна вражеская шашки
+      if (piece.isKing) {
+        const captureInfo = this.findKingCapture(
+          fromRow,
+          fromCol,
+          toRow,
+          toCol
         );
-
-        const player = {
-            ws: ws,
-            nickname: nickname,
-            color: null
-        };
-
-        this.players.push(player);
-
-        // Назначаем цвет игроку
-        if (!this.whitePlayer) {
-            this.whitePlayer = player;
-            player.color = 'white';
-        } else if (!this.blackPlayer) {
-            this.blackPlayer = player;
-            player.color = 'black';
-        } else {
-            // Все места заняты, игрок становится наблюдателем
-            player.color = 'observer';
+        if (!captureInfo) {
+          return { valid: false, message: "Неверное взятие для дамки" };
         }
 
-        // Отправляем игроку его цвет
-        ws.send(JSON.stringify({
-            type: 'playerAssigned',
-            color: player.color
-        }));
-
-        console.log(`Player ${nickname} joined as ${player.color}`);
-
-        // Если оба игрока подключены, начинаем игру
-        if (this.whitePlayer && this.blackPlayer && !this.gameActive) {
-            this.gameActive = true;
-            this.currentPlayer = 'white';
-            this.gameBoard = this.createInitialBoard();
-        }
-
-        this.sendGameState();
-    }
-
-    handleDisconnection(ws) {
-        const disconnectedPlayer = this.players.find(player => player.ws === ws);
-        
-        if (disconnectedPlayer) {
-            console.log(`Player ${disconnectedPlayer.nickname} disconnected`);
-            
-            if (disconnectedPlayer === this.whitePlayer) {
-                this.whitePlayer = null;
-            } else if (disconnectedPlayer === this.blackPlayer) {
-                this.blackPlayer = null;
-            }
-            
-            this.players = this.players.filter(player => player.ws !== ws);
-            
-            // Если один из игроков отключился, завершаем игру
-            if (this.gameActive && (disconnectedPlayer === this.whitePlayer || disconnectedPlayer === this.blackPlayer)) {
-                this.gameActive = false;
-                this.broadcast(JSON.stringify({
-                    type: 'gameOver',
-                    winner: disconnectedPlayer.color === 'white' ? 'black' : 'white',
-                    reason: 'disconnection'
-                }));
-            }
-            
-            this.sendGameState();
-        }
-    }
-
-    createInitialBoard() {
-        const board = Array(8).fill().map(() => Array(8).fill(null));
-        
-        // Расставляем чёрные шашки
-        for (let row = 0; row < 3; row++) {
-            for (let col = 0; col < 8; col++) {
-                if ((row + col) % 2 !== 0) {
-                    board[row][col] = { color: 'black', king: false };
-                }
-            }
-        }
-        
-        // Расставляем белые шашки
-        for (let row = 5; row < 8; row++) {
-            for (let col = 0; col < 8; col++) {
-                if ((row + col) % 2 !== 0) {
-                    board[row][col] = { color: 'white', king: false };
-                }
-            }
-        }
-        
-        return board;
-    }
-
-    handleMove(ws, from, to) {
-        if (!this.gameActive) return;
-        
-        const player = this.players.find(p => p.ws === ws);
-        if (!player || player.color !== this.currentPlayer) return;
-        
-        if (this.validateMove(from, to, player.color)) {
-            this.executeMove(from, to);
-            
-            // Проверяем превращение в дамку
-            this.checkForKing(to);
-            
-            // Проверяем окончание игры
-            const winner = this.checkWinner();
-            if (winner) {
-                this.broadcast(JSON.stringify({
-                    type: 'gameOver',
-                    winner: winner,
-                    reason: 'checkmate'
-                }));
-                this.gameActive = false;
-            } else {
-                // Передаём ход следующему игроку
-                this.currentPlayer = this.currentPlayer === 'white' ? 'black' : 'white';
-                
-                // Отправляем информацию о ходе со стрелкой направления
-                this.broadcast(JSON.stringify({
-                    type: 'moveMade',
-                    board: this.gameBoard,
-                    currentPlayer: this.currentPlayer,
-                    from: from,
-                    to: to
-                }));
-            }
-        }
-    }
-
-    validateMove(from, to, playerColor) {
-        // Проверяем границы доски
-        if (from.row < 0 || from.row >= 8 || from.col < 0 || from.col >= 8 ||
-            to.row < 0 || to.row >= 8 || to.col < 0 || to.col >= 8) {
-            return false;
-        }
-        
-        const piece = this.gameBoard[from.row][from.col];
-        if (!piece || piece.color !== playerColor) return false;
-        
-        // Проверяем, что целевая клетка пуста
-        if (this.gameBoard[to.row][to.col]) return false;
-        
-        // Проверяем обязательное взятие
-        const mandatoryCaptures = this.getMandatoryCaptures(playerColor);
-        if (mandatoryCaptures.length > 0) {
-            const isCaptureMove = Math.abs(from.row - to.row) === 2 && Math.abs(from.col - to.col) === 2;
-            if (!isCaptureMove) return false;
-            
-            // Проверяем, что это одно из обязательных взятий
-            const isValidCapture = mandatoryCaptures.some(capture =>
-                capture.from.row === from.row && capture.from.col === from.col &&
-                capture.to.row === to.row && capture.to.col === to.col
-            );
-            if (!isValidCapture) return false;
-        }
-        
-        const rowDiff = to.row - from.row;
-        const colDiff = to.col - from.col;
-        
-        // Проверяем направление движения для простых шашек
-        if (!piece.king) {
-            if (piece.color === 'white' && rowDiff >= 0) return false;
-            if (piece.color === 'black' && rowDiff <= 0) return false;
-        }
-        
-        // Проверяем диагональное движение
-        if (Math.abs(rowDiff) !== Math.abs(colDiff)) return false;
-        
-        // Проверяем обычный ход (без взятия)
-        if (Math.abs(rowDiff) === 1) {
-            return mandatoryCaptures.length === 0;
-        }
-        
-        // Проверяем взятие
-        if (Math.abs(rowDiff) === 2) {
-            const captureRow = from.row + rowDiff / 2;
-            const captureCol = from.col + colDiff / 2;
-            const capturedPiece = this.gameBoard[captureRow][captureCol];
-            
-            return capturedPiece && capturedPiece.color !== playerColor;
-        }
-        
-        // Для дамок проверяем путь
-        if (piece.king && Math.abs(rowDiff) > 2) {
-            return this.validateKingMove(from, to, playerColor);
-        }
-        
-        return false;
-    }
-
-    validateKingMove(from, to, playerColor) {
-        const rowStep = to.row > from.row ? 1 : -1;
-        const colStep = to.col > from.col ? 1 : -1;
-        
-        let currentRow = from.row + rowStep;
-        let currentCol = from.col + colStep;
-        let captureFound = false;
-        
-        while (currentRow !== to.row && currentCol !== to.col) {
-            const piece = this.gameBoard[currentRow][currentCol];
-            
-            if (piece) {
-                if (piece.color === playerColor) return false;
-                if (captureFound) return false; // Нельзя брать больше одной шашки
-                captureFound = true;
-                // Пропускаем клетку с взятой шашкой
-                currentRow += rowStep;
-                currentCol += colStep;
-                continue;
-            }
-            
-            currentRow += rowStep;
-            currentCol += colStep;
-        }
-        
-        return true;
-    }
-
-    getMandatoryCaptures(playerColor) {
-        const captures = [];
-        
-        for (let row = 0; row < 8; row++) {
-            for (let col = 0; col < 8; col++) {
-                const piece = this.gameBoard[row][col];
-                if (piece && piece.color === playerColor) {
-                    const pieceCaptures = this.getPossibleCaptures(row, col);
-                    captures.push(...pieceCaptures);
-                }
-            }
-        }
-        
-        return captures;
-    }
-
-    getPossibleCaptures(row, col) {
-        const piece = this.gameBoard[row][col];
-        if (!piece) return [];
-        
-        const captures = [];
-        const directions = piece.king ? 
-            [[-1, -1], [-1, 1], [1, -1], [1, 1]] :
-            piece.color === 'white' ? 
-                [[-1, -1], [-1, 1]] : 
-                [[1, -1], [1, 1]];
-        
-        for (const [rowDir, colDir] of directions) {
-            if (piece.king) {
-                // Логика взятий для дамки
-                let currentRow = row + rowDir;
-                let currentCol = col + colDir;
-                let captureFound = false;
-                
-                while (currentRow >= 0 && currentRow < 8 && currentCol >= 0 && currentCol < 8) {
-                    const targetPiece = this.gameBoard[currentRow][currentCol];
-                    
-                    if (targetPiece) {
-                        if (targetPiece.color === piece.color) break;
-                        if (captureFound) break;
-                        
-                        captureFound = true;
-                        // Проверяем клетку после шашки противника
-                        const nextRow = currentRow + rowDir;
-                        const nextCol = currentCol + colDir;
-                        
-                        if (nextRow >= 0 && nextRow < 8 && nextCol >= 0 && nextCol < 8 &&
-                            !this.gameBoard[nextRow][nextCol]) {
-                            captures.push({
-                                from: { row, col },
-                                to: { row: nextRow, col: nextCol }
-                            });
-                        }
-                        break;
-                    }
-                    
-                    currentRow += rowDir;
-                    currentCol += colDir;
-                }
-            } else {
-                // Логика взятий для простой шашки
-                const captureRow = row + rowDir * 2;
-                const captureCol = col + colDir * 2;
-                
-                if (captureRow >= 0 && captureRow < 8 && captureCol >= 0 && captureCol < 8) {
-                    const middlePiece = this.gameBoard[row + rowDir][col + colDir];
-                    const targetCell = this.gameBoard[captureRow][captureCol];
-                    
-                    if (middlePiece && middlePiece.color !== piece.color && !targetCell) {
-                        captures.push({
-                            from: { row, col },
-                            to: { row: captureRow, col: captureCol }
-                        });
-                    }
-                }
-            }
-        }
-        
-        return captures;
-    }
-
-    executeMove(from, to) {
-        const piece = this.gameBoard[from.row][from.col];
-        this.gameBoard[from.row][from.col] = null;
-        this.gameBoard[to.row][to.col] = piece;
-        
-        // Удаляем взятую шашку
-        const rowDiff = to.row - from.row;
-        const colDiff = to.col - from.col;
-        
-        if (Math.abs(rowDiff) === 2) {
-            const captureRow = from.row + rowDiff / 2;
-            const captureCol = from.col + colDiff / 2;
-            this.gameBoard[captureRow][captureCol] = null;
-        } else if (Math.abs(rowDiff) > 2 && piece.king) {
-            // Удаление шашки при взятии дамкой
-            const rowStep = rowDiff > 0 ? 1 : -1;
-            const colStep = colDiff > 0 ? 1 : -1;
-            
-            let currentRow = from.row + rowStep;
-            let currentCol = from.col + colStep;
-            
-            while (currentRow !== to.row && currentCol !== to.col) {
-                if (this.gameBoard[currentRow][currentCol]) {
-                    this.gameBoard[currentRow][currentCol] = null;
-                    break;
-                }
-                currentRow += rowStep;
-                currentCol += colStep;
-            }
-        }
-    }
-
-    checkForKing(position) {
-        const piece = this.gameBoard[position.row][position.col];
-        if (!piece) return;
-        
-        if ((piece.color === 'white' && position.row === 0) ||
-            (piece.color === 'black' && position.row === 7)) {
-            piece.king = true;
-        }
-    }
-
-    checkWinner() {
-        let whitePieces = 0;
-        let blackPieces = 0;
-        let whiteHasMoves = false;
-        let blackHasMoves = false;
-        
-        for (let row = 0; row < 8; row++) {
-            for (let col = 0; col < 8; col++) {
-                const piece = this.gameBoard[row][col];
-                if (piece) {
-                    if (piece.color === 'white') {
-                        whitePieces++;
-                        if (!whiteHasMoves) {
-                            whiteHasMoves = this.hasValidMoves(row, col);
-                        }
-                    } else {
-                        blackPieces++;
-                        if (!blackHasMoves) {
-                            blackHasMoves = this.hasValidMoves(row, col);
-                        }
-                    }
-                }
-            }
-        }
-        
-        if (whitePieces === 0 || !whiteHasMoves) return 'black';
-        if (blackPieces === 0 || !blackHasMoves) return 'white';
-        return null;
-    }
-
-    hasValidMoves(row, col) {
-        const piece = this.gameBoard[row][col];
-        if (!piece) return false;
-        
-        // Проверяем обычные ходы
-        const directions = piece.king ? 
-            [[-1, -1], [-1, 1], [1, -1], [1, 1]] :
-            piece.color === 'white' ? 
-                [[-1, -1], [-1, 1]] : 
-                [[1, -1], [1, 1]];
-        
-        for (const [rowDir, colDir] of directions) {
-            const newRow = row + rowDir;
-            const newCol = col + colDir;
-            
-            if (newRow >= 0 && newRow < 8 && newCol >= 0 && newCol < 8) {
-                if (!this.gameBoard[newRow][newCol]) {
-                    return true;
-                }
-            }
-            
-            // Проверяем взятия
-            const captureRow = row + rowDir * 2;
-            const captureCol = col + colDir * 2;
-            
-            if (captureRow >= 0 && captureRow < 8 && captureCol >= 0 && captureCol < 8) {
-                const middlePiece = this.gameBoard[row + rowDir][col + colDir];
-                const targetCell = this.gameBoard[captureRow][captureCol];
-                
-                if (middlePiece && middlePiece.color !== piece.color && !targetCell) {
-                    return true;
-                }
-            }
-        }
-        
-        return false;
-    }
-
-    handleGetValidMoves(ws, row, col) {
-        const player = this.players.find(p => p.ws === ws);
-        if (!player) return;
-        
-        const piece = this.gameBoard[row][col];
-        if (!piece || piece.color !== player.color) return;
-        
-        const validMoves = this.getValidMoves(row, col);
-        ws.send(JSON.stringify({
-            type: 'validMoves',
-            moves: validMoves
-        }));
-    }
-
-    getValidMoves(row, col) {
-        const mandatoryCaptures = this.getMandatoryCaptures(this.gameBoard[row][col].color);
-        
-        if (mandatoryCaptures.length > 0) {
-            return mandatoryCaptures
-                .filter(capture => capture.from.row === row && capture.from.col === col)
-                .map(capture => ({ row: capture.to.row, col: capture.to.col }));
-        }
-        
-        const moves = [];
-        const piece = this.gameBoard[row][col];
-        const directions = piece.king ? 
-            [[-1, -1], [-1, 1], [1, -1], [1, 1]] :
-            piece.color === 'white' ? 
-                [[-1, -1], [-1, 1]] : 
-                [[1, -1], [1, 1]];
-        
-        for (const [rowDir, colDir] of directions) {
-            const newRow = row + rowDir;
-            const newCol = col + colDir;
-            
-            if (newRow >= 0 && newRow < 8 && newCol >= 0 && newCol < 8) {
-                if (!this.gameBoard[newRow][newCol]) {
-                    moves.push({ row: newRow, col: newCol });
-                }
-            }
-        }
-        
-        return moves;
-    }
-
-    handleNewGame(ws) {
-        const player = this.players.find(p => p.ws === ws);
-        if (!player) return;
-        
-        // Сбрасываем игру
-        this.gameBoard = this.createInitialBoard();
-        this.currentPlayer = 'white';
-        this.gameActive = true;
-        
-        this.broadcast(JSON.stringify({
-            type: 'gameState',
-            board: this.gameBoard,
-            currentPlayer: this.currentPlayer,
-            players: this.getPlayersInfo()
-        }));
-    }
-
-    handleDrawOffer(ws) {
-        const player = this.players.find(p => p.ws === ws);
-        if (!player || !this.gameActive) return;
-        
-        // Отправляем предложение ничьи другому игроку
-        const opponent = player.color === 'white' ? this.blackPlayer : this.whitePlayer;
-        if (opponent) {
-            opponent.ws.send(JSON.stringify({
-                type: 'drawOfferReceived',
-                from: player.nickname
-            }));
-        }
-    }
-
-    handleDrawResponse(ws, accepted) {
-        if (accepted) {
-            this.broadcast(JSON.stringify({
-                type: 'gameOver',
-                winner: 'draw',
-                reason: 'agreement'
-            }));
-            this.gameActive = false;
-        } else {
-            // Уведомляем о отклонении предложения
-            const player = this.players.find(p => p.ws === ws);
-            const opponent = player.color === 'white' ? this.blackPlayer : this.whitePlayer;
-            if (opponent) {
-                opponent.ws.send(JSON.stringify({
-                    type: 'drawResponse',
-                    accepted: false
-                }));
-            }
-        }
-    }
-
-    // НОВЫЙ МЕТОД: Получение информации об игроках для отправки клиентам
-    getPlayersInfo() {
         return {
-            white: this.whitePlayer ? this.whitePlayer.nickname : null,
-            black: this.blackPlayer ? this.blackPlayer.nickname : null
+          valid: true,
+          capturedPiece: captureInfo,
         };
+      } else {
+        // Для простой шашки
+        const captureRow = fromRow + rowDiff / 2;
+        const captureCol = fromCol + (toCol - fromCol) / 2;
+        const capturedPiece = this.getPiece(captureRow, captureCol);
+
+        if (!capturedPiece || capturedPiece.color === piece.color) {
+          return { valid: false, message: "Неверное взятие" };
+        }
+
+        return {
+          valid: true,
+          capturedPiece: { row: captureRow, col: captureCol },
+        };
+      }
     }
 
-    sendGameState() {
-        const gameState = {
-            type: 'gameState',
-            board: this.gameBoard,
-            currentPlayer: this.currentPlayer,
-            players: this.getPlayersInfo()  // Добавлена информация об игроках
-        };
-        
-        this.broadcast(JSON.stringify(gameState));
+    // Проверка обычного хода для простой шашки
+    if (!piece.isKing) {
+      if (Math.abs(rowDiff) !== 1) {
+        return { valid: false, message: "Простая шашка ходит на одну клетку" };
+      }
+      // ПРОВЕРКА НАПРАВЛЕНИЯ: белые - вверх, черные - вниз
+      const direction = piece.color === "white" ? -1 : 1;
+      if (rowDiff !== direction) {
+        return { valid: false, message: "Простая шашка ходит только вперед" };
+      }
     }
 
-    broadcast(message) {
-        this.wss.clients.forEach(client => {
-            if (client.readyState === WebSocket.OPEN) {
-                client.send(message);
+    // Для дамки проверяем свободный путь
+    if (piece.isKing && !this.isPathClear(fromRow, fromCol, toRow, toCol)) {
+      return { valid: false, message: "Путь для дамки занят" };
+    }
+
+    return { valid: true };
+  }
+
+  findKingCapture(fromRow, fromCol, toRow, toCol) {
+    const rowStep = toRow > fromRow ? 1 : -1;
+    const colStep = toCol > fromCol ? 1 : -1;
+
+    let currentRow = fromRow + rowStep;
+    let currentCol = fromCol + colStep;
+    let foundOpponent = null;
+
+    while (currentRow !== toRow || currentCol !== toCol) {
+      const piece = this.getPiece(currentRow, currentCol);
+      if (piece) {
+        if (piece.color !== this.currentPlayer && !foundOpponent) {
+          // Нашли вражескую шашку
+          foundOpponent = { row: currentRow, col: currentCol };
+        } else {
+          // Нашли вторую шашку - невалидный ход
+          return null;
+        }
+      }
+      currentRow += rowStep;
+      currentCol += colStep;
+    }
+
+    return foundOpponent;
+  }
+
+  executeMove(moveData, validation) {
+    const { fromRow, fromCol, toRow, toCol } = moveData;
+    const piece = this.getPiece(fromRow, fromCol);
+
+    piece.row = toRow;
+    piece.col = toCol;
+
+    if (validation.capturedPiece) {
+      this.removePiece(
+        validation.capturedPiece.row,
+        validation.capturedPiece.col
+      );
+    }
+  }
+
+  checkForKing(row, col) {
+    const piece = this.getPiece(row, col);
+    if (!piece.isKing) {
+      if (
+        (piece.color === "white" && row === 0) ||
+        (piece.color === "black" && row === 7)
+      ) {
+        piece.isKing = true;
+        console.log(`Piece at ${row},${col} became a king!`);
+      }
+    }
+  }
+
+  canContinueCapture(row, col) {
+    const piece = this.getPiece(row, col);
+    const captures = this.getPossibleCaptures(piece);
+    return captures.length > 0;
+  }
+
+  getForcedCaptures(color) {
+    const captures = [];
+    this.pieces.forEach((piece) => {
+      if (piece.color === color) {
+        captures.push(...this.getPossibleCaptures(piece));
+      }
+    });
+    return captures;
+  }
+
+  getPossibleCaptures(piece) {
+    const captures = [];
+
+    if (piece.isKing) {
+      // ЛОГИКА ДЛЯ ДАМКИ - бить по всей длине
+      for (let rowDir of [-1, 1]) {
+        for (let colDir of [-1, 1]) {
+          let foundOpponent = false;
+          let captureRow, captureCol;
+
+          // Проверяем все клетки по диагонали
+          for (let distance = 1; distance < 8; distance++) {
+            const checkRow = piece.row + rowDir * distance;
+            const checkCol = piece.col + colDir * distance;
+
+            // Если вышли за границы - прерываем
+            if (!this.isValidPosition(checkRow, checkCol)) break;
+
+            const targetPiece = this.getPiece(checkRow, checkCol);
+
+            if (targetPiece) {
+              if (targetPiece.color !== piece.color && !foundOpponent) {
+                // Нашли вражескую шашку для взятия
+                foundOpponent = true;
+                captureRow = checkRow;
+                captureCol = checkCol;
+              } else {
+                // Нашли свою шашку или вторую вражескую - прерываем
+                break;
+              }
+            } else if (foundOpponent) {
+              // Нашли свободную клетку после вражеской шашки - добавляем ход
+              captures.push({
+                fromRow: piece.row,
+                fromCol: piece.col,
+                toRow: checkRow,
+                toCol: checkCol,
+                captureRow: captureRow,
+                captureCol: captureCol,
+              });
             }
+          }
+        }
+      }
+    } else {
+      // ЛОГИКА ДЛЯ ПРОСТОЙ ШАШКИ - бить в ЛЮБОМ направлении
+      const directions = [-1, 1]; // Вперед и назад для взятия
+
+      directions.forEach((rowDir) => {
+        [-1, 1].forEach((colDir) => {
+          const captureRow = piece.row + rowDir;
+          const captureCol = piece.col + colDir;
+          const landRow = piece.row + 2 * rowDir;
+          const landCol = piece.col + 2 * colDir;
+
+          if (
+            this.isValidPosition(captureRow, captureCol) &&
+            this.isValidPosition(landRow, landCol)
+          ) {
+            const capturedPiece = this.getPiece(captureRow, captureCol);
+            const landingCell = this.getPiece(landRow, landCol);
+
+            if (
+              capturedPiece &&
+              capturedPiece.color !== piece.color &&
+              !landingCell
+            ) {
+              captures.push({
+                fromRow: piece.row,
+                fromCol: piece.col,
+                toRow: landRow,
+                toCol: landCol,
+                captureRow: captureRow,
+                captureCol: captureCol,
+              });
+            }
+          }
         });
+      });
     }
 
-    start(port = process.env.PORT || 3000) {
-        this.server.listen(port, () => {
-            console.log(`Server running on port ${port}`);
-        });
+    return captures;
+  }
+
+  getPiece(row, col) {
+    return this.pieces.find((p) => p.row === row && p.col === col);
+  }
+
+  removePiece(row, col) {
+    const index = this.pieces.findIndex((p) => p.row === row && p.col === col);
+    if (index !== -1) {
+      this.pieces.splice(index, 1);
     }
+  }
+
+  isValidPosition(row, col) {
+    return row >= 0 && row < 8 && col >= 0 && col < 8;
+  }
+
+  isPathClear(fromRow, fromCol, toRow, toCol) {
+    const rowStep = toRow > fromRow ? 1 : -1;
+    const colStep = toCol > fromCol ? 1 : -1;
+
+    let currentRow = fromRow + rowStep;
+    let currentCol = fromCol + colStep;
+
+    // Проверяем все клетки до целевой (исключая целевую)
+    while (currentRow !== toRow || currentCol !== toCol) {
+      if (this.getPiece(currentRow, currentCol)) {
+        return false;
+      }
+      currentRow += rowStep;
+      currentCol += colStep;
+    }
+
+    return true;
+  }
+
+  switchPlayer() {
+    this.currentPlayer = this.currentPlayer === "white" ? "black" : "white";
+    console.log(`Switched to ${this.currentPlayer}'s turn`);
+  }
+
+  checkGameOver() {
+    const whitePieces = this.pieces.filter((p) => p.color === "white");
+    const blackPieces = this.pieces.filter((p) => p.color === "black");
+
+    if (whitePieces.length === 0) {
+      this.endGame("black");
+    } else if (blackPieces.length === 0) {
+      this.endGame("white");
+    } else if (!this.canPlayerMove(this.currentPlayer)) {
+      this.endGame(this.currentPlayer === "white" ? "black" : "white");
+    }
+  }
+
+  canPlayerMove(color) {
+    return this.pieces.some((piece) => {
+      if (piece.color === color) {
+        const moves = this.getPossibleMoves(piece);
+        return moves.length > 0;
+      }
+      return false;
+    });
+  }
+
+  getPossibleMoves(piece) {
+    // Сначала проверяем обязательные взятия
+    const captures = this.getPossibleCaptures(piece);
+    if (captures.length > 0) {
+      return captures;
+    }
+
+    // Затем обычные ходы
+    const moves = [];
+
+    if (piece.isKing) {
+      // Дамка может ходить на несколько клеток в любом направлении
+      const directions = [-1, 1];
+
+      directions.forEach((rowDir) => {
+        [-1, 1].forEach((colDir) => {
+          let currentRow = piece.row + rowDir;
+          let currentCol = piece.col + colDir;
+
+          while (this.isValidPosition(currentRow, currentCol)) {
+            if (!this.getPiece(currentRow, currentCol)) {
+              moves.push({
+                fromRow: piece.row,
+                fromCol: piece.col,
+                toRow: currentRow,
+                toCol: currentCol,
+              });
+              currentRow += rowDir;
+              currentCol += colDir;
+            } else {
+              break;
+            }
+          }
+        });
+      });
+    } else {
+      // ПРОСТЫЕ ШАШКИ - ходят только ВПЕРЕД
+      const direction = piece.color === "white" ? -1 : 1; // Белые - вверх, черные - вниз
+
+      // Проверяем ходы вперед по диагонали
+      [-1, 1].forEach((colDir) => {
+        const newRow = piece.row + direction;
+        const newCol = piece.col + colDir;
+
+        if (
+          this.isValidPosition(newRow, newCol) &&
+          !this.getPiece(newRow, newCol)
+        ) {
+          moves.push({
+            fromRow: piece.row,
+            fromCol: piece.col,
+            toRow: newRow,
+            toCol: newCol,
+          });
+        }
+      });
+    }
+
+    return moves;
+  }
+
+  endGame(winner) {
+    this.gameState = "finished";
+    this.winner = winner;
+    this.drawOffer = null; // Сбрасываем предложение ничьи
+
+    if (winner === null) {
+      console.log("Game ended in a draw!");
+      this.broadcast(
+        JSON.stringify({
+          type: "gameOver",
+          winner: null,
+          result: "draw",
+        })
+      );
+    } else {
+      const winnerPlayer = this.players.find((p) => p.color === winner);
+      const winnerName = winnerPlayer ? winnerPlayer.username : winner;
+      console.log(`Game over! Winner: ${winnerName} (${winner})`);
+      this.broadcast(
+        JSON.stringify({
+          type: "gameOver",
+          winner: winner,
+          result: "win",
+        })
+      );
+    }
+  }
+
+  broadcastGameState() {
+    const gameState = {
+      type: "gameState",
+      data: this.getGameState(),
+    };
+
+    this.broadcast(JSON.stringify(gameState));
+  }
+
+  broadcastGameOver() {
+    // Этот метод теперь используется в endGame
+  }
+
+  broadcast(message) {
+    this.players.forEach((player) => {
+      if (player.ws.readyState === WebSocket.OPEN) {
+        player.ws.send(message);
+      }
+    });
+  }
+
+  getGameState() {
+    return {
+      pieces: [...this.pieces],
+      currentPlayer: this.currentPlayer,
+      gameState: this.gameState,
+    };
+  }
 }
 
-// Запуск сервера
-const gameServer = new CheckersGameServer();
-gameServer.start();
+const game = new CheckersGameServer();
+
+wss.on("connection", (ws, req) => {
+  console.log("New WebSocket connection");
+
+  let playerUsername = "Игрок"; // Значение по умолчанию
+
+  ws.on("error", (error) => {
+    console.error("WebSocket error:", error);
+  });
+
+  ws.on("message", (message) => {
+    try {
+      const data = JSON.parse(message);
+
+      switch (data.type) {
+        case "join":
+          // Обрабатываем подключение с ником
+          playerUsername = data.username || "Игрок";
+          const playerColor = game.addPlayer(ws, playerUsername);
+
+          if (playerColor === null) {
+            ws.send(
+              JSON.stringify({
+                type: "error",
+                message: "Игра уже заполнена. Попробуйте позже.",
+              })
+            );
+            ws.close();
+            return;
+          }
+
+          // Отправляем текущее состояние игры
+          ws.send(
+            JSON.stringify({
+              type: "gameState",
+              data: game.getGameState(),
+            })
+          );
+          break;
+
+        case "move":
+          game.handleMove(data.data, ws);
+          break;
+
+        case "drawOffer":
+          game.handleDrawOffer(ws, data.from);
+          break;
+
+        case "drawResponse":
+          game.handleDrawResponse(ws, data.accepted);
+          break;
+
+        case "ping":
+          ws.send(JSON.stringify({ type: "pong" }));
+          break;
+
+        case "restart":
+          console.log("Player requested restart");
+          break;
+
+        default:
+          console.log("Unknown message type:", data.type);
+      }
+    } catch (error) {
+      console.error("Error parsing message:", error);
+      ws.send(
+        JSON.stringify({
+          type: "error",
+          message: "Неверный формат сообщения",
+        })
+      );
+    }
+  });
+
+  ws.on("close", () => {
+    console.log(`WebSocket connection closed for ${playerUsername}`);
+    game.removePlayer(ws);
+  });
+});
+
+process.on("SIGTERM", () => {
+  console.log("Received SIGTERM, shutting down gracefully");
+  server.close(() => {
+    console.log("Server closed");
+    process.exit(0);
+  });
+});
+
+const PORT = process.env.PORT || 3000;
+server.listen(PORT, "0.0.0.0", () => {
+  console.log(`Server running on port ${PORT}`);
+  console.log(`Health check available at http://localhost:${PORT}/health`);
+});
