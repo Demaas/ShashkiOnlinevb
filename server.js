@@ -136,18 +136,8 @@ class CheckersGameServer {
             this.executeMove(moveData, validation);
             this.checkForKing(moveData.toRow, moveData.toCol);
             
-            // Отправляем информацию о ходе всем игрокам
-            this.broadcast(JSON.stringify({
-                type: 'moveMade',
-                data: {
-                    fromRow: moveData.fromRow,
-                    fromCol: moveData.fromCol,
-                    toRow: moveData.toRow,
-                    toCol: moveData.toCol,
-                    player: player.color,
-                    username: player.username
-                }
-            }));
+            // Сохраняем текущего игрока ДО смены хода
+            const previousPlayer = this.currentPlayer;
             
             if (validation.capturedPiece && this.canContinueCapture(moveData.toRow, moveData.toCol)) {
                 console.log(`Player ${player.username} can continue capturing`);
@@ -156,6 +146,20 @@ class CheckersGameServer {
                 this.switchPlayer();
                 this.broadcastGameState();
             }
+            
+            // Отправляем информацию о ходе всем игрокам с указанием нового текущего игрока
+            this.broadcast(JSON.stringify({
+                type: 'moveMade',
+                data: {
+                    fromRow: moveData.fromRow,
+                    fromCol: moveData.fromCol,
+                    toRow: moveData.toRow,
+                    toCol: moveData.toCol,
+                    player: player.color,
+                    username: player.username,
+                    currentPlayer: this.currentPlayer // Добавляем информацию о том, чей ход теперь
+                }
+            }));
             
             this.checkGameOver();
             
