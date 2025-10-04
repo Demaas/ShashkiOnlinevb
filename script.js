@@ -1,26 +1,76 @@
-// script.js - ФИНАЛЬНАЯ ВЕРСИЯ для шашек с рестартом и стрелкой направления для обоих игроков
+// script.js - ФИНАЛЬНАЯ ВЕРСИЯ для шашек с системой входа по нику
 class CheckersGame {
     constructor() {
         this.board = document.getElementById('board');
         this.status = document.getElementById('status');
         this.restartContainer = document.getElementById('restartContainer');
         this.restartButton = document.getElementById('restartButton');
+        this.loginModal = document.getElementById('loginModal');
+        this.usernameInput = document.getElementById('usernameInput');
+        this.startGameButton = document.getElementById('startGameButton');
+        
         this.currentPlayer = 'white';
         this.selectedPiece = null;
         this.possibleMoves = [];
         this.playerColor = null;
         this.ws = null;
-        this.currentArrow = null; // Для хранения текущей стрелки
-        this.arrowTimeout = null; // Для хранения таймера удаления стрелки
+        this.currentArrow = null;
+        this.arrowTimeout = null;
+        this.username = ''; // Добавляем хранение ника
         
+        this.setupLogin();
         this.initializeGame();
-        this.setupWebSocket();
         this.setupRestartButton();
     }
 
     initializeGame() {
         this.createBoard();
-        this.updateStatus('Подключение к серверу...');
+        this.updateStatus('Введите ваш ник для начала игры...');
+    }
+
+    setupLogin() {
+        // Показываем модальное окно при загрузке
+        this.loginModal.style.display = 'flex';
+        
+        // Обработчик кнопки начала игры
+        this.startGameButton.addEventListener('click', () => {
+            this.startGameWithUsername();
+        });
+        
+        // Обработчик нажатия Enter в поле ввода
+        this.usernameInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                this.startGameWithUsername();
+            }
+        });
+        
+        // Автофокус на поле ввода
+        this.usernameInput.focus();
+    }
+
+    startGameWithUsername() {
+        const username = this.usernameInput.value.trim();
+        
+        if (username.length < 2) {
+            alert('Пожалуйста, введите ник длиной от 2 символов');
+            this.usernameInput.focus();
+            return;
+        }
+        
+        if (username.length > 15) {
+            alert('Ник не должен превышать 15 символов');
+            this.usernameInput.focus();
+            return;
+        }
+        
+        this.username = username;
+        this.loginModal.style.display = 'none';
+        
+        // Обновляем статус с ником
+        this.updateStatus(`Добро пожаловать, ${username}! Подключение к серверу...`);
+        
+        // Подключаемся к WebSocket
+        this.setupWebSocket();
     }
 
     createBoard() {
@@ -105,6 +155,11 @@ class CheckersGame {
         
         this.ws.onopen = () => {
             console.log('✅ WebSocket connected successfully');
+            // Отправляем ник при подключении
+            this.ws.send(JSON.stringify({
+                type: 'join',
+                username: this.username
+            }));
             this.updateStatus('Подключено! Ожидание второго игрока...');
         };
 
@@ -287,7 +342,7 @@ class CheckersGame {
         switch (message.type) {
             case 'playerAssigned':
                 this.playerColor = message.color;
-                const colorText = message.color === 'white' ? 'белые' : 'черные';
+                const colorText = this.playerColor === 'white' ? 'белые' : 'чёрные';
                 this.updateStatus(`Вы играете за ${colorText}. Ожидание второго игрока...`);
                 break;
                 
@@ -306,8 +361,12 @@ class CheckersGame {
                 }
                 break;
                 
-            case 'moveMade': // НОВЫЙ CASE - обработка хода от любого игрока
+            case 'moveMade': // Обработка хода от любого игрока
                 this.handleMoveMade(message.data);
+                break;
+                
+            case 'playersInfo': // Информация об игроках
+                this.handlePlayersInfo(message.data);
                 break;
                 
             case 'gameOver':
@@ -340,6 +399,18 @@ class CheckersGame {
         // Обновляем статус, если ход сделал противник
         if (moveData.player !== this.playerColor) {
             this.updateStatus('⏳ Ход противника...');
+        }
+    }
+
+    handlePlayersInfo(players) {
+        console.log('Players info:', players);
+        // Можно использовать для отображения информации об игроках
+        // Например, показать список игроков в интерфейсе
+        if (players.length === 2) {
+            const opponent = players.find(p => p.username !== this.username);
+            if (opponent) {
+                console.log(`Playing against: ${opponent.username} (${opponent.color})`);
+            }
         }
     }
 
@@ -419,7 +490,7 @@ class CheckersGame {
 
     handleGameOver(result) {
         const winnerText = result.winner ? 
-            `🏆 Победитель: ${result.winner === 'white' ? 'белые' : 'черные'}` : 
+            `🏆 Победитель: ${result.winner === 'white' ? 'белые' : 'чёрные'}` : 
             '🤝 Ничья!';
         this.updateStatus(`Игра окончена! ${winnerText}`);
         
@@ -441,7 +512,15 @@ class CheckersGame {
 
     updateStatus(message) {
         if (this.status) {
-            this.status.textContent = message;
+            // Если у нас есть ник и цвет, добавляем их в статус
+            let statusText = message;
+            if (this.username && this.playerColor) {
+                const colorText = this.playerColor === 'white' ? 'белые' : 'чёрные';
+                statusText = `${this.username} (${colorText}) - ${message}`;
+            } else if (this.username) {
+                statusText = `${this.username} - ${message}`;
+            }
+            this.status.textContent = statusText;
         }
         console.log('Status:', message);
     }
