@@ -22,6 +22,13 @@
         <div class="game-container">
             <div id="status">Загрузка...</div>
             <div class="board" id="board"></div>
+            
+            <!-- Кнопки управления игрой -->
+            <div class="game-controls">
+                <button id="newGameButton" class="control-button new-game-btn">Новая Игра</button>
+                <button id="drawOfferButton" class="control-button draw-offer-btn">Ничья?</button>
+            </div>
+
             <div class="info">
                 <p>Правила русских шашек:</p>
                 <div class="rules">
@@ -30,6 +37,30 @@
                     <p>• Простые шашки бьют вперед и назад</p>
                     <p>• Дамка ходит и бьет на любое расстояние</p>
                     <p>• Превращение в дамку на последней горизонтали</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Модальное окно для новой игры -->
+        <div id="newGameModal" class="modal" style="display: none;">
+            <div class="modal-content">
+                <h2>Новая Игра</h2>
+                <p>Вы уверены, что хотите начать Новую Игру?</p>
+                <div class="modal-buttons">
+                    <button id="confirmNewGame" class="modal-btn confirm-btn">Да</button>
+                    <button id="cancelNewGame" class="modal-btn cancel-btn">Нет</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Модальное окно для предложения ничьи -->
+        <div id="drawOfferModal" class="modal" style="display: none;">
+            <div class="modal-content">
+                <h2>Предложение ничьи</h2>
+                <p id="drawOfferText">Игрок предлагает ничью</p>
+                <div class="modal-buttons">
+                    <button id="acceptDraw" class="modal-btn confirm-btn">Да</button>
+                    <button id="rejectDraw" class="modal-btn cancel-btn">Нет</button>
                 </div>
             </div>
         </div>
@@ -46,4 +77,3 @@
     <script src="script.js"></script>
 </body>
 </html>
-
