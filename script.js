@@ -1,4 +1,4 @@
-// script.js - ФИНАЛЬНАЯ ВЕРСИЯ для шашек с улучшенным отображением хода
+// script.js - ФИНАЛЬНАЯ ВЕРСИЯ с исправленной синхронизацией статуса хода
 class CheckersGame {
     constructor() {
         this.board = document.getElementById('board');
@@ -351,22 +351,17 @@ class CheckersGame {
             case 'moveResult':
                 if (message.valid) {
                     this.updateGameState(message.gameState);
-                    // Обновляем статус с указанием чей ход
-                    if (message.gameState.currentPlayer === this.playerColor) {
-                        this.updateStatus('✅ Ваш ход!');
-                    } else {
-                        this.updateStatus('⏳ Ход противника...');
-                    }
+                    // Статус теперь обновляется в updateGameState через updateTurnStatus
                 } else {
                     this.updateStatus(`❌ ${message.message}`);
                 }
                 break;
                 
-            case 'moveMade': // Обработка хода от любого игрока
+            case 'moveMade':
                 this.handleMoveMade(message.data);
                 break;
                 
-            case 'playersInfo': // Информация об игроках
+            case 'playersInfo':
                 this.handlePlayersInfo(message.data);
                 break;
                 
@@ -386,7 +381,7 @@ class CheckersGame {
     handleMoveMade(moveData) {
         console.log('Move made by:', moveData.player, moveData);
         
-        // Показываем стрелку для ЛЮБОГО хода, независимо от того, кто его сделал
+        // Показываем стрелку для ЛЮБОГО хода
         setTimeout(() => {
             this.createMoveArrow(
                 moveData.fromRow, 
@@ -396,11 +391,21 @@ class CheckersGame {
             );
         }, 100);
         
-        // Обновляем статус с указанием чей ход
-        if (moveData.player !== this.playerColor) {
-            this.updateStatus('⏳ Ход противника...');
-        } else {
+        // ОБНОВЛЯЕМ ТЕКУЩЕГО ИГРОКА на основе данных от сервера
+        if (moveData.currentPlayer) {
+            this.currentPlayer = moveData.currentPlayer;
+        }
+        
+        // Обновляем статус для ВСЕХ игроков
+        this.updateTurnStatus();
+    }
+
+    // Добавьте новый метод для обновления статуса хода
+    updateTurnStatus() {
+        if (this.currentPlayer === this.playerColor) {
             this.updateStatus('✅ Ваш ход!');
+        } else {
+            this.updateStatus('⏳ Ход противника...');
         }
     }
 
@@ -426,6 +431,9 @@ class CheckersGame {
         
         // Обновляем текущего игрока
         this.currentPlayer = gameState.currentPlayer;
+        
+        // ОБНОВЛЯЕМ СТАТУС ХОДА
+        this.updateTurnStatus();
         
         console.log('Game state updated. Current player:', this.currentPlayer);
     }
@@ -513,35 +521,31 @@ class CheckersGame {
 
     updateStatus(message) {
         if (this.status) {
-            // Если у нас есть ник и цвет, добавляем их в статус
             let statusText = message;
-            if (this.username && this.playerColor) {
+            
+            // Если это системное сообщение (с эмодзи), не форматируем его
+            const isSystemMessage = message.includes('✅') || message.includes('⏳') || 
+                                   message.includes('❌') || message.includes('⚠️') ||
+                                   message.includes('Подключено') || message.includes('Ожидание') ||
+                                   message.includes('Добро пожаловать') || message.includes('Перезапуск') ||
+                                   message.includes('Вы играете') || message.includes('Сейчас не ваш ход') ||
+                                   message.includes('Ход отправляется') || message.includes('Соединение потеряно') ||
+                                   message.includes('Ошибка соединения') || message.includes('Выберите клетку');
+            
+            if (this.username && this.playerColor && !isSystemMessage) {
                 const colorText = this.playerColor === 'white' ? 'белые' : 'чёрные';
-                
-                // Определяем чей сейчас ход для форматирования статуса
-                let turnText = '';
-                if (message.includes('Ход противника') || message.includes('⏳')) {
-                    const opponentColor = this.playerColor === 'white' ? 'чёрных' : 'белых';
-                    turnText = ` - Ход ${opponentColor}`;
-                } else if (message.includes('Ваш ход') || message.includes('✅')) {
-                    const myColor = this.playerColor === 'white' ? 'белых' : 'чёрных';
-                    turnText = ` - Ход ${myColor}`;
-                } else if (message.includes('белых') || message.includes('чёрных')) {
-                    // Оставляем как есть, если уже указан конкретный ход
-                    turnText = '';
-                } else {
-                    // Автоматически определяем ход по текущему игроку
-                    const currentTurnColor = this.currentPlayer === 'white' ? 'белых' : 'чёрных';
-                    turnText = ` - Ход ${currentTurnColor}`;
-                }
-                
-                statusText = `${this.username} (${colorText})${turnText}`;
+                const currentTurnColor = this.currentPlayer === 'white' ? 'белых' : 'чёрных';
+                statusText = `${this.username} (${colorText}) - Ход ${currentTurnColor}`;
+            } else if (this.username && this.playerColor && isSystemMessage) {
+                const colorText = this.playerColor === 'white' ? 'белые' : 'чёрные';
+                statusText = `${this.username} (${colorText}) - ${message}`;
             } else if (this.username) {
                 statusText = `${this.username} - ${message}`;
             }
+            
             this.status.textContent = statusText;
         }
-        console.log('Status:', message);
+        console.log('Status:', message, 'Current player:', this.currentPlayer);
     }
 }
 
