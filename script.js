@@ -11,6 +11,7 @@ class CheckersGame {
         this.playerColor = null;
         this.ws = null;
         this.currentArrow = null; // Для хранения текущей стрелки
+        this.arrowTimeout = null; // Для хранения таймера удаления стрелки
         
         this.initializeGame();
         this.setupWebSocket();
@@ -140,7 +141,7 @@ class CheckersGame {
     restartGame() {
         console.log('Restarting game...');
         
-        // Удаляем стрелку
+        // Удаляем стрелку и очищаем таймер
         this.removeMoveArrow();
         
         // Скрываем блок рестарта
@@ -180,10 +181,7 @@ class CheckersGame {
 
     createMoveArrow(fromRow, fromCol, toRow, toCol) {
         // Удаляем предыдущую стрелку, если есть
-        // Автоматически удаляем стрелку через 5 секунды
-        setTimeout(() => {
-            this.removeMoveArrow();
-        }, 5000); // ← ЭТА СТРОКА (3000 мс = 5 секунды)
+        this.removeMoveArrow();
         
         const fromCell = this.getCell(fromRow, fromCol);
         const toCell = this.getCell(toRow, toCol);
@@ -260,13 +258,25 @@ class CheckersGame {
         // Добавляем стрелку на доску
         this.board.appendChild(svg);
         
-        // Автоматически удаляем стрелку через 3 секунды
-        setTimeout(() => {
+        // Очищаем предыдущий таймер
+        if (this.arrowTimeout) {
+            clearTimeout(this.arrowTimeout);
+        }
+        
+        // Устанавливаем новый таймер для удаления стрелки
+        this.arrowTimeout = setTimeout(() => {
             this.removeMoveArrow();
         }, 3000);
     }
 
     removeMoveArrow() {
+        // Очищаем таймер
+        if (this.arrowTimeout) {
+            clearTimeout(this.arrowTimeout);
+            this.arrowTimeout = null;
+        }
+        
+        // Удаляем стрелку
         if (this.currentArrow) {
             this.currentArrow.remove();
             this.currentArrow = null;
@@ -317,12 +327,15 @@ class CheckersGame {
         console.log('Move made by:', moveData.player, moveData);
         
         // Показываем стрелку для ЛЮБОГО хода, независимо от того, кто его сделал
-        this.createMoveArrow(
-            moveData.fromRow, 
-            moveData.fromCol, 
-            moveData.toRow, 
-            moveData.toCol
-        );
+        // Добавляем небольшую задержку для лучшей визуализации
+        setTimeout(() => {
+            this.createMoveArrow(
+                moveData.fromRow, 
+                moveData.fromCol, 
+                moveData.toRow, 
+                moveData.toCol
+            );
+        }, 100);
         
         // Обновляем статус, если ход сделал противник
         if (moveData.player !== this.playerColor) {
@@ -447,5 +460,3 @@ document.addEventListener('visibilitychange', () => {
         console.log('Page became visible, checking connection...');
     }
 });
-
-
