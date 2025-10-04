@@ -1,362 +1,718 @@
-/* Основные стили */
+/* style.css */
 * {
-    margin: 0;
-    padding: 0;
-    box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
 }
 
 body {
-    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    min-height: 100vh;
-    color: #333;
+  font-family: "Arial", sans-serif;
+  background: linear-gradient(rgba(0, 0, 0, 0.7), rgba(0, 0, 0, 0.7)),
+    url("https://img.freepik.com/premium-photo/empty-chess-board-with-smoke-float-up-dark-background_168415-189.jpg?semt=ais_items_boosted&w=740");
+  background-size: cover;
+  background-position: center;
+  background-attachment: fixed;
+  min-height: 100vh;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  color: white;
+}
+
+/* Стили для модального окна входа */
+.modal {
+  display: flex;
+  position: fixed;
+  z-index: 1000;
+  left: 0;
+  top: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.8);
+  backdrop-filter: blur(5px);
+  justify-content: center;
+  align-items: center;
+}
+
+.modal-content {
+  background: linear-gradient(rgba(0, 0, 0, 0.7), rgba(0, 0, 0, 0.7)),
+    url("shanick.png");
+  background-size: cover;
+  background-position: center;
+  padding: 40px;
+  border-radius: 20px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+  text-align: center;
+  max-width: 400px;
+  width: 90%;
+  border: 2px solid rgba(255, 255, 255, 0.2);
+}
+
+.modal-content h2 {
+  color: white;
+  margin-bottom: 15px;
+  font-size: 2em;
+  text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
+}
+
+.modal-content p {
+  color: #e0e0e0;
+  margin-bottom: 25px;
+  font-size: 1.1em;
+  text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.5);
+}
+
+#usernameInput {
+  width: 100%;
+  padding: 15px;
+  font-size: 1.2em;
+  border: none;
+  border-radius: 10px;
+  margin-bottom: 20px;
+  text-align: center;
+  background: rgba(255, 255, 255, 0.9);
+  color: #333;
+  border: 2px solid transparent;
+  transition: all 0.3s ease;
+}
+
+#usernameInput:focus {
+  outline: none;
+  box-shadow: 0 0 15px rgba(255, 255, 255, 0.7);
+  border-color: #4caf50;
+  transform: scale(1.02);
+}
+
+#usernameInput::placeholder {
+  color: #888;
+}
+
+.start-button {
+  background: linear-gradient(45deg, #4caf50, #45a049);
+  color: white;
+  border: none;
+  padding: 15px 30px;
+  font-size: 1.2em;
+  font-weight: bold;
+  border-radius: 25px;
+  cursor: pointer;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+  transition: all 0.3s ease;
+  width: 100%;
+}
+
+.start-button:hover {
+  transform: scale(1.05);
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.4);
+  background: linear-gradient(45deg, #45a049, #4caf50);
+}
+
+.start-button:active {
+  transform: scale(0.95);
+}
+
+.start-button:disabled {
+  background: #cccccc;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
 }
 
 .container {
-    max-width: 1200px;
-    margin: 0 auto;
-    padding: 20px;
-    min-height: 100vh;
-    display: flex;
-    flex-direction: column;
+  text-align: center;
+  background: rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(15px);
+  padding: 25px;
+  border-radius: 20px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  max-width: 90%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
 }
 
-/* Шапка */
-header {
-    text-align: center;
-    margin-bottom: 30px;
+.game-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 20px;
+  width: 100%;
 }
 
-header h1 {
-    color: white;
-    font-size: 2.5rem;
-    text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+h1 {
+  color: white;
+  margin-bottom: 20px;
+  text-shadow: 2px 2px 8px rgba(0, 0, 0, 0.8);
+  font-size: 2.5em;
+  font-weight: bold;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
-/* Основной контент */
-main {
-    flex: 1;
-    display: flex;
-    justify-content: center;
-    align-items: center;
+.title-icon {
+  width: 50px;
+  height: 50px;
+  margin-right: 15px;
+  border-radius: 8px;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
 }
 
-/* Модальные окна */
-.modal {
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background: rgba(0, 0, 0, 0.6);
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    z-index: 1000;
-}
-
-.modal-content {
-    background: white;
-    border-radius: 15px;
-    box-shadow: 0 10px 30px rgba(0,0,0,0.3);
-    max-width: 400px;
-    width: 90%;
-    overflow: hidden;
-}
-
-.modal-header {
-    background: linear-gradient(135deg, #667eea, #764ba2);
-    color: white;
-    padding: 20px;
-    text-align: center;
-}
-
-.modal-header h2 {
-    margin: 0;
-    font-size: 1.5rem;
-}
-
-.modal-body {
-    padding: 30px;
-    text-align: center;
-}
-
-/* Новые стили для информации о матче и статуса */
-.game-status {
-    margin: 20px 0;
-    padding: 15px;
-    background: rgba(255, 255, 255, 0.95);
-    border-radius: 10px;
-    box-shadow: 0 4px 15px rgba(0,0,0,0.1);
-    border: 2px solid rgba(102, 126, 234, 0.3);
-}
-
-.match-info {
-    font-size: 1.3rem;
-    font-weight: bold;
-    color: #2c3e50;
-    margin-bottom: 8px;
-    text-align: center;
-    text-shadow: 1px 1px 2px rgba(0,0,0,0.1);
-}
-
-.status-text {
-    font-size: 1.1rem;
-    color: #7f8c8d;
-    text-align: center;
-    font-weight: 500;
-}
-
-/* Игровой интерфейс */
-.game-interface {
-    width: 100%;
-    max-width: 600px;
-}
-
-/* Игровая доска */
-.game-board-container {
-    display: flex;
-    justify-content: center;
-    margin: 20px 0;
+#status {
+  color: #ffeb3b;
+  font-size: 1.3em;
+  margin-bottom: 10px;
+  font-weight: bold;
+  text-shadow: 1px 1px 3px rgba(0, 0, 0, 0.7);
+  padding: 12px 20px;
+  background: rgba(0, 0, 0, 0.4);
+  border-radius: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  min-height: 60px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  min-width: 300px;
 }
 
 .board {
-    display: grid;
-    grid-template-columns: repeat(8, 1fr);
-    grid-template-rows: repeat(8, 1fr);
-    width: min(80vw, 500px);
-    height: min(80vw, 500px);
-    border: 3px solid #333;
-    box-shadow: 0 10px 25px rgba(0,0,0,0.2);
-    border-radius: 5px;
-    overflow: hidden;
+  display: grid;
+  grid-template-columns: repeat(8, 60px);
+  grid-template-rows: repeat(8, 60px);
+  gap: 0;
+  border: 4px solid #8b4513;
+  box-shadow: 0 6px 25px rgba(0, 0, 0, 0.7);
+  margin: 0 auto;
+  background: #8b4513;
+  width: min-content;
+  height: min-content;
+  position: relative; /* Для позиционирования стрелки */
 }
 
 .cell {
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    position: relative;
+  width: 60px;
+  height: 60px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  position: relative;
+  transition: all 0.3s ease;
 }
 
-.cell.light {
-    background-color: #f0d9b5;
+.cell.white {
+  background-color: #f0d9b5;
 }
 
-.cell.dark {
-    background-color: #b58863;
+.cell.black {
+  background-color: #b58863;
 }
 
-.cell.valid-move::before {
-    content: '';
-    position: absolute;
-    width: 20%;
-    height: 20%;
-    background-color: rgba(46, 204, 113, 0.6);
-    border-radius: 50%;
-    z-index: 1;
+.cell.selected {
+  background-color: #4caf50 !important;
+  box-shadow: inset 0 0 15px rgba(255, 255, 255, 0.6);
+}
+
+.cell.possible-move::before {
+  content: "";
+  position: absolute;
+  width: 25px;
+  height: 25px;
+  background-color: rgba(76, 175, 80, 0.7);
+  border-radius: 50%;
+  z-index: 1;
+  border: 2px solid white;
+  animation: pulse 1.5s infinite;
+}
+
+@keyframes pulse {
+  0% {
+    transform: scale(0.8);
+    opacity: 0.7;
+  }
+  50% {
+    transform: scale(1.1);
+    opacity: 1;
+  }
+  100% {
+    transform: scale(0.8);
+    opacity: 0.7;
+  }
 }
 
 .piece {
-    width: 85%;
-    height: 85%;
-    border-radius: 50%;
-    background-size: cover;
-    background-position: center;
-    cursor: pointer;
-    transition: transform 0.2s ease;
-    position: relative;
-    z-index: 2;
+  width: 50px;
+  height: 50px;
+  border-radius: 50%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  z-index: 2;
+  position: relative;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.4);
 }
 
-.piece.selected {
-    transform: scale(1.1);
-    box-shadow: 0 0 15px gold;
+.piece:hover {
+  transform: scale(1.1);
+  box-shadow: 0 6px 12px rgba(0, 0, 0, 0.6);
+}
+
+.piece img {
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 2px solid rgba(0, 0, 0, 0.3);
+}
+
+.piece.king {
+  box-shadow: 0 0 20px gold, 0 4px 8px rgba(0, 0, 0, 0.4);
 }
 
 .piece.king::after {
-    content: '♔';
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    color: rgba(0, 0, 0, 0.3);
-    font-size: 1.5em;
+  content: "♔";
+  position: absolute;
+  font-size: 18px;
+  color: gold;
+  text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.8);
+  z-index: 3;
+  font-weight: bold;
 }
 
-/* Стрелка направления */
-.move-arrow {
-    position: absolute;
-    pointer-events: none;
-    z-index: 3;
-    stroke: #e74c3c;
-    stroke-width: 3;
-    fill: none;
-    filter: drop-shadow(1px 1px 2px rgba(0,0,0,0.5));
+.info {
+  margin-top: 10px;
+  color: #e0e0e0;
+  font-size: 1em;
+  background: rgba(0, 0, 0, 0.4);
+  padding: 15px;
+  border-radius: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  text-align: center;
 }
 
-/* Элементы управления */
+.info p {
+  margin: 5px 0;
+  text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.7);
+  font-weight: bold;
+}
+
+.rules {
+  background: rgba(139, 69, 19, 0.3);
+  padding: 10px;
+  border-radius: 8px;
+  margin-top: 10px;
+  font-size: 0.9em;
+}
+
+.rules p {
+  margin: 3px 0;
+  font-weight: normal;
+}
+
+/* Стили для кнопок управления игрой */
 .game-controls {
-    display: flex;
-    justify-content: center;
-    gap: 15px;
-    margin: 20px 0;
+  display: flex;
+  gap: 15px;
+  margin-top: 20px;
+  justify-content: center;
+  flex-wrap: wrap;
 }
 
-.btn {
-    padding: 12px 25px;
-    border: none;
-    border-radius: 8px;
-    font-size: 1rem;
-    font-weight: 600;
-    cursor: pointer;
-    transition: all 0.3s ease;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
+.control-button {
+  padding: 12px 25px;
+  font-size: 1.1em;
+  font-weight: bold;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
 }
 
-.btn-primary {
-    background: linear-gradient(135deg, #667eea, #764ba2);
-    color: white;
+.control-button:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
 }
 
-.btn-primary:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+.control-button:active {
+  transform: translateY(0);
 }
 
-.btn-secondary {
-    background: linear-gradient(135deg, #f093fb, #f5576c);
-    color: white;
+.new-game-btn {
+  background: linear-gradient(45deg, #2196f3, #1976d2);
+  color: white;
 }
 
-.btn-secondary:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 5px 15px rgba(245, 87, 108, 0.4);
+.draw-offer-btn {
+  background: linear-gradient(45deg, #ff9800, #f57c00);
+  color: white;
 }
 
-.btn:disabled {
-    opacity: 0.6;
-    cursor: not-allowed;
-    transform: none !important;
-    box-shadow: none !important;
+.control-button:disabled {
+  background: #cccccc;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
 }
 
-/* Модальные действия */
-.modal-actions {
-    display: flex;
-    gap: 10px;
-    justify-content: center;
-    margin-top: 20px;
+/* Стили для модальных окон кнопок */
+.modal-buttons {
+  display: flex;
+  gap: 15px;
+  justify-content: center;
+  margin-top: 25px;
 }
 
-.modal-actions .btn {
-    min-width: 100px;
+.modal-btn {
+  padding: 12px 30px;
+  font-size: 1.1em;
+  font-weight: bold;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  min-width: 100px;
 }
 
-/* Поле ввода */
-input[type="text"] {
-    width: 100%;
-    padding: 15px;
-    border: 2px solid #ddd;
-    border-radius: 8px;
-    font-size: 1rem;
-    margin-bottom: 20px;
-    transition: border-color 0.3s ease;
+.confirm-btn {
+  background: linear-gradient(45deg, #4caf50, #45a049);
+  color: white;
 }
 
-input[type="text"]:focus {
-    outline: none;
-    border-color: #667eea;
+.cancel-btn {
+  background: linear-gradient(45deg, #f44336, #d32f2f);
+  color: white;
 }
 
-/* Подвал */
-footer {
-    text-align: center;
-    margin-top: 30px;
-    color: white;
-    opacity: 0.8;
+.modal-btn:hover {
+  transform: scale(1.05);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
 }
 
-/* Адаптивность */
+.modal-btn:active {
+  transform: scale(0.95);
+}
+
+/* Стили для стрелки направления */
+.move-arrow {
+  position: absolute;
+  pointer-events: none;
+  z-index: 10;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+}
+
+.arrow-line {
+  stroke: #ff4444;
+  stroke-width: 3;
+  stroke-linecap: round;
+  filter: drop-shadow(0 0 2px rgba(255, 0, 0, 0.7));
+}
+
+.arrow-head {
+  fill: #ff4444;
+  filter: drop-shadow(0 0 2px rgba(255, 0, 0, 0.7));
+}
+
+.arrow-animation {
+  animation: arrowDraw 0.5s ease-out;
+}
+
+@keyframes arrowDraw {
+  from {
+    stroke-dasharray: 1000;
+    stroke-dashoffset: 1000;
+  }
+  to {
+    stroke-dasharray: 1000;
+    stroke-dashoffset: 0;
+  }
+}
+
+/* Стили для блока рестарта */
+.restart-container {
+  text-align: center;
+  margin-top: 20px;
+  animation: fadeIn 0.5s ease-in;
+}
+
+.restart-button {
+  background: linear-gradient(45deg, #4caf50, #45a049);
+  color: white;
+  border: none;
+  padding: 15px 30px;
+  font-size: 1.2em;
+  font-weight: bold;
+  border-radius: 25px;
+  cursor: pointer;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+  transition: all 0.3s ease;
+  margin-bottom: 20px;
+}
+
+.restart-button:hover {
+  transform: scale(1.05);
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.4);
+  background: linear-gradient(45deg, #45a049, #4caf50);
+}
+
+.restart-button:active {
+  transform: scale(0.95);
+}
+
+.gif-container {
+  margin-top: 10px;
+}
+
+.celebration-gif {
+  max-width: 200px;
+  border-radius: 10px;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Адаптивность для мобильных устройств */
 @media (max-width: 768px) {
-    .container {
-        padding: 10px;
-    }
-    
-    header h1 {
-        font-size: 2rem;
-    }
-    
-    .game-status {
-        margin: 15px 0;
-        padding: 12px;
-    }
-    
-    .match-info {
-        font-size: 1.1rem;
-    }
-    
-    .status-text {
-        font-size: 1rem;
-    }
-    
-    .game-controls {
-        flex-direction: column;
-        align-items: center;
-    }
-    
-    .btn {
-        width: 200px;
-    }
-    
-    .modal-content {
-        width: 95%;
-    }
+  .container {
+    padding: 15px;
+    margin: 10px;
+  }
+
+  .modal-content {
+    padding: 30px;
+    max-width: 350px;
+  }
+
+  .modal-content h2 {
+    font-size: 1.7em;
+  }
+
+  #usernameInput {
+    padding: 12px;
+    font-size: 1.1em;
+  }
+
+  .start-button {
+    padding: 12px 25px;
+    font-size: 1.1em;
+  }
+
+  h1 {
+    font-size: 2em;
+    margin-bottom: 15px;
+  }
+
+  .title-icon {
+    width: 40px;
+    height: 40px;
+    margin-right: 10px;
+  }
+
+  #status {
+    font-size: 1.1em;
+    margin-bottom: 5px;
+    min-height: 50px;
+    min-width: 250px;
+    padding: 10px 15px;
+  }
+
+  .game-container {
+    gap: 15px;
+  }
+
+  .board {
+    grid-template-columns: repeat(8, 45px);
+    grid-template-rows: repeat(8, 45px);
+  }
+
+  .cell {
+    width: 45px;
+    height: 45px;
+  }
+
+  .piece {
+    width: 38px;
+    height: 38px;
+  }
+
+  .piece.king::after {
+    font-size: 14px;
+  }
+
+  .cell.possible-move::before {
+    width: 20px;
+    height: 20px;
+  }
+
+  .info {
+    font-size: 0.9em;
+    padding: 12px;
+  }
+
+  .game-controls {
+    gap: 10px;
+    margin-top: 15px;
+  }
+
+  .control-button {
+    padding: 10px 20px;
+    font-size: 1em;
+  }
+
+  .modal-buttons {
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .modal-btn {
+    width: 100%;
+    padding: 10px 20px;
+  }
+
+  .restart-button {
+    padding: 12px 25px;
+    font-size: 1.1em;
+  }
+
+  .celebration-gif {
+    max-width: 150px;
+  }
+
+  /* Адаптивность для стрелки */
+  .arrow-line {
+    stroke-width: 2.5;
+  }
 }
 
 @media (max-width: 480px) {
-    header h1 {
-        font-size: 1.7rem;
-    }
-    
-    .match-info {
-        font-size: 1rem;
-    }
-    
-    .status-text {
-        font-size: 0.9rem;
-    }
-    
-    .board {
-        width: 95vw;
-        height: 95vw;
-    }
+  .modal-content {
+    padding: 20px;
+    max-width: 300px;
+  }
+
+  .modal-content h2 {
+    font-size: 1.5em;
+  }
+
+  .modal-content p {
+    font-size: 1em;
+  }
+
+  #usernameInput {
+    padding: 10px;
+    font-size: 1em;
+  }
+
+  .start-button {
+    padding: 10px 20px;
+    font-size: 1em;
+  }
+
+  h1 {
+    font-size: 1.7em;
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .title-icon {
+    width: 35px;
+    height: 35px;
+    margin-right: 0;
+  }
+
+  .board {
+    grid-template-columns: repeat(8, 35px);
+    grid-template-rows: repeat(8, 35px);
+  }
+
+  .cell {
+    width: 35px;
+    height: 35px;
+  }
+
+  .piece {
+    width: 30px;
+    height: 30px;
+  }
+
+  .piece.king::after {
+    font-size: 12px;
+  }
+
+  .cell.possible-move::before {
+    width: 15px;
+    height: 15px;
+  }
+
+  #status {
+    font-size: 1em;
+    min-height: 45px;
+    min-width: 200px;
+    padding: 8px 12px;
+  }
+
+  .game-container {
+    gap: 10px;
+  }
+
+  .info {
+    font-size: 0.8em;
+    padding: 10px;
+  }
+
+  .game-controls {
+    flex-direction: column;
+    align-items: center;
+  }
+
+  .control-button {
+    width: 100%;
+    max-width: 200px;
+  }
+
+  .restart-button {
+    padding: 10px 20px;
+    font-size: 1em;
+  }
+
+  .celebration-gif {
+    max-width: 120px;
+  }
+
+  /* Адаптивность для стрелки */
+  .arrow-line {
+    stroke-width: 2;
+  }
 }
 
-/* Анимации */
-@keyframes fadeIn {
-    from { opacity: 0; transform: translateY(-10px); }
-    to { opacity: 1; transform: translateY(0); }
+/* Эффекты загрузки */
+.loading {
+  display: inline-block;
+  width: 20px;
+  height: 20px;
+  border: 3px solid rgba(255, 255, 255, 0.3);
+  border-radius: 50%;
+  border-top-color: #fff;
+  animation: spin 1s ease-in-out infinite;
 }
 
-.modal-content {
-    animation: fadeIn 0.3s ease;
-}
-
-.piece {
-    animation: fadeIn 0.2s ease;
-}
-
-/* Состояния игры */
-.status-waiting {
-    color: #f39c12;
-}
-
-.status-active {
-    color: #27ae60;
-}
-
-.status-ended {
-    color: #e74c3c;
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
 }
