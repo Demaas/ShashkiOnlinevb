@@ -8,6 +8,8 @@ class CheckersGame {
         this.validMoves = [];
         this.isMyTurn = false;
         this.players = { white: null, black: null };
+        // НОВОЕ: Принудительно скрываем модальные окна при старте
+        this.forceHideModals();
         this.initializeGame();
     }
 
@@ -375,3 +377,4 @@ class CheckersGame {
 document.addEventListener('DOMContentLoaded', () => {
     new CheckersGame();
 });
+
