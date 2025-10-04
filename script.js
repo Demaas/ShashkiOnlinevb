@@ -1,14 +1,6 @@
 // script.js - ФИНАЛЬНАЯ ВЕРСИЯ с кнопками управления игрой
 class CheckersGame {
   constructor() {
-    this.ws = null;
-    this.reconnectAttempts = 0;
-    this.maxReconnectAttempts = 5;
-    this.reconnectInterval = 3000;
-    this.isIntentionalDisconnect = false;
-    this.playerId = null;
-    this.sessionToken = this.generateSessionToken();
-    
     this.board = document.getElementById("board");
     this.status = document.getElementById("status");
     this.restartContainer = document.getElementById("restartContainer");
@@ -760,4 +752,3 @@ document.addEventListener("visibilitychange", () => {
     console.log("Page became visible, checking connection...");
   }
 });
-
