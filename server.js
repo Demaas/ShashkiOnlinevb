@@ -55,61 +55,48 @@ class CheckersGameServer {
   }
 
   addPlayer(ws, username) {
-  if (this.players.length < 2) {
-    const color = this.players.length === 0 ? "white" : "black";
-    const player = { ws, color, username: username || "Игрок" + (this.players.length + 1) }; // Улучшаем дефолтный ник
-    
-    this.players.push(player);
+    if (this.players.length < 2) {
+      const color = this.players.length === 0 ? "white" : "black";
+      const player = { ws, color, username: username || "Игрок" };
+      this.players.push(player);
 
-    ws.send(
-      JSON.stringify({
-        type: "playerAssigned",
-        color: color,
-      })
-    );
+      ws.send(
+        JSON.stringify({
+          type: "playerAssigned",
+          color: color,
+        })
+      );
 
-    console.log(`Игрок ${player.username} присоединился как ${color}. Всего игроков: ${this.players.length}`);
+      console.log(
+        `Player ${player.username} joined as ${color}. Total players: ${this.players.length}`
+      );
 
-    // Отправляем обновленную информацию всем
-    this.sendPlayersInfo();
+      // Отправляем информацию об игроках всем подключенным
+      this.sendPlayersInfo();
 
-    if (this.players.length === 2) {
-      this.startGame();
+      if (this.players.length === 2) {
+        this.startGame();
+      }
+
+      return color;
     }
-
-    return color;
+    return null;
   }
-  return null;
-}
 
   sendPlayersInfo() {
-  // Формируем данные игроков в нужном формате
-  const playersData = {
-    player1: null,
-    player2: null
-  };
+    // Отправляем информацию об игроках всем подключенным
+    const playersInfo = this.players.map((player) => ({
+      username: player.username,
+      color: player.color,
+    }));
 
-  // Заполняем данные игроков
-  this.players.forEach((player, index) => {
-    if (index === 0) {
-      playersData.player1 = player.username;
-    } else if (index === 1) {
-      playersData.player2 = player.username;
-    }
-  });
-
-  // Отправляем информацию об игроках всем подключенным
-  this.broadcast(
-    JSON.stringify({
-      type: "playersInfo",  // оставляем существующий тип
-      data: this.players.map((player) => ({ 
-        username: player.username,
-        color: player.color,
-      })),
-      playersDisplay: playersData  // ДОБАВЛЯЕМ НОВОЕ ПОЛЕ
-    })
-  );
-}
+    this.broadcast(
+      JSON.stringify({
+        type: "playersInfo",
+        data: playersInfo,
+      })
+    );
+  }
 
   startGame() {
     this.gameState = "playing";
@@ -843,4 +830,3 @@ server.listen(PORT, "0.0.0.0", () => {
   console.log(`Server running on port ${PORT}`);
   console.log(`Health check available at http://localhost:${PORT}/health`);
 });
-
