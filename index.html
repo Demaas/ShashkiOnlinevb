@@ -1,67 +1,108 @@
 <!DOCTYPE html>
 <html lang="ru">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Шашки Online</title>
-    <link rel="stylesheet" href="style.css">
-    <link rel="icon" href="shasemi.png" type="image/png">
-</head>
-<body>
-    <div id="loginScreen" class="screen">
-        <div class="login-container">
-            <h1>Шашки Online</h1>
-            <input type="text" id="nicknameInput" placeholder="Введите ваш никнейм" maxlength="20">
-            <button id="joinButton">Присоединиться к игре</button>
-            <div id="loginError" class="error-message"></div>
-        </div>
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Шашки Онлайн</title>
+    <link rel="stylesheet" href="style.css" />
+  </head>
+  <body>
+    <!-- Модальное окно входа -->
+    <div id="loginModal" class="modal">
+      <div class="modal-content">
+        <h2>Вход в игру</h2>
+        <p>Введите ваш никнейм для начала игры</p>
+        <input
+          type="text"
+          id="usernameInput"
+          placeholder="Введите ваш ник"
+          maxlength="15"
+        />
+        <button id="startGameButton" class="start-button">Начать игру</button>
+      </div>
     </div>
 
-    <div id="gameScreen" class="screen hidden">
-        <div class="game-header">
-            <div class="player-info">
-                <div class="player white-player">
-                    <span>Белые:</span>
-                    <span id="whitePlayer">Ожидание...</span>
-                </div>
-                <div class="game-status" id="gameStatus">Ожидание игроков...</div>
-                <div class="player black-player">
-                    <span>Черные:</span>
-                    <span id="blackPlayer">Ожидание...</span>
-                </div>
-            </div>
+    <div class="container">
+      <h1>
+        <img src="shasemi.png" alt="Шашки" class="title-icon" /> Шашки Онлайн
+      </h1>
+      <div class="game-container">
+        <div id="status">Загрузка...</div>
+        <div class="board" id="board"></div>
+
+        <!-- Кнопки управления игрой -->
+        <div class="game-controls">
+          <button id="newGameButton" class="control-button new-game-btn">
+            Новая Игра
+          </button>
+          <button id="drawOfferButton" class="control-button draw-offer-btn">
+            Ничья?
+          </button>
         </div>
 
-        <div class="game-container">
-            <div class="game-board" id="gameBoard">
-                <!-- Доска генерируется через JavaScript -->
-            </div>
-            
-            <div class="game-controls">
-                <button id="restartButton" class="control-btn" disabled>Новая игра</button>
-                <button id="drawButton" class="control-btn" disabled>Предложить ничью</button>
-                <button id="leaveButton" class="control-btn">Покинуть игру</button>
-            </div>
+        <div class="info">
+          <p>Правила русских шашек:</p>
+          <div class="rules">
+            <p>• Обязательное взятие при возможности</p>
+            <p>• Простые шашки ходят только вперед</p>
+            <p>• Простые шашки бьют вперед и назад</p>
+            <p>• Дамка ходит и бьет на любое расстояние</p>
+            <p>• Превращение в дамку на последней горизонтали</p>
+          </div>
         </div>
+      </div>
 
-        <div class="game-info">
-            <div id="moveIndicator" class="move-indicator"></div>
-            <div id="gameMessage" class="game-message"></div>
+      <!-- Модальное окно для новой игры -->
+      <div id="newGameModal" class="modal" style="display: none">
+        <div class="modal-content">
+          <h2>Новая Игра</h2>
+          <p>Вы уверены, что хотите начать Новую Игру?</p>
+          <div class="modal-buttons">
+            <button id="confirmNewGame" class="modal-btn confirm-btn">
+              Да
+            </button>
+            <button id="cancelNewGame" class="modal-btn cancel-btn">Нет</button>
+          </div>
         </div>
+      </div>
+
+      <!-- Модальное окно для предложения ничьи -->
+      <div id="drawOfferModal" class="modal" style="display: none">
+        <div class="modal-content">
+          <h2>Предложение ничьи</h2>
+          <p id="drawOfferText">Игрок предлагает ничью</p>
+          <div class="modal-buttons">
+            <button id="acceptDraw" class="modal-btn confirm-btn">Да</button>
+            <button id="rejectDraw" class="modal-btn cancel-btn">Нет</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Блок рестарта игры -->
+      <div
+        id="restartContainer"
+        class="restart-container"
+        style="display: none"
+      >
+        <h2
+          style="
+            color: #ffeb3b;
+            margin-bottom: 20px;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
+          "
+        >
+          Игра Завершена!
+        </h2>
+        <button id="restartButton" class="restart-button">Новая Игра</button>
+        <div class="gif-container">
+          <img
+            src="https://media1.tenor.com/m/w_PLu8IF2Y8AAAAd/sml-joseph.gif"
+            alt="Celebration"
+            class="celebration-gif"
+          />
+        </div>
+      </div>
     </div>
-
-    <div id="modalOverlay" class="modal-overlay hidden">
-        <div class="modal">
-            <h3 id="modalTitle">Уведомление</h3>
-            <p id="modalMessage"></p>
-            <div class="modal-buttons">
-                <button id="modalConfirm" class="modal-btn confirm">OK</button>
-                <button id="modalCancel" class="modal-btn cancel hidden">Отмена</button>
-            </div>
-        </div>
-    </div>
-
-    <script src="/socket.io/socket.io.js"></script>
     <script src="script.js"></script>
-</body>
+  </body>
 </html>
