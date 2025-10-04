@@ -19,6 +19,102 @@ body {
     color: white;
 }
 
+/* Стили для модального окна входа */
+.modal {
+    display: flex;
+    position: fixed;
+    z-index: 1000;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.8);
+    backdrop-filter: blur(5px);
+    justify-content: center;
+    align-items: center;
+}
+
+.modal-content {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    padding: 40px;
+    border-radius: 20px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+    text-align: center;
+    max-width: 400px;
+    width: 90%;
+    border: 2px solid rgba(255, 255, 255, 0.2);
+}
+
+.modal-content h2 {
+    color: white;
+    margin-bottom: 15px;
+    font-size: 2em;
+    text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
+}
+
+.modal-content p {
+    color: #e0e0e0;
+    margin-bottom: 25px;
+    font-size: 1.1em;
+    text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.5);
+}
+
+#usernameInput {
+    width: 100%;
+    padding: 15px;
+    font-size: 1.2em;
+    border: none;
+    border-radius: 10px;
+    margin-bottom: 20px;
+    text-align: center;
+    background: rgba(255, 255, 255, 0.9);
+    color: #333;
+    border: 2px solid transparent;
+    transition: all 0.3s ease;
+}
+
+#usernameInput:focus {
+    outline: none;
+    box-shadow: 0 0 15px rgba(255, 255, 255, 0.7);
+    border-color: #4CAF50;
+    transform: scale(1.02);
+}
+
+#usernameInput::placeholder {
+    color: #888;
+}
+
+.start-button {
+    background: linear-gradient(45deg, #4CAF50, #45a049);
+    color: white;
+    border: none;
+    padding: 15px 30px;
+    font-size: 1.2em;
+    font-weight: bold;
+    border-radius: 25px;
+    cursor: pointer;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+    transition: all 0.3s ease;
+    width: 100%;
+}
+
+.start-button:hover {
+    transform: scale(1.05);
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.4);
+    background: linear-gradient(45deg, #45a049, #4CAF50);
+}
+
+.start-button:active {
+    transform: scale(0.95);
+}
+
+.start-button:disabled {
+    background: #cccccc;
+    cursor: not-allowed;
+    transform: none;
+    box-shadow: none;
+}
+
 .container {
     text-align: center;
     background: rgba(255, 255, 255, 0.1);
@@ -278,6 +374,25 @@ h1 {
         margin: 10px;
     }
     
+    .modal-content {
+        padding: 30px;
+        max-width: 350px;
+    }
+    
+    .modal-content h2 {
+        font-size: 1.7em;
+    }
+    
+    #usernameInput {
+        padding: 12px;
+        font-size: 1.1em;
+    }
+    
+    .start-button {
+        padding: 12px 25px;
+        font-size: 1.1em;
+    }
+    
     h1 {
         font-size: 2em;
         margin-bottom: 15px;
@@ -337,6 +452,29 @@ h1 {
 }
 
 @media (max-width: 480px) {
+    .modal-content {
+        padding: 20px;
+        max-width: 300px;
+    }
+    
+    .modal-content h2 {
+        font-size: 1.5em;
+    }
+    
+    .modal-content p {
+        font-size: 1em;
+    }
+    
+    #usernameInput {
+        padding: 10px;
+        font-size: 1em;
+    }
+    
+    .start-button {
+        padding: 10px 20px;
+        font-size: 1em;
+    }
+    
     .board {
         grid-template-columns: repeat(8, 35px);
         grid-template-rows: repeat(8, 35px);
