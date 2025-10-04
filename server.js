@@ -27,6 +27,7 @@ class CheckersGameServer {
         this.pieces = this.initializePieces();
         this.gameState = 'waiting';
         this.winner = null;
+        this.drawOffer = null; // Для хранения предложения ничьи
     }
 
     initializePieces() {
@@ -94,6 +95,7 @@ class CheckersGameServer {
     startGame() {
         this.gameState = 'playing';
         this.currentPlayer = 'white';
+        this.drawOffer = null; // Сбрасываем предложение ничьи
         console.log('Game started! White moves first.');
         this.broadcastGameState();
     }
@@ -177,6 +179,97 @@ class CheckersGameServer {
         }
     }
 
+    // Обработка предложения ничьи
+    handleDrawOffer(ws, fromUsername) {
+        const player = this.players.find(p => p.ws === ws);
+        if (!player) return;
+        
+        // Проверяем, что игра идет
+        if (this.gameState !== 'playing') {
+            ws.send(JSON.stringify({
+                type: 'error',
+                message: 'Нельзя предложить ничью вне игры'
+            }));
+            return;
+        }
+        
+        // Находим противника
+        const opponent = this.players.find(p => p.ws !== ws);
+        if (!opponent) return;
+        
+        console.log(`Player ${fromUsername} offered draw to ${opponent.username}`);
+        
+        // Сохраняем предложение ничьи
+        this.drawOffer = {
+            from: player.username,
+            fromColor: player.color,
+            to: opponent.username
+        };
+        
+        // Отправляем предложение ничьи противнику
+        opponent.ws.send(JSON.stringify({
+            type: 'drawOfferReceived',
+            from: fromUsername
+        }));
+        
+        // Уведомляем отправителя
+        ws.send(JSON.stringify({
+            type: 'drawOfferSent',
+            to: opponent.username
+        }));
+    }
+
+    // Обработка ответа на предложение ничьи
+    handleDrawResponse(ws, accepted) {
+        const player = this.players.find(p => p.ws === ws);
+        if (!player) return;
+        
+        // Проверяем, что есть активное предложение ничьи
+        if (!this.drawOffer) {
+            ws.send(JSON.stringify({
+                type: 'error',
+                message: 'Нет активного предложения ничьи'
+            }));
+            return;
+        }
+        
+        // Проверяем, что это ответ от правильного игрока
+        if (this.drawOffer.to !== player.username) {
+            ws.send(JSON.stringify({
+                type: 'error',
+                message: 'Вы не являетесь получателем предложения ничьи'
+            }));
+            return;
+        }
+        
+        if (accepted) {
+            console.log(`Player ${player.username} accepted draw offer from ${this.drawOffer.from}`);
+            
+            // Завершаем игру ничьей
+            this.endGame(null); // null означает ничью
+            
+            // Уведомляем обоих игроков
+            this.broadcast(JSON.stringify({
+                type: 'drawAccepted',
+                by: player.username
+            }));
+        } else {
+            console.log(`Player ${player.username} rejected draw offer from ${this.drawOffer.from}`);
+            
+            // Уведомляем другого игрока об отказе
+            const opponent = this.players.find(p => p.username === this.drawOffer.from);
+            if (opponent) {
+                opponent.ws.send(JSON.stringify({
+                    type: 'drawRejected',
+                    by: player.username
+                }));
+            }
+            
+            // Сбрасываем предложение ничьи
+            this.drawOffer = null;
+        }
+    }
+
     validateMove(moveData) {
         const { fromRow, fromCol, toRow, toCol } = moveData;
         
@@ -211,7 +304,7 @@ class CheckersGameServer {
                 return { valid: false, message: 'Обязательно брать шашку!' };
             }
             
-            // Для дамки проверяем, что на пути есть ровно одна вражеская шашка
+            // Для дамки проверяем, что на пути есть ровно одна вражеская шашки
             if (piece.isKing) {
                 const captureInfo = this.findKingCapture(fromRow, fromCol, toRow, toCol);
                 if (!captureInfo) {
@@ -525,10 +618,25 @@ class CheckersGameServer {
     endGame(winner) {
         this.gameState = 'finished';
         this.winner = winner;
-        const winnerPlayer = this.players.find(p => p.color === winner);
-        const winnerName = winnerPlayer ? winnerPlayer.username : winner;
-        console.log(`Game over! Winner: ${winnerName} (${winner})`);
-        this.broadcastGameOver();
+        this.drawOffer = null; // Сбрасываем предложение ничьи
+        
+        if (winner === null) {
+            console.log('Game ended in a draw!');
+            this.broadcast(JSON.stringify({
+                type: 'gameOver',
+                winner: null,
+                result: 'draw'
+            }));
+        } else {
+            const winnerPlayer = this.players.find(p => p.color === winner);
+            const winnerName = winnerPlayer ? winnerPlayer.username : winner;
+            console.log(`Game over! Winner: ${winnerName} (${winner})`);
+            this.broadcast(JSON.stringify({
+                type: 'gameOver',
+                winner: winner,
+                result: 'win'
+            }));
+        }
     }
 
     broadcastGameState() {
@@ -541,12 +649,7 @@ class CheckersGameServer {
     }
 
     broadcastGameOver() {
-        const gameOver = {
-            type: 'gameOver',
-            winner: this.winner
-        };
-        
-        this.broadcast(JSON.stringify(gameOver));
+        // Этот метод теперь используется в endGame
     }
 
     broadcast(message) {
@@ -605,6 +708,14 @@ wss.on('connection', (ws, req) => {
                     
                 case 'move':
                     game.handleMove(data.data, ws);
+                    break;
+                    
+                case 'drawOffer':
+                    game.handleDrawOffer(ws, data.from);
+                    break;
+                    
+                case 'drawResponse':
+                    game.handleDrawResponse(ws, data.accepted);
                     break;
                     
                 case 'ping':
