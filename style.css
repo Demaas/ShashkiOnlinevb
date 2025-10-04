@@ -35,7 +35,10 @@ body {
 }
 
 .modal-content {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    background: linear-gradient(rgba(0, 0, 0, 0.6), rgba(0, 0, 0, 0.6)), 
+                url('shanick.png');
+    background-size: cover;
+    background-position: center;
     padding: 40px;
     border-radius: 20px;
     box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
@@ -545,3 +548,4 @@ h1 {
 @keyframes spin {
     to { transform: rotate(360deg); }
 }
+
