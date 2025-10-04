@@ -63,11 +63,6 @@ class CheckersGame {
   setupGameControls() {
     // Обработчики для кнопки "Новая Игра"
     this.newGameButton.addEventListener("click", () => {
-      if (gameActive && socket) {
-        socket.emit('restart', roomId);
-    } else {
-        nicknameModal.style.display = 'block';
-    }
       this.showNewGameModal();
     });
 
@@ -757,4 +752,3 @@ document.addEventListener("visibilitychange", () => {
     console.log("Page became visible, checking connection...");
   }
 });
-
