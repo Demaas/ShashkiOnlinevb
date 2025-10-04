@@ -1,4 +1,4 @@
-// script.js - ФИНАЛЬНАЯ ВЕРСИЯ с исправленной синхронизацией статуса хода
+// script.js - ФИНАЛЬНАЯ ВЕРСИЯ с кнопками управления игрой
 class CheckersGame {
     constructor() {
         this.board = document.getElementById('board');
@@ -8,6 +8,17 @@ class CheckersGame {
         this.loginModal = document.getElementById('loginModal');
         this.usernameInput = document.getElementById('usernameInput');
         this.startGameButton = document.getElementById('startGameButton');
+        
+        // Добавляем новые свойства для кнопок
+        this.newGameButton = document.getElementById('newGameButton');
+        this.drawOfferButton = document.getElementById('drawOfferButton');
+        this.newGameModal = document.getElementById('newGameModal');
+        this.drawOfferModal = document.getElementById('drawOfferModal');
+        this.confirmNewGame = document.getElementById('confirmNewGame');
+        this.cancelNewGame = document.getElementById('cancelNewGame');
+        this.acceptDraw = document.getElementById('acceptDraw');
+        this.rejectDraw = document.getElementById('rejectDraw');
+        this.drawOfferText = document.getElementById('drawOfferText');
         
         this.currentPlayer = 'white';
         this.selectedPiece = null;
@@ -21,6 +32,7 @@ class CheckersGame {
         this.setupLogin();
         this.initializeGame();
         this.setupRestartButton();
+        this.setupGameControls();
     }
 
     initializeGame() {
@@ -46,6 +58,119 @@ class CheckersGame {
         
         // Автофокус на поле ввода
         this.usernameInput.focus();
+    }
+
+    setupGameControls() {
+        // Обработчики для кнопки "Новая Игра"
+        this.newGameButton.addEventListener('click', () => {
+            this.showNewGameModal();
+        });
+        
+        this.confirmNewGame.addEventListener('click', () => {
+            this.confirmNewGameAction();
+        });
+        
+        this.cancelNewGame.addEventListener('click', () => {
+            this.hideNewGameModal();
+        });
+        
+        // Обработчики для кнопки "Ничья?"
+        this.drawOfferButton.addEventListener('click', () => {
+            this.offerDraw();
+        });
+        
+        this.acceptDraw.addEventListener('click', () => {
+            this.acceptDrawOffer();
+        });
+        
+        this.rejectDraw.addEventListener('click', () => {
+            this.rejectDrawOffer();
+        });
+        
+        // Закрытие модальных окон при клике вне их
+        this.newGameModal.addEventListener('click', (e) => {
+            if (e.target === this.newGameModal) {
+                this.hideNewGameModal();
+            }
+        });
+        
+        this.drawOfferModal.addEventListener('click', (e) => {
+            if (e.target === this.drawOfferModal) {
+                // Не закрываем модальное окно ничьи при клике вне - выбор обязателен
+            }
+        });
+    }
+
+    showNewGameModal() {
+        this.newGameModal.style.display = 'flex';
+    }
+
+    hideNewGameModal() {
+        this.newGameModal.style.display = 'none';
+    }
+
+    confirmNewGameAction() {
+        // Перезагружаем страницу для возврата к начальному экрану
+        location.reload();
+    }
+
+    offerDraw() {
+        if (!this.ws || this.ws.readyState !== WebSocket.OPEN) {
+            this.updateStatus('Нет соединения с сервером');
+            return;
+        }
+        
+        // Отправляем предложение ничьи на сервер
+        this.ws.send(JSON.stringify({
+            type: 'drawOffer',
+            from: this.username
+        }));
+        
+        this.updateStatus('Предложение ничьи отправлено...');
+    }
+
+    showDrawOfferModal(opponentName) {
+        this.drawOfferText.textContent = `${opponentName} предлагает ничью`;
+        this.drawOfferModal.style.display = 'flex';
+        
+        // Блокируем игровое поле пока не будет выбран ответ
+        this.board.style.pointerEvents = 'none';
+    }
+
+    hideDrawOfferModal() {
+        this.drawOfferModal.style.display = 'none';
+        this.board.style.pointerEvents = 'auto';
+    }
+
+    acceptDrawOffer() {
+        if (!this.ws || this.ws.readyState !== WebSocket.OPEN) {
+            this.updateStatus('Нет соединения с сервером');
+            return;
+        }
+        
+        // Отправляем согласие на ничью
+        this.ws.send(JSON.stringify({
+            type: 'drawResponse',
+            accepted: true
+        }));
+        
+        this.hideDrawOfferModal();
+    }
+
+    rejectDrawOffer() {
+        if (!this.ws || this.ws.readyState !== WebSocket.OPEN) {
+            this.updateStatus('Нет соединения с сервером');
+            return;
+        }
+        
+        // Отправляем отказ от ничьи
+        this.ws.send(JSON.stringify({
+            type: 'drawResponse',
+            accepted: false
+        }));
+        
+        this.hideDrawOfferModal();
+        this.updateStatus('Вы отклонили предложение ничьи');
     }
 
     startGameWithUsername() {
@@ -365,8 +490,20 @@ class CheckersGame {
                 this.handlePlayersInfo(message.data);
                 break;
                 
+            case 'drawOfferReceived':
+                this.showDrawOfferModal(message.from);
+                break;
+                
+            case 'drawRejected':
+                this.updateStatus(`${message.by} отклонил предложение ничьи`);
+                break;
+                
             case 'gameOver':
-                this.handleGameOver(message);
+                if (message.result === 'draw') {
+                    this.handleGameOver({ winner: null, result: 'draw' });
+                } else {
+                    this.handleGameOver(message);
+                }
                 break;
                 
             case 'error':
@@ -498,9 +635,15 @@ class CheckersGame {
     }
 
     handleGameOver(result) {
-        const winnerText = result.winner ? 
-            `🏆 Победитель: ${result.winner === 'white' ? 'белые' : 'чёрные'}` : 
-            '🤝 Ничья!';
+        let winnerText;
+        if (result.result === 'draw') {
+            winnerText = '🤝 Ничья!';
+        } else if (result.winner) {
+            winnerText = `🏆 Победитель: ${result.winner === 'white' ? 'белые' : 'чёрные'}`;
+        } else {
+            winnerText = '🤝 Ничья!';
+        }
+        
         this.updateStatus(`Игра окончена! ${winnerText}`);
         
         // Удаляем стрелку при окончании игры
@@ -530,7 +673,8 @@ class CheckersGame {
                                    message.includes('Добро пожаловать') || message.includes('Перезапуск') ||
                                    message.includes('Вы играете') || message.includes('Сейчас не ваш ход') ||
                                    message.includes('Ход отправляется') || message.includes('Соединение потеряно') ||
-                                   message.includes('Ошибка соединения') || message.includes('Выберите клетку');
+                                   message.includes('Ошибка соединения') || message.includes('Выберите клетку') ||
+                                   message.includes('Предложение ничьи') || message.includes('отклонил предложение');
             
             if (this.username && this.playerColor && !isSystemMessage) {
                 const colorText = this.playerColor === 'white' ? 'белые' : 'чёрные';
