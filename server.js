@@ -119,6 +119,18 @@ class CheckersGameServer {
             this.executeMove(moveData, validation);
             this.checkForKing(moveData.toRow, moveData.toCol);
             
+            // ОТПРАВЛЯЕМ ИНФОРМАЦИЮ О ХОДЕ ВСЕМ ИГРОКАМ
+            this.broadcast(JSON.stringify({
+                type: 'moveMade',
+                data: {
+                    fromRow: moveData.fromRow,
+                    fromCol: moveData.fromCol,
+                    toRow: moveData.toRow,
+                    toCol: moveData.toCol,
+                    player: player.color
+                }
+            }));
+            
             if (validation.capturedPiece && this.canContinueCapture(moveData.toRow, moveData.toCol)) {
                 console.log(`Player ${player.color} can continue capturing`);
                 this.broadcastGameState();
@@ -144,86 +156,86 @@ class CheckersGameServer {
     }
 
     validateMove(moveData) {
-    const { fromRow, fromCol, toRow, toCol } = moveData;
-    
-    if (!this.isValidPosition(fromRow, fromCol) || !this.isValidPosition(toRow, toCol)) {
-        return { valid: false, message: 'Неверные координаты' };
-    }
-
-    const piece = this.getPiece(fromRow, fromCol);
-    if (!piece) {
-        return { valid: false, message: 'Шашка не найдена' };
-    }
-
-    if (piece.color !== this.currentPlayer) {
-        return { valid: false, message: 'Это не ваша шашка' };
-    }
-
-    if (this.getPiece(toRow, toCol)) {
-        return { valid: false, message: 'Целевая клетка занята' };
-    }
-
-    if (Math.abs(toRow - fromRow) !== Math.abs(toCol - fromCol)) {
-        return { valid: false, message: 'Ход должен быть по диагонали' };
-    }
-
-    const rowDiff = toRow - fromRow;
-
-    // Проверка обязательных взятий
-    const forcedCaptures = this.getForcedCaptures(this.currentPlayer);
-    if (forcedCaptures.length > 0) {
-        const isCaptureMove = Math.abs(rowDiff) >= 2; // Для дамки ход может быть больше 2 клеток
-        if (!isCaptureMove) {
-            return { valid: false, message: 'Обязательно брать шашку!' };
-        }
+        const { fromRow, fromCol, toRow, toCol } = moveData;
         
-        // Для дамки проверяем, что на пути есть ровно одна вражеская шашка
-        if (piece.isKing) {
-            const captureInfo = this.findKingCapture(fromRow, fromCol, toRow, toCol);
-            if (!captureInfo) {
-                return { valid: false, message: 'Неверное взятие для дамки' };
+        if (!this.isValidPosition(fromRow, fromCol) || !this.isValidPosition(toRow, toCol)) {
+            return { valid: false, message: 'Неверные координаты' };
+        }
+
+        const piece = this.getPiece(fromRow, fromCol);
+        if (!piece) {
+            return { valid: false, message: 'Шашка не найдена' };
+        }
+
+        if (piece.color !== this.currentPlayer) {
+            return { valid: false, message: 'Это не ваша шашка' };
+        }
+
+        if (this.getPiece(toRow, toCol)) {
+            return { valid: false, message: 'Целевая клетка занята' };
+        }
+
+        if (Math.abs(toRow - fromRow) !== Math.abs(toCol - fromCol)) {
+            return { valid: false, message: 'Ход должен быть по диагонали' };
+        }
+
+        const rowDiff = toRow - fromRow;
+
+        // Проверка обязательных взятий
+        const forcedCaptures = this.getForcedCaptures(this.currentPlayer);
+        if (forcedCaptures.length > 0) {
+            const isCaptureMove = Math.abs(rowDiff) >= 2; // Для дамки ход может быть больше 2 клеток
+            if (!isCaptureMove) {
+                return { valid: false, message: 'Обязательно брать шашку!' };
             }
             
-            return { 
-                valid: true, 
-                capturedPiece: captureInfo 
-            };
-        } else {
-            // Для простой шашки
-            const captureRow = fromRow + rowDiff / 2;
-            const captureCol = fromCol + (toCol - fromCol) / 2;
-            const capturedPiece = this.getPiece(captureRow, captureCol);
-            
-            if (!capturedPiece || capturedPiece.color === piece.color) {
-                return { valid: false, message: 'Неверное взятие' };
+            // Для дамки проверяем, что на пути есть ровно одна вражеская шашка
+            if (piece.isKing) {
+                const captureInfo = this.findKingCapture(fromRow, fromCol, toRow, toCol);
+                if (!captureInfo) {
+                    return { valid: false, message: 'Неверное взятие для дамки' };
+                }
+                
+                return { 
+                    valid: true, 
+                    capturedPiece: captureInfo 
+                };
+            } else {
+                // Для простой шашки
+                const captureRow = fromRow + rowDiff / 2;
+                const captureCol = fromCol + (toCol - fromCol) / 2;
+                const capturedPiece = this.getPiece(captureRow, captureCol);
+                
+                if (!capturedPiece || capturedPiece.color === piece.color) {
+                    return { valid: false, message: 'Неверное взятие' };
+                }
+                
+                return { 
+                    valid: true, 
+                    capturedPiece: { row: captureRow, col: captureCol } 
+                };
             }
-            
-            return { 
-                valid: true, 
-                capturedPiece: { row: captureRow, col: captureCol } 
-            };
         }
-    }
 
-    // Проверка обычного хода для простой шашки
-    if (!piece.isKing) {
-        if (Math.abs(rowDiff) !== 1) {
-            return { valid: false, message: 'Простая шашка ходит на одну клетку' };
+        // Проверка обычного хода для простой шашки
+        if (!piece.isKing) {
+            if (Math.abs(rowDiff) !== 1) {
+                return { valid: false, message: 'Простая шашка ходит на одну клетку' };
+            }
+            // ПРОВЕРКА НАПРАВЛЕНИЯ: белые - вверх, черные - вниз
+            const direction = piece.color === 'white' ? -1 : 1;
+            if (rowDiff !== direction) {
+                return { valid: false, message: 'Простая шашка ходит только вперед' };
+            }
         }
-        // ПРОВЕРКА НАПРАВЛЕНИЯ: белые - вверх, черные - вниз
-        const direction = piece.color === 'white' ? -1 : 1;
-        if (rowDiff !== direction) {
-            return { valid: false, message: 'Простая шашка ходит только вперед' };
+
+        // Для дамки проверяем свободный путь
+        if (piece.isKing && !this.isPathClear(fromRow, fromCol, toRow, toCol)) {
+            return { valid: false, message: 'Путь для дамки занят' };
         }
-    }
 
-    // Для дамки проверяем свободный путь
-    if (piece.isKing && !this.isPathClear(fromRow, fromCol, toRow, toCol)) {
-        return { valid: false, message: 'Путь для дамки занят' };
+        return { valid: true };
     }
-
-    return { valid: true };
-}
 
     findKingCapture(fromRow, fromCol, toRow, toCol) {
         const rowStep = toRow > fromRow ? 1 : -1;
@@ -335,8 +347,8 @@ class CheckersGameServer {
                 }
             }
         } else {
-            // ЛОГИКА ДЛЯ ПРОСТОЙ ШАШКИ
-            const directions = [-1, 1];
+            // ЛОГИКА ДЛЯ ПРОСТОЙ ШАШКИ - бить в ЛЮБОМ направлении
+            const directions = [-1, 1]; // Вперед и назад для взятия
             
             directions.forEach(rowDir => {
                 [-1, 1].forEach(colDir => {
@@ -431,62 +443,62 @@ class CheckersGameServer {
     }
 
     getPossibleMoves(piece) {
-    // Сначала проверяем обязательные взятия
-    const captures = this.getPossibleCaptures(piece);
-    if (captures.length > 0) {
-        return captures;
-    }
-    
-    // Затем обычные ходы
-    const moves = [];
-    
-    if (piece.isKing) {
-        // Дамка может ходить на несколько клеток в любом направлении
-        const directions = [-1, 1];
+        // Сначала проверяем обязательные взятия
+        const captures = this.getPossibleCaptures(piece);
+        if (captures.length > 0) {
+            return captures;
+        }
         
-        directions.forEach(rowDir => {
-            [-1, 1].forEach(colDir => {
-                let currentRow = piece.row + rowDir;
-                let currentCol = piece.col + colDir;
-                
-                while (this.isValidPosition(currentRow, currentCol)) {
-                    if (!this.getPiece(currentRow, currentCol)) {
-                        moves.push({
-                            fromRow: piece.row,
-                            fromCol: piece.col,
-                            toRow: currentRow,
-                            toCol: currentCol
-                        });
-                        currentRow += rowDir;
-                        currentCol += colDir;
-                    } else {
-                        break;
+        // Затем обычные ходы
+        const moves = [];
+        
+        if (piece.isKing) {
+            // Дамка может ходить на несколько клеток в любом направлении
+            const directions = [-1, 1];
+            
+            directions.forEach(rowDir => {
+                [-1, 1].forEach(colDir => {
+                    let currentRow = piece.row + rowDir;
+                    let currentCol = piece.col + colDir;
+                    
+                    while (this.isValidPosition(currentRow, currentCol)) {
+                        if (!this.getPiece(currentRow, currentCol)) {
+                            moves.push({
+                                fromRow: piece.row,
+                                fromCol: piece.col,
+                                toRow: currentRow,
+                                toCol: currentCol
+                            });
+                            currentRow += rowDir;
+                            currentCol += colDir;
+                        } else {
+                            break;
+                        }
                     }
+                });
+            });
+        } else {
+            // ПРОСТЫЕ ШАШКИ - ходят только ВПЕРЕД
+            const direction = piece.color === 'white' ? -1 : 1; // Белые - вверх, черные - вниз
+            
+            // Проверяем ходы вперед по диагонали
+            [-1, 1].forEach(colDir => {
+                const newRow = piece.row + direction;
+                const newCol = piece.col + colDir;
+                
+                if (this.isValidPosition(newRow, newCol) && !this.getPiece(newRow, newCol)) {
+                    moves.push({
+                        fromRow: piece.row,
+                        fromCol: piece.col,
+                        toRow: newRow,
+                        toCol: newCol
+                    });
                 }
             });
-        });
-    } else {
-        // ПРОСТЫЕ ШАШКИ - ходят только ВПЕРЕД
-        const direction = piece.color === 'white' ? -1 : 1; // Белые - вверх, черные - вниз
+        }
         
-        // Проверяем ходы вперед по диагонали
-        [-1, 1].forEach(colDir => {
-            const newRow = piece.row + direction;
-            const newCol = piece.col + colDir;
-            
-            if (this.isValidPosition(newRow, newCol) && !this.getPiece(newRow, newCol)) {
-                moves.push({
-                    fromRow: piece.row,
-                    fromCol: piece.col,
-                    toRow: newRow,
-                    toCol: newCol
-                });
-            }
-        });
+        return moves;
     }
-    
-    return moves;
-}
 
     endGame(winner) {
         this.gameState = 'finished';
@@ -566,6 +578,10 @@ wss.on('connection', (ws, req) => {
                 case 'ping':
                     ws.send(JSON.stringify({ type: 'pong' }));
                     break;
+                case 'restart':
+                    // Обработка рестарта игры
+                    console.log('Player requested restart');
+                    break;
                 default:
                     console.log('Unknown message type:', data.type);
             }
@@ -597,5 +613,3 @@ server.listen(PORT, '0.0.0.0', () => {
     console.log(`Server running on port ${PORT}`);
     console.log(`Health check available at http://localhost:${PORT}/health`);
 });
-
-
