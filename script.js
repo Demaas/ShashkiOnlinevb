@@ -1,4 +1,4 @@
-// script.js - ФИНАЛЬНАЯ ВЕРСИЯ для шашек с системой входа по нику
+// script.js - ФИНАЛЬНАЯ ВЕРСИЯ для шашек с улучшенным отображением хода
 class CheckersGame {
     constructor() {
         this.board = document.getElementById('board');
@@ -16,7 +16,7 @@ class CheckersGame {
         this.ws = null;
         this.currentArrow = null;
         this.arrowTimeout = null;
-        this.username = ''; // Добавляем хранение ника
+        this.username = '';
         
         this.setupLogin();
         this.initializeGame();
@@ -141,8 +141,6 @@ class CheckersGame {
         }));
         
         this.updateStatus('Ход отправляется...');
-        
-        // Стрелка теперь показывается через серверное сообщение moveMade
     }
 
     setupWebSocket() {
@@ -353,9 +351,12 @@ class CheckersGame {
             case 'moveResult':
                 if (message.valid) {
                     this.updateGameState(message.gameState);
-                    const statusText = message.gameState.currentPlayer === this.playerColor ? 
-                        '✅ Ваш ход!' : '⏳ Ход противника...';
-                    this.updateStatus(statusText);
+                    // Обновляем статус с указанием чей ход
+                    if (message.gameState.currentPlayer === this.playerColor) {
+                        this.updateStatus('✅ Ваш ход!');
+                    } else {
+                        this.updateStatus('⏳ Ход противника...');
+                    }
                 } else {
                     this.updateStatus(`❌ ${message.message}`);
                 }
@@ -386,7 +387,6 @@ class CheckersGame {
         console.log('Move made by:', moveData.player, moveData);
         
         // Показываем стрелку для ЛЮБОГО хода, независимо от того, кто его сделал
-        // Добавляем небольшую задержку для лучшей визуализации
         setTimeout(() => {
             this.createMoveArrow(
                 moveData.fromRow, 
@@ -396,16 +396,17 @@ class CheckersGame {
             );
         }, 100);
         
-        // Обновляем статус, если ход сделал противник
+        // Обновляем статус с указанием чей ход
         if (moveData.player !== this.playerColor) {
             this.updateStatus('⏳ Ход противника...');
+        } else {
+            this.updateStatus('✅ Ваш ход!');
         }
     }
 
     handlePlayersInfo(players) {
         console.log('Players info:', players);
         // Можно использовать для отображения информации об игроках
-        // Например, показать список игроков в интерфейсе
         if (players.length === 2) {
             const opponent = players.find(p => p.username !== this.username);
             if (opponent) {
@@ -516,7 +517,25 @@ class CheckersGame {
             let statusText = message;
             if (this.username && this.playerColor) {
                 const colorText = this.playerColor === 'white' ? 'белые' : 'чёрные';
-                statusText = `${this.username} (${colorText}) - ${message}`;
+                
+                // Определяем чей сейчас ход для форматирования статуса
+                let turnText = '';
+                if (message.includes('Ход противника') || message.includes('⏳')) {
+                    const opponentColor = this.playerColor === 'white' ? 'чёрных' : 'белых';
+                    turnText = ` - Ход ${opponentColor}`;
+                } else if (message.includes('Ваш ход') || message.includes('✅')) {
+                    const myColor = this.playerColor === 'white' ? 'белых' : 'чёрных';
+                    turnText = ` - Ход ${myColor}`;
+                } else if (message.includes('белых') || message.includes('чёрных')) {
+                    // Оставляем как есть, если уже указан конкретный ход
+                    turnText = '';
+                } else {
+                    // Автоматически определяем ход по текущему игроку
+                    const currentTurnColor = this.currentPlayer === 'white' ? 'белых' : 'чёрных';
+                    turnText = ` - Ход ${currentTurnColor}`;
+                }
+                
+                statusText = `${this.username} (${colorText})${turnText}`;
             } else if (this.username) {
                 statusText = `${this.username} - ${message}`;
             }
