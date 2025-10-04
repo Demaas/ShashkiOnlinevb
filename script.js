@@ -1,708 +1,465 @@
-// script.js - ФИНАЛЬНАЯ ВЕРСИЯ с кнопками управления игрой
 class CheckersGame {
     constructor() {
-        this.board = document.getElementById('board');
-        this.status = document.getElementById('status');
-        this.restartContainer = document.getElementById('restartContainer');
-        this.restartButton = document.getElementById('restartButton');
-        this.loginModal = document.getElementById('loginModal');
-        this.usernameInput = document.getElementById('usernameInput');
-        this.startGameButton = document.getElementById('startGameButton');
-        
-        // Добавляем новые свойства для кнопок
-        this.newGameButton = document.getElementById('newGameButton');
-        this.drawOfferButton = document.getElementById('drawOfferButton');
-        this.newGameModal = document.getElementById('newGameModal');
-        this.drawOfferModal = document.getElementById('drawOfferModal');
-        this.confirmNewGame = document.getElementById('confirmNewGame');
-        this.cancelNewGame = document.getElementById('cancelNewGame');
-        this.acceptDraw = document.getElementById('acceptDraw');
-        this.rejectDraw = document.getElementById('rejectDraw');
-        this.drawOfferText = document.getElementById('drawOfferText');
-        
-        this.currentPlayer = 'white';
-        this.selectedPiece = null;
-        this.possibleMoves = [];
+        this.socket = null;
         this.playerColor = null;
-        this.ws = null;
-        this.currentArrow = null;
-        this.arrowTimeout = null;
-        this.username = '';
+        this.playerNick = null;
+        this.opponentNick = null;
+        this.gameBoard = null;
+        this.selectedPiece = null;
+        this.validMoves = [];
         
+        this.init();
+    }
+
+    init() {
         this.setupLogin();
-        this.initializeGame();
-        this.setupRestartButton();
+        this.initializeBoard();
         this.setupGameControls();
     }
 
-    initializeGame() {
-        this.createBoard();
-        this.updateStatus('Введите ваш ник для начала игры...');
-    }
-
     setupLogin() {
-        // Показываем модальное окно при загрузке
-        this.loginModal.style.display = 'flex';
-        
-        // Обработчик кнопки начала игры
-        this.startGameButton.addEventListener('click', () => {
-            this.startGameWithUsername();
+        const loginModal = document.getElementById('loginModal');
+        const gameInterface = document.getElementById('gameInterface');
+        const nicknameInput = document.getElementById('nicknameInput');
+        const joinButton = document.getElementById('joinButton');
+
+        // Показать модальное окно входа
+        loginModal.style.display = 'flex';
+        gameInterface.style.display = 'none';
+
+        joinButton.addEventListener('click', () => {
+            const nickname = nicknameInput.value.trim();
+            if (nickname) {
+                this.connectToGame(nickname);
+                loginModal.style.display = 'none';
+                gameInterface.style.display = 'block';
+            }
         });
-        
-        // Обработчик нажатия Enter в поле ввода
-        this.usernameInput.addEventListener('keypress', (e) => {
+
+        nicknameInput.addEventListener('keypress', (e) => {
             if (e.key === 'Enter') {
-                this.startGameWithUsername();
-            }
-        });
-        
-        // Автофокус на поле ввода
-        this.usernameInput.focus();
-    }
-
-    setupGameControls() {
-        // Обработчики для кнопки "Новая Игра"
-        this.newGameButton.addEventListener('click', () => {
-            this.showNewGameModal();
-        });
-        
-        this.confirmNewGame.addEventListener('click', () => {
-            this.confirmNewGameAction();
-        });
-        
-        this.cancelNewGame.addEventListener('click', () => {
-            this.hideNewGameModal();
-        });
-        
-        // Обработчики для кнопки "Ничья?"
-        this.drawOfferButton.addEventListener('click', () => {
-            this.offerDraw();
-        });
-        
-        this.acceptDraw.addEventListener('click', () => {
-            this.acceptDrawOffer();
-        });
-        
-        this.rejectDraw.addEventListener('click', () => {
-            this.rejectDrawOffer();
-        });
-        
-        // Закрытие модальных окон при клике вне их
-        this.newGameModal.addEventListener('click', (e) => {
-            if (e.target === this.newGameModal) {
-                this.hideNewGameModal();
-            }
-        });
-        
-        this.drawOfferModal.addEventListener('click', (e) => {
-            if (e.target === this.drawOfferModal) {
-                // Не закрываем модальное окно ничьи при клике вне - выбор обязателен
+                joinButton.click();
             }
         });
     }
 
-    showNewGameModal() {
-        this.newGameModal.style.display = 'flex';
+    connectToGame(nickname) {
+        this.socket = new WebSocket(`ws://${window.location.host}`);
+        this.playerNick = nickname;
+
+        this.socket.onopen = () => {
+            console.log('Подключение установлено');
+            this.socket.send(JSON.stringify({
+                type: 'join',
+                nickname: nickname
+            }));
+        };
+
+        this.socket.onmessage = (event) => {
+            const data = JSON.parse(event.data);
+            this.handleMessage(data);
+        };
+
+        this.socket.onclose = () => {
+            console.log('Соединение закрыто');
+            this.showReconnectMessage();
+        };
+
+        this.socket.onerror = (error) => {
+            console.error('WebSocket ошибка:', error);
+        };
     }
 
-    hideNewGameModal() {
-        this.newGameModal.style.display = 'none';
-    }
-
-    confirmNewGameAction() {
-        // Перезагружаем страницу для возврата к начальному экрану
-        location.reload();
-    }
-
-    offerDraw() {
-        if (!this.ws || this.ws.readyState !== WebSocket.OPEN) {
-            this.updateStatus('Нет соединения с сервером');
-            return;
+    handleMessage(data) {
+        switch (data.type) {
+            case 'playerAssigned':
+                this.handlePlayerAssigned(data);
+                break;
+            case 'opponentInfo':
+                this.handleOpponentInfo(data);
+                break;
+            case 'gameState':
+                this.handleGameState(data);
+                break;
+            case 'moveMade':
+                this.handleMoveMade(data);
+                break;
+            case 'gameStatus':
+                this.handleGameStatus(data);
+                break;
+            case 'drawOfferReceived':
+                this.handleDrawOfferReceived();
+                break;
+            case 'drawResponse':
+                this.handleDrawResponse(data);
+                break;
+            case 'gameOver':
+                this.handleGameOver(data);
+                break;
         }
-        
-        // Отправляем предложение ничьи на сервер
-        this.ws.send(JSON.stringify({
-            type: 'drawOffer',
-            from: this.username
-        }));
-        
-        this.updateStatus('Предложение ничьи отправлено...');
     }
 
-    showDrawOfferModal(opponentName) {
-        this.drawOfferText.textContent = `${opponentName} предлагает ничью`;
-        this.drawOfferModal.style.display = 'flex';
+    handlePlayerAssigned(data) {
+        this.playerColor = data.color;
+        this.updateTurnStatus(`Вы играете за ${data.color === 'white' ? 'белых' : 'черных'}. Ожидание хода...`);
+        this.updateMatchInfo();
+    }
+
+    handleOpponentInfo(data) {
+        this.opponentNick = data.opponentNick;
+        this.updateMatchInfo();
         
-        // Блокируем игровое поле пока не будет выбран ответ
-        this.board.style.pointerEvents = 'none';
-    }
-
-    hideDrawOfferModal() {
-        this.drawOfferModal.style.display = 'none';
-        this.board.style.pointerEvents = 'auto';
-    }
-
-    acceptDrawOffer() {
-        if (!this.ws || this.ws.readyState !== WebSocket.OPEN) {
-            this.updateStatus('Нет соединения с сервером');
-            return;
+        if (data.opponentNick) {
+            console.log(`Соперник: ${data.opponentNick}`);
+        } else {
+            console.log('Соперник отключился');
         }
-        
-        // Отправляем согласие на ничью
-        this.ws.send(JSON.stringify({
-            type: 'drawResponse',
-            accepted: true
-        }));
-        
-        this.hideDrawOfferModal();
     }
 
-    rejectDrawOffer() {
-        if (!this.ws || this.ws.readyState !== WebSocket.OPEN) {
-            this.updateStatus('Нет соединения с сервером');
-            return;
+    updateMatchInfo() {
+        const matchInfoElement = document.getElementById('matchInfo');
+        if (this.playerNick && this.opponentNick) {
+            // Всегда отображаем белые vs черные в правильном порядке
+            if (this.playerColor === 'white') {
+                matchInfoElement.textContent = `${this.playerNick} vs ${this.opponentNick}`;
+            } else {
+                matchInfoElement.textContent = `${this.opponentNick} vs ${this.playerNick}`;
+            }
+            matchInfoElement.className = 'match-info status-active';
+        } else {
+            matchInfoElement.textContent = 'Ожидание соперника...';
+            matchInfoElement.className = 'match-info status-waiting';
         }
-        
-        // Отправляем отказ от ничьи
-        this.ws.send(JSON.stringify({
-            type: 'drawResponse',
-            accepted: false
-        }));
-        
-        this.hideDrawOfferModal();
-        this.updateStatus('Вы отклонили предложение ничьи');
     }
 
-    startGameWithUsername() {
-        const username = this.usernameInput.value.trim();
+    updateTurnStatus(status) {
+        const statusElement = document.getElementById('gameStatus');
+        statusElement.textContent = status;
         
-        if (username.length < 2) {
-            alert('Пожалуйста, введите ник длиной от 2 символов');
-            this.usernameInput.focus();
-            return;
+        // Динамическое обновление классов для цветового кодирования
+        if (status.includes('Ваш ход')) {
+            statusElement.className = 'status-text status-active';
+        } else if (status.includes('Ожидание') || status.includes('ход соперника')) {
+            statusElement.className = 'status-text status-waiting';
+        } else if (status.includes('Игра окончена')) {
+            statusElement.className = 'status-text status-ended';
+        } else {
+            statusElement.className = 'status-text';
         }
-        
-        if (username.length > 15) {
-            alert('Ник не должен превышать 15 символов');
-            this.usernameInput.focus();
-            return;
-        }
-        
-        this.username = username;
-        this.loginModal.style.display = 'none';
-        
-        // Обновляем статус с ником
-        this.updateStatus(`Добро пожаловать, ${username}! Подключение к серверу...`);
-        
-        // Подключаемся к WebSocket
-        this.setupWebSocket();
     }
 
-    createBoard() {
-        this.board.innerHTML = '';
+    initializeBoard() {
+        this.gameBoard = Array(8).fill().map(() => Array(8).fill(null));
+        this.renderBoard();
+    }
+
+    renderBoard() {
+        const boardElement = document.getElementById('gameBoard');
+        boardElement.innerHTML = '';
+
         for (let row = 0; row < 8; row++) {
             for (let col = 0; col < 8; col++) {
                 const cell = document.createElement('div');
-                cell.className = `cell ${(row + col) % 2 === 0 ? 'white' : 'black'}`;
+                cell.className = `cell ${(row + col) % 2 === 0 ? 'light' : 'dark'}`;
                 cell.dataset.row = row;
                 cell.dataset.col = col;
-                
-                // Только черные клетки кликабельны
-                if ((row + col) % 2 !== 0) {
+
+                const piece = this.gameBoard[row][col];
+                if (piece) {
+                    const pieceElement = document.createElement('div');
+                    pieceElement.className = `piece ${piece.color} ${piece.type === 'king' ? 'king' : ''}`;
+                    pieceElement.style.backgroundImage = `url(${this.getPieceImage(piece)})`;
+                    
+                    pieceElement.addEventListener('click', () => this.handlePieceClick(row, col));
+                    cell.appendChild(pieceElement);
+                } else {
                     cell.addEventListener('click', () => this.handleCellClick(row, col));
                 }
-                
-                this.board.appendChild(cell);
+
+                boardElement.appendChild(cell);
             }
+        }
+    }
+
+    getPieceImage(piece) {
+        const images = {
+            'white': 'shabe.png',
+            'black': 'shach.png',
+            'white_king': 'shabedam.png',
+            'black_king': 'shachdam.png'
+        };
+        
+        const key = piece.type === 'king' ? `${piece.color}_king` : piece.color;
+        return images[key];
+    }
+
+    handlePieceClick(row, col) {
+        if (!this.isMyTurn()) return;
+
+        const piece = this.gameBoard[row][col];
+        if (piece && piece.color === this.playerColor) {
+            this.selectedPiece = { row, col };
+            this.clearValidMoves();
+            this.showValidMoves(row, col);
         }
     }
 
     handleCellClick(row, col) {
-        console.log('Cell clicked:', row, col);
-        
-        if (!this.playerColor) {
-            this.updateStatus('Ожидание подключения...');
-            return;
-        }
-        
-        if (this.playerColor !== this.currentPlayer) {
-            this.updateStatus('Сейчас не ваш ход!');
-            return;
-        }
-        
-        const cell = this.getCell(row, col);
-        const piece = cell.querySelector('.piece');
-        
-        // Если уже выбрана шашка - пробуем сделать ход
-        if (this.selectedPiece) {
-            this.makeMove(this.selectedPiece.row, this.selectedPiece.col, row, col);
-            this.clearSelection();
-        } 
-        // Если кликнули на свою шашку - выбираем её
-        else if (piece && piece.dataset.color === this.playerColor) {
-            this.selectedPiece = { row, col };
-            this.highlightCell(row, col, 'selected');
-            this.updateStatus('Выберите клетку для хода');
-        }
-    }
+        if (!this.selectedPiece || !this.isMyTurn()) return;
 
-    makeMove(fromRow, fromCol, toRow, toCol) {
-        if (!this.ws || this.ws.readyState !== WebSocket.OPEN) {
-            this.updateStatus('Нет соединения с сервером');
-            return;
-        }
-
-        const moveData = {
-            fromRow: fromRow,
-            fromCol: fromCol,
-            toRow: toRow,
-            toCol: toCol
+        const move = {
+            from: [this.selectedPiece.row, this.selectedPiece.col],
+            to: [row, col]
         };
 
-        console.log('Sending move:', moveData);
-        this.ws.send(JSON.stringify({
-            type: 'move',
-            data: moveData
-        }));
-        
-        this.updateStatus('Ход отправляется...');
-    }
+        // Проверяем, является ли ход валидным
+        const isValidMove = this.validMoves.some(validMove => 
+            validMove[0] === row && validMove[1] === col
+        );
 
-    setupWebSocket() {
-        const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-        const wsUrl = `${protocol}//${window.location.host}`;
-        
-        console.log('Connecting to WebSocket:', wsUrl);
-        
-        this.ws = new WebSocket(wsUrl);
-        
-        this.ws.onopen = () => {
-            console.log('✅ WebSocket connected successfully');
-            // Отправляем ник при подключении
-            this.ws.send(JSON.stringify({
-                type: 'join',
-                username: this.username
+        if (isValidMove) {
+            this.socket.send(JSON.stringify({
+                type: 'move',
+                move: move
             }));
-            this.updateStatus('Подключено! Ожидание второго игрока...');
-        };
-
-        this.ws.onmessage = (event) => {
-            try {
-                const message = JSON.parse(event.data);
-                console.log('📨 Received message:', message);
-                this.handleServerMessage(message);
-            } catch (error) {
-                console.error('❌ Error parsing message:', error);
-            }
-        };
-
-        this.ws.onclose = (event) => {
-            console.log('🔌 WebSocket disconnected:', event.code, event.reason);
-            this.updateStatus('Соединение потеряно. Переподключение через 3 секунды...');
-            setTimeout(() => {
-                this.setupWebSocket();
-            }, 3000);
-        };
-
-        this.ws.onerror = (error) => {
-            console.error('💥 WebSocket error:', error);
-            this.updateStatus('Ошибка соединения с сервером');
-        };
+            this.clearValidMoves();
+            this.selectedPiece = null;
+        }
     }
 
-    setupRestartButton() {
-        this.restartButton.addEventListener('click', () => {
-            this.restartGame();
+    isMyTurn() {
+        // Эта логика будет обновляться из серверных сообщений
+        return true; // Временная заглушка
+    }
+
+    showValidMoves(row, col) {
+        // Временная реализация - реальная логика будет на сервере
+        const directions = [
+            [1, 1], [1, -1], [-1, 1], [-1, -1]
+        ];
+
+        directions.forEach(([dRow, dCol]) => {
+            const newRow = row + dRow;
+            const newCol = col + dCol;
+            
+            if (newRow >= 0 && newRow < 8 && newCol >= 0 && newCol < 8) {
+                if (!this.gameBoard[newRow][newCol]) {
+                    this.validMoves.push([newRow, newCol]);
+                    this.highlightCell(newRow, newCol);
+                }
+            }
         });
     }
 
-    restartGame() {
-        console.log('Restarting game...');
-        
-        // Удаляем стрелку и очищаем таймер
-        this.removeMoveArrow();
-        
-        // Скрываем блок рестарта
-        this.restartContainer.style.display = 'none';
-        
-        // Показываем доску и статус
-        this.board.style.display = 'grid';
-        this.status.style.display = 'block';
-        
-        // Сбрасываем состояние игры
-        this.selectedPiece = null;
-        this.possibleMoves = [];
-        this.playerColor = null;
-        this.currentPlayer = 'white';
-        
-        // Обновляем статус
-        this.updateStatus('Перезапуск игры...');
-        
-        // Очищаем доску
-        this.clearBoard();
-        
-        // Переподключаемся к серверу
-        if (this.ws) {
-            this.ws.close();
+    highlightCell(row, col) {
+        const cell = document.querySelector(`.cell[data-row="${row}"][data-col="${col}"]`);
+        if (cell) {
+            cell.classList.add('valid-move');
         }
+    }
+
+    clearValidMoves() {
+        document.querySelectorAll('.valid-move').forEach(cell => {
+            cell.classList.remove('valid-move');
+        });
+        this.validMoves = [];
+    }
+
+    handleGameState(data) {
+        this.gameBoard = data.board;
+        this.renderBoard();
+        this.updateTurnStatus(this.getTurnStatus(data.currentTurn));
+    }
+
+    handleMoveMade(data) {
+        this.gameBoard = data.board;
+        this.renderBoard();
         
-        // Перезагружаем игру через небольшой таймаут
-        setTimeout(() => {
-            this.setupWebSocket();
-        }, 1000);
+        // Добавляем визуализацию стрелки направления хода
+        this.showMoveArrow(data.from, data.to);
+        
+        this.updateTurnStatus(this.getTurnStatus(data.currentTurn));
+        this.updateMatchInfo(); // Обновляем информацию о матче после хода
     }
 
-    clearBoard() {
-        // Очищаем все шашки с доски
-        document.querySelectorAll('.piece').forEach(piece => piece.remove());
-    }
-
-    createMoveArrow(fromRow, fromCol, toRow, toCol) {
-        // Удаляем предыдущую стрелку, если есть
+    showMoveArrow(from, to) {
+        // Удаляем предыдущую стрелку
         this.removeMoveArrow();
         
-        const fromCell = this.getCell(fromRow, fromCol);
-        const toCell = this.getCell(toRow, toCol);
+        const [fromRow, fromCol] = from;
+        const [toRow, toCol] = to;
+        
+        const boardElement = document.getElementById('gameBoard');
+        const fromCell = document.querySelector(`.cell[data-row="${fromRow}"][data-col="${fromCol}"]`);
+        const toCell = document.querySelector(`.cell[data-row="${toRow}"][data-col="${toCol}"]`);
         
         if (!fromCell || !toCell) return;
         
-        // Получаем координаты центров клеток
         const fromRect = fromCell.getBoundingClientRect();
         const toRect = toCell.getBoundingClientRect();
-        const boardRect = this.board.getBoundingClientRect();
+        const boardRect = boardElement.getBoundingClientRect();
         
-        // Вычисляем координаты относительно доски
         const fromX = fromRect.left + fromRect.width / 2 - boardRect.left;
         const fromY = fromRect.top + fromRect.height / 2 - boardRect.top;
         const toX = toRect.left + toRect.width / 2 - boardRect.left;
         const toY = toRect.top + toRect.height / 2 - boardRect.top;
         
-        // Создаем SVG элемент для стрелки
-        const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
-        svg.classList.add('move-arrow');
-        svg.setAttribute('width', '100%');
-        svg.setAttribute('height', '100%');
-        svg.style.position = 'absolute';
-        svg.style.top = '0';
-        svg.style.left = '0';
-        svg.style.pointerEvents = 'none';
+        const arrow = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+        arrow.className = 'move-arrow';
+        arrow.style.position = 'absolute';
+        arrow.style.left = '0';
+        arrow.style.top = '0';
+        arrow.style.width = '100%';
+        arrow.style.height = '100%';
+        arrow.style.pointerEvents = 'none';
         
-        // Вычисляем длину и угол стрелки
-        const dx = toX - fromX;
-        const dy = toY - fromY;
-        const length = Math.sqrt(dx * dx + dy * dy);
-        const angle = Math.atan2(dy, dx) * 180 / Math.PI;
+        const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+        line.setAttribute('x1', fromX);
+        line.setAttribute('y1', fromY);
+        line.setAttribute('x2', toX);
+        line.setAttribute('y2', toY);
+        line.setAttribute('stroke', '#e74c3c');
+        line.setAttribute('stroke-width', '3');
+        line.setAttribute('marker-end', 'url(#arrowhead)');
         
-        // Укорачиваем стрелку, чтобы она не заходила на шашки
-        const shortenBy = 25;
-        const shortenedLength = length - shortenBy * 2;
-        const shortenX = (dx / length) * shortenBy;
-        const shortenY = (dy / length) * shortenBy;
+        const defs = document.createElementNS('http://www.w3.org/2000/svg', 'defs');
+        const marker = document.createElementNS('http://www.w3.org/2000/svg', 'marker');
+        marker.setAttribute('id', 'arrowhead');
+        marker.setAttribute('markerWidth', '10');
+        marker.setAttribute('markerHeight', '7');
+        marker.setAttribute('refX', '9');
+        marker.setAttribute('refY', '3.5');
+        marker.setAttribute('orient', 'auto');
         
-        const adjustedFromX = fromX + shortenX;
-        const adjustedFromY = fromY + shortenY;
-        const adjustedToX = toX - shortenX;
-        const adjustedToY = toY - shortenY;
+        const polygon = document.createElementNS('http://www.w3.org/2000/svg', 'polygon');
+        polygon.setAttribute('points', '0 0, 10 3.5, 0 7');
+        polygon.setAttribute('fill', '#e74c3c');
         
-        // Создаем линию стрелки
-        const line = document.createElementNS("http://www.w3.org/2000/svg", "line");
-        line.classList.add('arrow-line', 'arrow-animation');
-        line.setAttribute('x1', adjustedFromX);
-        line.setAttribute('y1', adjustedFromY);
-        line.setAttribute('x2', adjustedToX);
-        line.setAttribute('y2', adjustedToY);
+        marker.appendChild(polygon);
+        defs.appendChild(marker);
+        arrow.appendChild(defs);
+        arrow.appendChild(line);
         
-        // Создаем наконечник стрелки
-        const headLength = 15;
-        const headAngle = 30;
+        boardElement.appendChild(arrow);
         
-        const head = document.createElementNS("http://www.w3.org/2000/svg", "polygon");
-        head.classList.add('arrow-head');
-        
-        const angleRad = angle * Math.PI / 180;
-        const x1 = adjustedToX - headLength * Math.cos(angleRad - headAngle * Math.PI / 180);
-        const y1 = adjustedToY - headLength * Math.sin(angleRad - headAngle * Math.PI / 180);
-        const x2 = adjustedToX - headLength * Math.cos(angleRad + headAngle * Math.PI / 180);
-        const y2 = adjustedToY - headLength * Math.sin(angleRad + headAngle * Math.PI / 180);
-        
-        head.setAttribute('points', `${adjustedToX},${adjustedToY} ${x1},${y1} ${x2},${y2}`);
-        
-        svg.appendChild(line);
-        svg.appendChild(head);
-        
-        // Сохраняем ссылку на стрелку
-        this.currentArrow = svg;
-        
-        // Добавляем стрелку на доску
-        this.board.appendChild(svg);
-        
-        // Очищаем предыдущий таймер
-        if (this.arrowTimeout) {
-            clearTimeout(this.arrowTimeout);
-        }
-        
-        // Устанавливаем новый таймер для удаления стрелки
-        this.arrowTimeout = setTimeout(() => {
+        // Автоматическое удаление стрелки через 3 секунды
+        setTimeout(() => {
             this.removeMoveArrow();
         }, 3000);
     }
 
     removeMoveArrow() {
-        // Очищаем таймер
-        if (this.arrowTimeout) {
-            clearTimeout(this.arrowTimeout);
-            this.arrowTimeout = null;
-        }
-        
-        // Удаляем стрелку
-        if (this.currentArrow) {
-            this.currentArrow.remove();
-            this.currentArrow = null;
+        const existingArrow = document.querySelector('.move-arrow');
+        if (existingArrow) {
+            existingArrow.remove();
         }
     }
 
-    handleServerMessage(message) {
-        switch (message.type) {
-            case 'playerAssigned':
-                this.playerColor = message.color;
-                const colorText = this.playerColor === 'white' ? 'белые' : 'чёрные';
-                this.updateStatus(`Вы играете за ${colorText}. Ожидание второго игрока...`);
-                break;
-                
-            case 'gameState':
-                this.updateGameState(message.data);
-                break;
-                
-            case 'moveResult':
-                if (message.valid) {
-                    this.updateGameState(message.gameState);
-                    // Статус теперь обновляется в updateGameState через updateTurnStatus
-                } else {
-                    this.updateStatus(`❌ ${message.message}`);
-                }
-                break;
-                
-            case 'moveMade':
-                this.handleMoveMade(message.data);
-                break;
-                
-            case 'playersInfo':
-                this.handlePlayersInfo(message.data);
-                break;
-                
-            case 'drawOfferReceived':
-                this.showDrawOfferModal(message.from);
-                break;
-                
-            case 'drawRejected':
-                this.updateStatus(`${message.by} отклонил предложение ничьи`);
-                break;
-                
-            case 'gameOver':
-                if (message.result === 'draw') {
-                    this.handleGameOver({ winner: null, result: 'draw' });
-                } else {
-                    this.handleGameOver(message);
-                }
-                break;
-                
-            case 'error':
-                this.updateStatus(`⚠️ ${message.message}`);
-                break;
-                
-            default:
-                console.log('Unknown message type:', message.type);
-        }
-    }
-
-    handleMoveMade(moveData) {
-        console.log('Move made by:', moveData.player, moveData);
-        
-        // Показываем стрелку для ЛЮБОГО хода
-        setTimeout(() => {
-            this.createMoveArrow(
-                moveData.fromRow, 
-                moveData.fromCol, 
-                moveData.toRow, 
-                moveData.toCol
-            );
-        }, 100);
-        
-        // ОБНОВЛЯЕМ ТЕКУЩЕГО ИГРОКА на основе данных от сервера
-        if (moveData.currentPlayer) {
-            this.currentPlayer = moveData.currentPlayer;
-        }
-        
-        // Обновляем статус для ВСЕХ игроков
-        this.updateTurnStatus();
-    }
-
-    // Добавьте новый метод для обновления статуса хода
-    updateTurnStatus() {
-        if (this.currentPlayer === this.playerColor) {
-            this.updateStatus('✅ Ваш ход!');
+    getTurnStatus(currentTurn) {
+        if (currentTurn === this.playerColor) {
+            return `${this.playerNick} (${this.playerColor === 'white' ? 'белые' : 'черные'}) - Ваш ход`;
         } else {
-            this.updateStatus('⏳ Ход противника...');
+            return `${this.playerNick} (${this.playerColor === 'white' ? 'белые' : 'черные'}) - Ход соперника`;
         }
     }
 
-    handlePlayersInfo(players) {
-        console.log('Players info:', players);
-        // Можно использовать для отображения информации об игроках
-        if (players.length === 2) {
-            const opponent = players.find(p => p.username !== this.username);
-            if (opponent) {
-                console.log(`Playing against: ${opponent.username} (${opponent.color})`);
-            }
-        }
+    handleGameStatus(data) {
+        this.updateTurnStatus(data.status);
     }
 
-    updateGameState(gameState) {
-        // Очищаем доску
-        this.clearBoard();
-        
-        // Расставляем шашки согласно состоянию игры
-        gameState.pieces.forEach(piece => {
-            this.placePiece(piece.row, piece.col, piece.color, piece.isKing);
+    setupGameControls() {
+        const newGameButton = document.getElementById('newGameButton');
+        const drawButton = document.getElementById('drawButton');
+        const confirmNewGame = document.getElementById('confirmNewGame');
+        const cancelNewGame = document.getElementById('cancelNewGame');
+        const newGameModal = document.getElementById('newGameModal');
+        const drawOfferModal = document.getElementById('drawOfferModal');
+        const acceptDraw = document.getElementById('acceptDraw');
+        const declineDraw = document.getElementById('declineDraw');
+        const newGameAfterOver = document.getElementById('newGameAfterOver');
+
+        newGameButton.addEventListener('click', () => {
+            newGameModal.style.display = 'flex';
         });
-        
-        // Обновляем текущего игрока
-        this.currentPlayer = gameState.currentPlayer;
-        
-        // ОБНОВЛЯЕМ СТАТУС ХОДА
-        this.updateTurnStatus();
-        
-        console.log('Game state updated. Current player:', this.currentPlayer);
-    }
 
-    placePiece(row, col, color, isKing = false) {
-        const cell = this.getCell(row, col);
-        if (!cell) return;
-        
-        const piece = document.createElement('div');
-        piece.className = `piece ${color} ${isKing ? 'king' : ''}`;
-        piece.dataset.color = color;
-        piece.dataset.king = isKing;
-        
-        // Создаем изображение шашки
-        const img = document.createElement('img');
-        let imageSrc;
-        
-        if (color === 'white') {
-            imageSrc = isKing ? 'shabedam.png' : 'shabe.png';
-        } else {
-            imageSrc = isKing ? 'shachdam.png' : 'shach.png';
-        }
-        
-        img.src = imageSrc;
-        img.alt = isKing ? `${color} дамка` : `${color} шашка`;
-        img.onerror = () => {
-            console.error(`Failed to load image: ${imageSrc}`);
-            // Запасной вариант - цветной круг
-            piece.style.backgroundColor = color;
-            piece.style.border = '2px solid #000';
-            if (isKing) {
-                piece.innerHTML = '♔';
-                piece.style.color = 'gold';
-            }
-        };
-        
-        piece.appendChild(img);
-        cell.appendChild(piece);
-    }
+        cancelNewGame.addEventListener('click', () => {
+            newGameModal.style.display = 'none';
+        });
 
-    getCell(row, col) {
-        return document.querySelector(`.cell[data-row="${row}"][data-col="${col}"]`);
-    }
+        confirmNewGame.addEventListener('click', () => {
+            this.socket.send(JSON.stringify({ type: 'newGame' }));
+            newGameModal.style.display = 'none';
+        });
 
-    highlightCell(row, col, className) {
-        const cell = this.getCell(row, col);
-        if (cell) {
-            // Сначала убираем все выделения
-            document.querySelectorAll('.cell').forEach(c => {
-                c.classList.remove('selected', 'possible-move');
-            });
-            // Затем добавляем новое
-            cell.classList.add(className);
-        }
-    }
+        drawButton.addEventListener('click', () => {
+            this.socket.send(JSON.stringify({ type: 'drawOffer' }));
+        });
 
-    clearSelection() {
-        this.selectedPiece = null;
-        document.querySelectorAll('.cell').forEach(cell => {
-            cell.classList.remove('selected', 'possible-move');
+        acceptDraw.addEventListener('click', () => {
+            this.socket.send(JSON.stringify({ 
+                type: 'drawResponse', 
+                accepted: true 
+            }));
+            drawOfferModal.style.display = 'none';
+        });
+
+        declineDraw.addEventListener('click', () => {
+            this.socket.send(JSON.stringify({ 
+                type: 'drawResponse', 
+                accepted: false 
+            }));
+            drawOfferModal.style.display = 'none';
+        });
+
+        newGameAfterOver.addEventListener('click', () => {
+            this.socket.send(JSON.stringify({ type: 'newGame' }));
+            document.getElementById('gameOverModal').style.display = 'none';
         });
     }
 
-    handleGameOver(result) {
-        let winnerText;
-        if (result.result === 'draw') {
-            winnerText = '🤝 Ничья!';
-        } else if (result.winner) {
-            winnerText = `🏆 Победитель: ${result.winner === 'white' ? 'белые' : 'чёрные'}`;
-        } else {
-            winnerText = '🤝 Ничья!';
+    handleDrawOfferReceived() {
+        const drawOfferModal = document.getElementById('drawOfferModal');
+        drawOfferModal.style.display = 'flex';
+    }
+
+    handleDrawResponse(data) {
+        if (!data.accepted) {
+            this.updateTurnStatus('Предложение ничьи отклонено');
         }
-        
-        this.updateStatus(`Игра окончена! ${winnerText}`);
-        
-        // Удаляем стрелку при окончании игры
-        this.removeMoveArrow();
-        
-        // Показываем блок рестарта
-        this.showRestartContainer();
     }
 
-    showRestartContainer() {
-        // Скрываем доску и статус
-        this.board.style.display = 'none';
-        this.status.style.display = 'none';
+    handleGameOver(data) {
+        const gameOverModal = document.getElementById('gameOverModal');
+        const gameOverMessage = document.getElementById('gameOverMessage');
         
-        // Показываем блок рестарта
-        this.restartContainer.style.display = 'block';
-    }
-
-    updateStatus(message) {
-        if (this.status) {
-            let statusText = message;
-            
-            // Если это системное сообщение (с эмодзи), не форматируем его
-            const isSystemMessage = message.includes('✅') || message.includes('⏳') || 
-                                   message.includes('❌') || message.includes('⚠️') ||
-                                   message.includes('Подключено') || message.includes('Ожидание') ||
-                                   message.includes('Добро пожаловать') || message.includes('Перезапуск') ||
-                                   message.includes('Вы играете') || message.includes('Сейчас не ваш ход') ||
-                                   message.includes('Ход отправляется') || message.includes('Соединение потеряно') ||
-                                   message.includes('Ошибка соединения') || message.includes('Выберите клетку') ||
-                                   message.includes('Предложение ничьи') || message.includes('отклонил предложение');
-            
-            if (this.username && this.playerColor && !isSystemMessage) {
-                const colorText = this.playerColor === 'white' ? 'белые' : 'чёрные';
-                const currentTurnColor = this.currentPlayer === 'white' ? 'белых' : 'чёрных';
-                statusText = `${this.username} (${colorText}) - Ход ${currentTurnColor}`;
-            } else if (this.username && this.playerColor && isSystemMessage) {
-                const colorText = this.playerColor === 'white' ? 'белые' : 'чёрные';
-                statusText = `${this.username} (${colorText}) - ${message}`;
-            } else if (this.username) {
-                statusText = `${this.username} - ${message}`;
+        let message = '';
+        if (data.winner) {
+            const winnerColor = data.winner === 'white' ? 'белые' : 'черные';
+            if (data.winner === this.playerColor) {
+                message = `Поздравляем! Вы победили! (${winnerColor})`;
+            } else {
+                message = `Вы проиграли. Победили ${winnerColor}`;
             }
-            
-            this.status.textContent = statusText;
+        } else {
+            message = 'Ничья!';
         }
-        console.log('Status:', message, 'Current player:', this.currentPlayer);
+        
+        if (data.message) {
+            message += `\n${data.message}`;
+        }
+        
+        gameOverMessage.textContent = message;
+        gameOverModal.style.display = 'flex';
+        
+        this.updateTurnStatus('Игра окончена');
+    }
+
+    showReconnectMessage() {
+        alert('Соединение потеряно. Пожалуйста, обновите страницу для переподключения.');
     }
 }
 
-// Запускаем игру когда страница полностью загружена
+// Инициализация игры при загрузке страницы
 document.addEventListener('DOMContentLoaded', () => {
-    console.log('🚀 Starting Checkers Game...');
     new CheckersGame();
-});
-
-// Добавляем обработчик для переподключения при видимости страницы
-document.addEventListener('visibilitychange', () => {
-    if (!document.hidden) {
-        // Страница снова стала активной - проверяем соединение
-        console.log('Page became visible, checking connection...');
-    }
 });
