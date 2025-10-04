@@ -1,4 +1,4 @@
-// script.js - ФИНАЛЬНАЯ ВЕРСИЯ для шашек с рестартом
+// script.js - ФИНАЛЬНАЯ ВЕРСИЯ для шашек с рестартом и стрелкой направления
 class CheckersGame {
     constructor() {
         this.board = document.getElementById('board');
@@ -10,6 +10,8 @@ class CheckersGame {
         this.possibleMoves = [];
         this.playerColor = null;
         this.ws = null;
+        this.lastMove = null; // Для хранения последнего хода
+        this.currentArrow = null; // Для хранения текущей стрелки
         
         this.initializeGame();
         this.setupWebSocket();
@@ -82,6 +84,9 @@ class CheckersGame {
             toCol: toCol
         };
 
+        // Сохраняем информацию о ходе для показа стрелки
+        this.lastMove = { fromRow, fromCol, toRow, toCol };
+        
         console.log('Sending move:', moveData);
         this.ws.send(JSON.stringify({
             type: 'move',
@@ -89,6 +94,9 @@ class CheckersGame {
         }));
         
         this.updateStatus('Ход отправляется...');
+        
+        // Показываем стрелку для своего хода
+        this.createMoveArrow(fromRow, fromCol, toRow, toCol);
     }
 
     setupWebSocket() {
@@ -137,6 +145,9 @@ class CheckersGame {
     restartGame() {
         console.log('Restarting game...');
         
+        // Удаляем стрелку
+        this.removeMoveArrow();
+        
         // Скрываем блок рестарта
         this.restartContainer.style.display = 'none';
         
@@ -149,6 +160,7 @@ class CheckersGame {
         this.possibleMoves = [];
         this.playerColor = null;
         this.currentPlayer = 'white';
+        this.lastMove = null; // Сбрасываем последний ход
         
         // Обновляем статус
         this.updateStatus('Перезапуск игры...');
@@ -170,6 +182,98 @@ class CheckersGame {
     clearBoard() {
         // Очищаем все шашки с доски
         document.querySelectorAll('.piece').forEach(piece => piece.remove());
+    }
+
+    createMoveArrow(fromRow, fromCol, toRow, toCol) {
+        // Удаляем предыдущую стрелку, если есть
+        this.removeMoveArrow();
+        
+        const fromCell = this.getCell(fromRow, fromCol);
+        const toCell = this.getCell(toRow, toCol);
+        
+        if (!fromCell || !toCell) return;
+        
+        // Получаем координаты центров клеток
+        const fromRect = fromCell.getBoundingClientRect();
+        const toRect = toCell.getBoundingClientRect();
+        const boardRect = this.board.getBoundingClientRect();
+        
+        // Вычисляем координаты относительно доски
+        const fromX = fromRect.left + fromRect.width / 2 - boardRect.left;
+        const fromY = fromRect.top + fromRect.height / 2 - boardRect.top;
+        const toX = toRect.left + toRect.width / 2 - boardRect.left;
+        const toY = toRect.top + toRect.height / 2 - boardRect.top;
+        
+        // Создаем SVG элемент для стрелки
+        const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+        svg.classList.add('move-arrow');
+        svg.setAttribute('width', '100%');
+        svg.setAttribute('height', '100%');
+        svg.style.position = 'absolute';
+        svg.style.top = '0';
+        svg.style.left = '0';
+        svg.style.pointerEvents = 'none';
+        
+        // Вычисляем длину и угол стрелки
+        const dx = toX - fromX;
+        const dy = toY - fromY;
+        const length = Math.sqrt(dx * dx + dy * dy);
+        const angle = Math.atan2(dy, dx) * 180 / Math.PI;
+        
+        // Укорачиваем стрелку, чтобы она не заходила на шашки
+        const shortenBy = 25;
+        const shortenedLength = length - shortenBy * 2;
+        const shortenX = (dx / length) * shortenBy;
+        const shortenY = (dy / length) * shortenBy;
+        
+        const adjustedFromX = fromX + shortenX;
+        const adjustedFromY = fromY + shortenY;
+        const adjustedToX = toX - shortenX;
+        const adjustedToY = toY - shortenY;
+        
+        // Создаем линию стрелки
+        const line = document.createElementNS("http://www.w3.org/2000/svg", "line");
+        line.classList.add('arrow-line', 'arrow-animation');
+        line.setAttribute('x1', adjustedFromX);
+        line.setAttribute('y1', adjustedFromY);
+        line.setAttribute('x2', adjustedToX);
+        line.setAttribute('y2', adjustedToY);
+        
+        // Создаем наконечник стрелки
+        const headLength = 15;
+        const headAngle = 30;
+        
+        const head = document.createElementNS("http://www.w3.org/2000/svg", "polygon");
+        head.classList.add('arrow-head');
+        
+        const angleRad = angle * Math.PI / 180;
+        const x1 = adjustedToX - headLength * Math.cos(angleRad - headAngle * Math.PI / 180);
+        const y1 = adjustedToY - headLength * Math.sin(angleRad - headAngle * Math.PI / 180);
+        const x2 = adjustedToX - headLength * Math.cos(angleRad + headAngle * Math.PI / 180);
+        const y2 = adjustedToY - headLength * Math.sin(angleRad + headAngle * Math.PI / 180);
+        
+        head.setAttribute('points', `${adjustedToX},${adjustedToY} ${x1},${y1} ${x2},${y2}`);
+        
+        svg.appendChild(line);
+        svg.appendChild(head);
+        
+        // Сохраняем ссылку на стрелку
+        this.currentArrow = svg;
+        
+        // Добавляем стрелку на доску
+        this.board.appendChild(svg);
+        
+        // Автоматически удаляем стрелку через 3 секунды
+        setTimeout(() => {
+            this.removeMoveArrow();
+        }, 3000);
+    }
+
+    removeMoveArrow() {
+        if (this.currentArrow) {
+            this.currentArrow.remove();
+            this.currentArrow = null;
+        }
     }
 
     handleServerMessage(message) {
@@ -216,6 +320,19 @@ class CheckersGame {
         gameState.pieces.forEach(piece => {
             this.placePiece(piece.row, piece.col, piece.color, piece.isKing);
         });
+        
+        // Показываем стрелку, если был совершен ход противника
+        if (this.lastMove && gameState.currentPlayer === this.playerColor) {
+            // Ход был сделан противником, показываем стрелку
+            setTimeout(() => {
+                this.createMoveArrow(
+                    this.lastMove.fromRow, 
+                    this.lastMove.fromCol, 
+                    this.lastMove.toRow, 
+                    this.lastMove.toCol
+                );
+            }, 100);
+        }
         
         // Обновляем текущего игрока
         this.currentPlayer = gameState.currentPlayer;
@@ -287,6 +404,9 @@ class CheckersGame {
             `🏆 Победитель: ${result.winner === 'white' ? 'белые' : 'черные'}` : 
             '🤝 Ничья!';
         this.updateStatus(`Игра окончена! ${winnerText}`);
+        
+        // Удаляем стрелку при окончании игры
+        this.removeMoveArrow();
         
         // Показываем блок рестарта
         this.showRestartContainer();
