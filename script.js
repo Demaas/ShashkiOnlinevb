@@ -1,4 +1,4 @@
-// script.js - ФИНАЛЬНАЯ ВЕРСИЯ с исправлениями для дамки и новой игры
+// script.js - ОБНОВЛЕННАЯ ВЕРСИЯ с исправлениями для множественного взятия, ников и модальных окон
 class CheckersGame {
   constructor() {
     this.board = document.getElementById("board");
@@ -36,11 +36,17 @@ class CheckersGame {
     this.username = "";
     this.opponentName = "";
 
+    // ★★★ ДОБАВЛЕНЫ НОВЫЕ ПЕРЕМЕННЫЕ ДЛЯ ИНФОРМАЦИИ ОБ ИГРОКАХ ★★★
+    this.continueCapturePiece = null; // Для множественного взятия
+
     this.setupLogin();
     this.initializeGame();
     this.setupRestartButton();
     this.setupGameControls();
     this.setupRestartModal();
+    
+    // ★★★ ДОБАВЛЕН ВЫЗОВ ФУНКЦИИ ДЛЯ ОБНОВЛЕНИЯ ИНФОРМАЦИИ ОБ ИГРОКАХ ★★★
+    this.updatePlayersInfo();
   }
 
   initializeGame() {
@@ -48,7 +54,7 @@ class CheckersGame {
     this.updateStatus("Введите ваш ник для начала игры...");
   }
 
-  // ★★★ ДОБАВЛЕННЫЕ МЕТОДЫ ДЛЯ СОЗДАНИЯ ДОСКИ И ШАШЕК ★★★
+  // ★★★ ОБНОВЛЕННЫЙ МЕТОД - ПРАВИЛЬНАЯ РАССТАНОВКА НА ЧЕРНЫХ КЛЕТКАХ ★★★
   createBoard() {
     const board = document.getElementById('board');
     if (!board) return;
@@ -78,39 +84,32 @@ class CheckersGame {
     this.initializePieces();
   }
 
+  // ★★★ ИСПРАВЛЕННЫЙ МЕТОД - ПРАВИЛЬНАЯ РАССТАНОВКА ШАШЕК ★★★
   initializePieces() {
     console.log("Initializing pieces on board...");
     
     // Сначала очищаем все существующие шашки
     this.clearBoard();
     
-    // ★ Белые шашки (нижняя часть доски - ряды 5,6,7) ★
-    this.placePiece(5, 0, 'white');
-    this.placePiece(5, 2, 'white');
-    this.placePiece(5, 4, 'white');
-    this.placePiece(5, 6, 'white');
-    this.placePiece(6, 1, 'white');
-    this.placePiece(6, 3, 'white');
-    this.placePiece(6, 5, 'white');
-    this.placePiece(6, 7, 'white');
-    this.placePiece(7, 0, 'white');
-    this.placePiece(7, 2, 'white');
-    this.placePiece(7, 4, 'white');
-    this.placePiece(7, 6, 'white');
-
-    // ★ Чёрные шашки (верхняя часть доски - ряды 0,1,2) ★
-    this.placePiece(0, 1, 'black');
-    this.placePiece(0, 3, 'black');
-    this.placePiece(0, 5, 'black');
-    this.placePiece(0, 7, 'black');
-    this.placePiece(1, 0, 'black');
-    this.placePiece(1, 2, 'black');
-    this.placePiece(1, 4, 'black');
-    this.placePiece(1, 6, 'black');
-    this.placePiece(2, 1, 'black');
-    this.placePiece(2, 3, 'black');
-    this.placePiece(2, 5, 'black');
-    this.placePiece(2, 7, 'black');
+    // ★★★ ПРАВИЛЬНАЯ РАССТАНОВКА - ТОЛЬКО НА ЧЕРНЫХ КЛЕТКАХ ★★★
+    
+    // Чёрные шашки (верхние 3 ряда)
+    for (let row = 0; row < 3; row++) {
+        for (let col = 0; col < 8; col++) {
+            if ((row + col) % 2 === 1) { // Только черные клетки
+                this.placePiece(row, col, 'black');
+            }
+        }
+    }
+    
+    // Белые шашки (нижние 3 ряда)
+    for (let row = 5; row < 8; row++) {
+        for (let col = 0; col < 8; col++) {
+            if ((row + col) % 2 === 1) { // Только черные клетки
+                this.placePiece(row, col, 'white');
+            }
+        }
+    }
     
     console.log("Pieces initialized successfully");
   }
@@ -170,7 +169,7 @@ class CheckersGame {
     cell.appendChild(piece);
   }
 
-  // ★★★ МЕТОД ДЛЯ СБРОСА ИГРЫ ★★★
+  // ★★★ ОБНОВЛЕННЫЙ МЕТОД СБРОСА ИГРЫ ★★★
   resetGame() {
     console.log("Resetting game to initial state...");
     
@@ -179,12 +178,16 @@ class CheckersGame {
     this.selectedPiece = null;
     this.possibleMoves = [];
     this.playerColor = null;
+    this.continueCapturePiece = null; // Сбрасываем множественное взятие
     
     // Удаляем стрелку
     this.removeMoveArrow();
     
     // Очищаем доску и пересоздаём с начальной расстановкой
     this.createBoard();
+    
+    // Обновляем информацию об игроках
+    this.updatePlayersInfo();
     
     // Обновляем статус
     this.updateStatus("Новая игра началась! Ожидание подключения...");
@@ -200,10 +203,43 @@ class CheckersGame {
     this.hideNewGameModal();
   }
 
-  // ★★★ ДОБАВЛЕН МЕТОД clearBoard() КОТОРЫЙ ОТСУТСТВОВАЛ ★★★
   clearBoard() {
     // Очищаем все шашки с доски
     document.querySelectorAll(".piece").forEach((piece) => piece.remove());
+  }
+
+  // ★★★ ДОБАВЛЕН МЕТОД ДЛЯ ОБНОВЛЕНИЯ ИНФОРМАЦИИ ОБ ИГРОКАХ ★★★
+  updatePlayersInfo() {
+    const whitePlayer = document.getElementById('whitePlayer');
+    const blackPlayer = document.getElementById('blackPlayer');
+    
+    if (!whitePlayer || !blackPlayer) return;
+    
+    const whiteIndicator = whitePlayer.querySelector('.turn-indicator');
+    const blackIndicator = blackPlayer.querySelector('.turn-indicator');
+    
+    // Сбрасываем индикаторы
+    whitePlayer.classList.remove('active');
+    blackPlayer.classList.remove('active');
+    
+    // Обновляем никнеймы
+    const whiteNickname = document.getElementById('whiteNickname');
+    const blackNickname = document.getElementById('blackNickname');
+    
+    if (whiteNickname) {
+        whiteNickname.textContent = this.playerColor === 'white' ? this.username : (this.opponentName || 'Ожидание...');
+    }
+    
+    if (blackNickname) {
+        blackNickname.textContent = this.playerColor === 'black' ? this.username : (this.opponentName || 'Ожидание...');
+    }
+    
+    // Активируем текущего игрока
+    if (this.currentPlayer === 'white') {
+        whitePlayer.classList.add('active');
+    } else {
+        blackPlayer.classList.add('active');
+    }
   }
 
   setupLogin() {
@@ -267,7 +303,6 @@ class CheckersGame {
     });
   }
 
-  // ★★★ ДОБАВЛЕН МЕТОД ДЛЯ НАСТРОЙКИ МОДАЛЬНОГО ОКНА ПЕРЕЗАПУСКА ★★★
   setupRestartModal() {
     if (this.restartModal) {
       this.confirmRestart.addEventListener("click", () => {
@@ -295,7 +330,6 @@ class CheckersGame {
     this.newGameModal.style.display = "none";
   }
 
-  // ★★★ ОБНОВЛЕННЫЙ МЕТОД - ВМЕСТО ПЕРЕЗАГРУЗКИ СБРАСЫВАЕМ ИГРУ ★★★
   confirmNewGameAction() {
     console.log("Confirming new game...");
     
@@ -312,7 +346,6 @@ class CheckersGame {
     this.hideNewGameModal();
   }
 
-  // ★★★ НОВЫЕ МЕТОДЫ ДЛЯ ОБРАБОТКИ ПРЕДЛОЖЕНИЯ ПЕРЕЗАПУСКА ★★★
   showRestartModal(opponentName) {
     if (this.restartModal && this.restartMessage) {
       this.restartMessage.textContent = `${opponentName} предлагает начать новую игру. Согласны?`;
@@ -428,6 +461,9 @@ class CheckersGame {
     this.username = username;
     this.loginModal.style.display = "none";
 
+    // ★★★ ОБНОВЛЯЕМ ИНФОРМАЦИЮ ОБ ИГРОКАХ ПОСЛЕ УСТАНОВКИ НИКА ★★★
+    this.updatePlayersInfo();
+
     // Обновляем статус с ником
     this.updateStatus(
       `Добро пожаловать, ${username}! Подключение к серверу...`
@@ -437,6 +473,7 @@ class CheckersGame {
     this.setupWebSocket();
   }
 
+  // ★★★ ОБНОВЛЕННЫЙ МЕТОД ОБРАБОТКИ КЛИКОВ С УЧЕТОМ МНОЖЕСТВЕННОГО ВЗЯТИЯ ★★★
   handleCellClick(row, col) {
     console.log("Cell clicked:", row, col);
 
@@ -452,6 +489,25 @@ class CheckersGame {
 
     const cell = this.getCell(row, col);
     const piece = cell.querySelector(".piece");
+
+    // ★★★ ЕСЛИ АКТИВНО МНОЖЕСТВЕННОЕ ВЗЯТИЕ - ОБРАБАТЫВАЕМ ОСОБЫМ ОБРАЗОМ ★★★
+    if (this.continueCapturePiece) {
+      const continueRow = this.continueCapturePiece.row;
+      const continueCol = this.continueCapturePiece.col;
+      
+      // Если кликнули на ту же шашку - сбрасываем выбор
+      if (continueRow === row && continueCol === col) {
+        this.continueCapturePiece = null;
+        this.clearSelection();
+        this.updateStatus("Выберите направление для продолжения взятия");
+        return;
+      }
+      
+      // Пробуем сделать ход из позиции продолжаемого взятия
+      this.makeMove(continueRow, continueCol, row, col);
+      this.clearSelection();
+      return;
+    }
 
     // Если уже выбрана шашка - пробуем сделать ход
     if (this.selectedPiece) {
@@ -560,6 +616,7 @@ class CheckersGame {
     this.possibleMoves = [];
     this.playerColor = null;
     this.currentPlayer = "white";
+    this.continueCapturePiece = null; // Сбрасываем множественное взятие
 
     // Обновляем статус
     this.updateStatus("Перезапуск игры...");
@@ -704,6 +761,8 @@ class CheckersGame {
         this.updateStatus(
           `Вы играете за ${colorText}. Ожидание второго игрока...`
         );
+        // ★★★ ОБНОВЛЯЕМ ИНФОРМАЦИЮ ОБ ИГРОКАХ ★★★
+        this.updatePlayersInfo();
         break;
 
       case "gameState":
@@ -713,7 +772,17 @@ class CheckersGame {
       case "moveResult":
         if (message.valid) {
           this.updateGameState(message.gameState);
-          // Статус теперь обновляется в updateGameState через updateTurnStatus
+          
+          // ★★★ ОБРАБОТКА МНОЖЕСТВЕННОГО ВЗЯТИЯ ★★★
+          if (message.canContinueCapture) {
+            this.continueCapturePiece = {
+              row: message.continueFromRow,
+              col: message.continueFromCol
+            };
+            this.updateStatus("Можете продолжить взятие! Выберите следующую шашку для взятия.");
+          } else {
+            this.continueCapturePiece = null; // Сбрасываем множественное взятие
+          }
         } else {
           this.updateStatus(`❌ ${message.message}`);
         }
@@ -743,7 +812,6 @@ class CheckersGame {
         }
         break;
 
-      // ★★★ ДОБАВЛЕНЫ НОВЫЕ ОБРАБОТЧИКИ ДЛЯ ПЕРЕЗАПУСКА ИГРЫ ★★★
       case "gameRestartRequest":
         this.showRestartModal(message.requestedBy);
         break;
@@ -784,11 +852,13 @@ class CheckersGame {
       this.currentPlayer = moveData.currentPlayer;
     }
 
+    // ★★★ ОБНОВЛЯЕМ ИНФОРМАЦИЮ ОБ ИГРОКАХ ★★★
+    this.updatePlayersInfo();
+
     // Обновляем статус для ВСЕХ игроков
     this.updateTurnStatus();
   }
 
-  // Добавьте новый метод для обновления статуса хода
   updateTurnStatus() {
     if (this.currentPlayer === this.playerColor) {
       this.updateStatus("✅ Ваш ход!");
@@ -807,6 +877,8 @@ class CheckersGame {
         console.log(
           `Playing against: ${this.opponentName} (${opponent.color})`
         );
+        // ★★★ ОБНОВЛЯЕМ ИНФОРМАЦИЮ ОБ ИГРОКАХ ★★★
+        this.updatePlayersInfo();
       }
     }
   }
@@ -822,6 +894,9 @@ class CheckersGame {
 
     // Обновляем текущего игрока
     this.currentPlayer = gameState.currentPlayer;
+
+    // ★★★ ОБНОВЛЯЕМ ИНФОРМАЦИЮ ОБ ИГРОКАХ ★★★
+    this.updatePlayersInfo();
 
     // ОБНОВЛЯЕМ СТАТУС ХОДА
     this.updateTurnStatus();
@@ -871,6 +946,9 @@ class CheckersGame {
     // Удаляем стрелку при окончании игры
     this.removeMoveArrow();
 
+    // Сбрасываем множественное взятие
+    this.continueCapturePiece = null;
+
     // Показываем блок рестарта
     this.showRestartContainer();
   }
@@ -908,7 +986,8 @@ class CheckersGame {
         message.includes("отклонил предложение") ||
         message.includes("Запрос на новую игру") ||
         message.includes("Согласие на новую игру") ||
-        message.includes("отклонил предложение новой игры");
+        message.includes("отклонил предложение новой игры") ||
+        message.includes("Можете продолжить взятие");
 
       if (this.username && this.playerColor && !isSystemMessage) {
         const colorText = this.playerColor === "white" ? "белые" : "чёрные";
