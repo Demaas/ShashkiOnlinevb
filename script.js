@@ -1,6 +1,11 @@
 // script.js - ИСПРАВЛЕННАЯ ВЕРСИЯ с работающими кнопками
 class CheckersGame {
   constructor() {
+    // ★★★ СНАЧАЛА СОХРАНЯЕМ СЕБЯ В ГЛОБАЛЬНУЮ ПЕРЕМЕННУЮ ★★★
+    window.checkersGame = this;
+    console.log("✅ CheckersGame instance created and saved to window.checkersGame");
+    
+    // Затем получаем элементы
     this.board = document.getElementById("board");
     this.status = document.getElementById("status");
     this.restartContainer = document.getElementById("restartContainer");
@@ -20,6 +25,13 @@ class CheckersGame {
     this.restartModal = document.getElementById("restartModal");
     this.restartMessage = document.getElementById("restartMessage");
 
+    // ★★★ ПРОВЕРЯЕМ ОСНОВНЫЕ ЭЛЕМЕНТЫ ★★★
+    console.log("Board found:", !!this.board);
+    console.log("Status found:", !!this.status);
+    console.log("RestartButton found:", !!this.restartButton);
+    console.log("LoginModal found:", !!this.loginModal);
+    console.log("DrawOfferButton found:", !!this.drawOfferButton);
+
     this.currentPlayer = "white";
     this.selectedPiece = null;
     this.possibleMoves = [];
@@ -32,13 +44,27 @@ class CheckersGame {
 
     this.continueCapturePiece = null;
 
-    this.setupLogin();
+    // ★★★ ДОБАВЛЯЕМ ПРОВЕРКИ ПЕРЕД ВЫЗОВОМ МЕТОДОВ ★★★
+    if (this.loginModal && this.usernameInput && this.startGameButton) {
+      this.setupLogin();
+    } else {
+      console.warn("⚠️ Login elements not found, skipping setupLogin");
+    }
+
     this.initializeGame();
-    this.setupRestartButton();
+    
+    // ★★★ ПРОВЕРКА ПЕРЕД setupRestartButton ★★★
+    if (this.restartButton) {
+      this.setupRestartButton();
+    } else {
+      console.warn("⚠️ restartButton not found, skipping setupRestartButton");
+    }
+    
     this.setupGameControls();
     this.setupRestartModal();
-    
     this.updatePlayersInfo();
+    
+    console.log("🎯 CheckersGame constructor completed successfully");
   }
 
   initializeGame() {
@@ -216,10 +242,15 @@ class CheckersGame {
 
   setupGameControls() {
     // ★★★ ИСПРАВЛЕНИЕ: ПРАВИЛЬНАЯ ПРИВЯЗКА КНОПКИ "НИЧЬЯ?" ★★★
-    if (this.drawOfferButton) {
-      this.drawOfferButton.addEventListener("click", () => {
+    const drawOfferButton = document.getElementById("drawOfferButton");
+    
+    if (drawOfferButton) {
+      drawOfferButton.addEventListener("click", () => {
         this.offerDraw();
       });
+      console.log("✅ Draw offer button setup successfully");
+    } else {
+      console.warn("⚠️ drawOfferButton not found");
     }
   }
 
@@ -248,14 +279,18 @@ class CheckersGame {
     if (this.restartModal && this.restartMessage) {
       this.restartMessage.textContent = `${opponentName} предлагает начать новую игру. Согласны?`;
       this.restartModal.style.display = "flex";
-      this.board.style.pointerEvents = "none";
+      if (this.board) {
+        this.board.style.pointerEvents = "none";
+      }
     }
   }
 
   hideRestartModal() {
     if (this.restartModal) {
       this.restartModal.style.display = "none";
-      this.board.style.pointerEvents = "auto";
+      if (this.board) {
+        this.board.style.pointerEvents = "auto";
+      }
     }
   }
 
@@ -297,14 +332,18 @@ class CheckersGame {
     if (this.drawOfferModal && this.drawOfferText) {
       this.drawOfferText.textContent = `${opponentName} предлагает ничью`;
       this.drawOfferModal.style.display = "flex";
-      this.board.style.pointerEvents = "none";
+      if (this.board) {
+        this.board.style.pointerEvents = "none";
+      }
     }
   }
 
   hideDrawOfferModal() {
     if (this.drawOfferModal) {
       this.drawOfferModal.style.display = "none";
-      this.board.style.pointerEvents = "auto";
+      if (this.board) {
+        this.board.style.pointerEvents = "auto";
+      }
     }
   }
 
@@ -481,7 +520,13 @@ class CheckersGame {
     };
   }
 
+  // ★★★ ИСПРАВЛЕНИЕ: ДОБАВЛЕНА ПРОВЕРКА ★★★
   setupRestartButton() {
+    if (!this.restartButton) {
+      console.warn("⚠️ restartButton is null, cannot setup event listener");
+      return;
+    }
+    
     this.restartButton.addEventListener("click", () => {
       this.restartGame();
     });
@@ -491,9 +536,15 @@ class CheckersGame {
     console.log("Restarting game...");
 
     this.removeMoveArrow();
-    this.restartContainer.style.display = "none";
-    this.board.style.display = "grid";
-    this.status.style.display = "block";
+    if (this.restartContainer) {
+      this.restartContainer.style.display = "none";
+    }
+    if (this.board) {
+      this.board.style.display = "grid";
+    }
+    if (this.status) {
+      this.status.style.display = "block";
+    }
 
     this.selectedPiece = null;
     this.possibleMoves = [];
@@ -810,9 +861,9 @@ class CheckersGame {
   }
 
   showRestartContainer() {
-    this.board.style.display = "none";
-    this.status.style.display = "none";
-    this.restartContainer.style.display = "block";
+    if (this.board) this.board.style.display = "none";
+    if (this.status) this.status.style.display = "none";
+    if (this.restartContainer) this.restartContainer.style.display = "block";
   }
 
   updateStatus(message) {
@@ -840,31 +891,44 @@ class CheckersGame {
 
 // ★★★ ГЛОБАЛЬНЫЕ ФУНКЦИИ ДЛЯ HTML ★★★
 function startNewGame() {
-  if (window.checkersGame) {
+  console.log("🔄 startNewGame called globally");
+  if (window.checkersGame && typeof window.checkersGame.startNewGame === 'function') {
     window.checkersGame.startNewGame();
+  } else {
+    console.error("❌ checkersGame not available, reloading page");
+    location.reload();
+  }
+}
+
+function offerDraw() {
+  console.log("🤝 offerDraw called globally");
+  if (window.checkersGame && typeof window.checkersGame.offerDraw === 'function') {
+    window.checkersGame.offerDraw();
+  } else {
+    alert("Игра еще не загружена. Попробуйте через несколько секунд.");
   }
 }
 
 function acceptDrawOffer() {
-  if (window.checkersGame) {
+  if (window.checkersGame && typeof window.checkersGame.acceptDrawOffer === 'function') {
     window.checkersGame.acceptDrawOffer();
   }
 }
 
 function rejectDrawOffer() {
-  if (window.checkersGame) {
+  if (window.checkersGame && typeof window.checkersGame.rejectDrawOffer === 'function') {
     window.checkersGame.rejectDrawOffer();
   }
 }
 
 function confirmRestart() {
-  if (window.checkersGame) {
+  if (window.checkersGame && typeof window.checkersGame.confirmRestartAction === 'function') {
     window.checkersGame.confirmRestartAction();
   }
 }
 
 function declineRestart() {
-  if (window.checkersGame) {
+  if (window.checkersGame && typeof window.checkersGame.declineRestartAction === 'function') {
     window.checkersGame.declineRestartAction();
   }
 }
@@ -889,7 +953,3 @@ if (document.readyState === 'loading') {
 } else {
   initGame();
 }
-
-// Дублирующая инициализация на случай если DOM уже загружен
-setTimeout(initGame, 1000);
-
