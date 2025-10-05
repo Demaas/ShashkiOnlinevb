@@ -95,9 +95,9 @@
         <div id="status">Загрузка...</div>
         <div class="board" id="board"></div>
 
-        <!-- Кнопки управления игрой - ОСТАВЛЯЕМ ТОЛЬКО КНОПКУ "НИЧЬЯ?" -->
+        <!-- Кнопки управления игрой - ИСПРАВЛЕННЫЙ ID -->
         <div class="game-controls">
-          <button class="control-button draw-offer-btn" onclick="offerDraw()">
+          <button id="drawOfferBtn" class="control-button draw-offer-btn">
             Ничья?
           </button>
         </div>
@@ -108,8 +108,8 @@
             <h3>Предложение ничьи</h3>
             <p id="drawOfferText">Игрок предлагает ничью</p>
             <div class="modal-buttons">
-              <button onclick="acceptDrawOffer()" style="background-color: #4CAF50;">Да</button>
-              <button onclick="rejectDrawOffer()" style="background-color: #f44336;">Нет</button>
+              <button onclick="acceptDrawOffer()" style="background-color: #4CAF50;">Принять</button>
+              <button onclick="rejectDrawOffer()" style="background-color: #f44336;">Отклонить</button>
             </div>
           </div>
         </div>
@@ -235,40 +235,22 @@
 
       // Функции для предложения ничьи
       function offerDraw() {
-        if (window.ws && window.ws.readyState === WebSocket.OPEN) {
-          window.ws.send(JSON.stringify({
-            type: 'drawOffer'
-          }));
-          if (window.updateStatus) {
-            window.updateStatus('Предложение ничьи отправлено');
-          }
+        if (window.checkersGame && window.checkersGame.offerDraw) {
+          window.checkersGame.offerDraw();
+        } else {
+          console.warn("CheckersGame not available");
         }
       }
 
       function acceptDrawOffer() {
-        const modal = document.getElementById('drawOfferModal');
-        if (modal) modal.style.display = 'none';
-        
-        if (window.ws && window.ws.readyState === WebSocket.OPEN) {
-          window.ws.send(JSON.stringify({
-            type: 'drawResponse',
-            accept: true
-          }));
+        if (window.checkersGame && window.checkersGame.acceptDrawOffer) {
+          window.checkersGame.acceptDrawOffer();
         }
       }
 
       function rejectDrawOffer() {
-        const modal = document.getElementById('drawOfferModal');
-        if (modal) modal.style.display = 'none';
-        
-        if (window.ws && window.ws.readyState === WebSocket.OPEN) {
-          window.ws.send(JSON.stringify({
-            type: 'drawResponse',
-            accept: false
-          }));
-        }
-        if (window.updateStatus) {
-          window.updateStatus('Предложение ничьи отклонено');
+        if (window.checkersGame && window.checkersGame.rejectDrawOffer) {
+          window.checkersGame.rejectDrawOffer();
         }
       }
 
