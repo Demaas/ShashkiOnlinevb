@@ -40,6 +40,7 @@ class CheckersGame {
     this.updateStatus("Введите ваш ник для начала игры...");
   }
 
+  // ★★★ ДОБАВЛЕННЫЕ МЕТОДЫ ДЛЯ СОЗДАНИЯ ДОСКИ И ШАШЕК ★★★
   createBoard() {
     const board = document.getElementById('board');
     if (!board) return;
@@ -67,9 +68,9 @@ class CheckersGame {
     
     // После создания доски - расставляем шашки
     this.initializePieces();
-}
+  }
 
-initializePieces() {
+  initializePieces() {
     console.log("Initializing pieces on board...");
     
     // Сначала очищаем все существующие шашки
@@ -104,9 +105,9 @@ initializePieces() {
     this.placePiece(2, 7, 'black');
     
     console.log("Pieces initialized successfully");
-}
+  }
 
-placePiece(row, col, color, isKing = false) {
+  placePiece(row, col, color, isKing = false) {
     const cell = this.getCell(row, col);
     if (!cell) {
         console.warn(`Cell not found at row:${row}, col:${col}`);
@@ -159,7 +160,37 @@ placePiece(row, col, color, isKing = false) {
 
     piece.appendChild(img);
     cell.appendChild(piece);
-}
+  }
+
+  // ★★★ МЕТОД ДЛЯ СБРОСА ИГРЫ ★★★
+  resetGame() {
+    console.log("Resetting game to initial state...");
+    
+    // Сбрасываем игровые переменные
+    this.currentPlayer = 'white';
+    this.selectedPiece = null;
+    this.possibleMoves = [];
+    this.playerColor = null;
+    
+    // Удаляем стрелку
+    this.removeMoveArrow();
+    
+    // Очищаем доску и пересоздаём с начальной расстановкой
+    this.createBoard();
+    
+    // Обновляем статус
+    this.updateStatus("Новая игра началась! Ожидание подключения...");
+    
+    // Если WebSocket активен, отправляем запрос на новую игру
+    if (this.ws && this.ws.readyState === WebSocket.OPEN) {
+        this.ws.send(JSON.stringify({
+            type: 'newGame'
+        }));
+    }
+    
+    // Скрываем модальное окно новой игры
+    this.hideNewGameModal();
+  }
 
   setupLogin() {
     // Показываем модальное окно при загрузке
@@ -230,9 +261,12 @@ placePiece(row, col, color, isKing = false) {
     this.newGameModal.style.display = "none";
   }
 
+  // ★★★ ОБНОВЛЕННЫЙ МЕТОД - ВМЕСТО ПЕРЕЗАГРУЗКИ СБРАСЫВАЕМ ИГРУ ★★★
   confirmNewGameAction() {
-    // Перезагружаем страницу для возврата к начальному экрану
-    location.reload();
+    console.log("Confirming new game...");
+    
+    // Вместо перезагрузки страницы - сбрасываем игру
+    this.resetGame();
   }
 
   offerDraw() {
@@ -326,27 +360,6 @@ placePiece(row, col, color, isKing = false) {
     // Подключаемся к WebSocket
     this.setupWebSocket();
   }
-
-  function createBoard() {
-    const board = document.getElementById('board');
-    board.innerHTML = '';
-    
-    for (let row = 0; row < 8; row++) {
-        for (let col = 0; col < 8; col++) {
-            const cell = document.createElement('div');
-            cell.className = `cell ${(row + col) % 2 === 0 ? 'white' : 'black'}`;
-            cell.dataset.row = row;
-            cell.dataset.col = col;
-            
-            // Добавляем обработчик клика только на черные клетки
-            if ((row + col) % 2 !== 0) {
-                cell.addEventListener('click', () => handleCellClick(row, col));
-            }
-            
-            board.appendChild(cell);
-        }
-    }
-}
 
   handleCellClick(row, col) {
     console.log("Cell clicked:", row, col);
@@ -730,42 +743,6 @@ placePiece(row, col, color, isKing = false) {
     console.log("Game state updated. Current player:", this.currentPlayer);
   }
 
-  placePiece(row, col, color, isKing = false) {
-    const cell = this.getCell(row, col);
-    if (!cell) return;
-
-    const piece = document.createElement("div");
-    piece.className = `piece ${color} ${isKing ? "king" : ""}`;
-    piece.dataset.color = color;
-    piece.dataset.king = isKing;
-
-    // Создаем изображение шашки
-    const img = document.createElement("img");
-    let imageSrc;
-
-    if (color === "white") {
-      imageSrc = isKing ? "shabedam.png" : "shabe.png";
-    } else {
-      imageSrc = isKing ? "shachdam.png" : "shach.png";
-    }
-
-    img.src = imageSrc;
-    img.alt = isKing ? `${color} дамка` : `${color} шашка`;
-    img.onerror = () => {
-      console.error(`Failed to load image: ${imageSrc}`);
-      // Запасной вариант - цветной круг
-      piece.style.backgroundColor = color;
-      piece.style.border = "2px solid #000";
-      if (isKing) {
-        piece.innerHTML = "♔";
-        piece.style.color = "gold";
-      }
-    };
-
-    piece.appendChild(img);
-    cell.appendChild(piece);
-  }
-
   getCell(row, col) {
     return document.querySelector(
       `.cell[data-row="${row}"][data-col="${col}"]`
@@ -875,5 +852,3 @@ document.addEventListener("visibilitychange", () => {
     console.log("Page became visible, checking connection...");
   }
 });
-
-
