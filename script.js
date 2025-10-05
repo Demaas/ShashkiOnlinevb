@@ -1,4 +1,4 @@
-// script.js - ИСПРАВЛЕННАЯ ВЕРСИЯ с работающими кнопками "Новая игра" и "Ничья?"
+// script.js - ИСПРАВЛЕННАЯ ВЕРСИЯ с работающими кнопками
 class CheckersGame {
   constructor() {
     this.board = document.getElementById("board");
@@ -9,22 +9,16 @@ class CheckersGame {
     this.usernameInput = document.getElementById("usernameInput");
     this.startGameButton = document.getElementById("startGameButton");
 
-    // ★★★ ИЗМЕНЕНИЕ 1: УБИРАЕМ ССЫЛКИ НА УДАЛЕННЫЕ КНОПКИ ★★★
+    // ★★★ ИСПРАВЛЕНИЕ: ПРАВИЛЬНЫЕ ССЫЛКИ НА ЭЛЕМЕНТЫ ★★★
     this.drawOfferButton = document.getElementById("drawOfferButton");
     this.drawOfferModal = document.getElementById("drawOfferModal");
-    this.acceptDraw = document.getElementById("acceptDraw");
-    this.rejectDraw = document.getElementById("rejectDraw");
     this.drawOfferText = document.getElementById("drawOfferText");
 
-    // ★★★ ИЗМЕНЕНИЕ 2: ДОБАВЛЯЕМ НОВОЕ МОДАЛЬНОЕ ОКНО ДЛЯ НОВОЙ ИГРЫ ★★★
     this.nicknameModal = document.getElementById("nicknameModal");
     this.nicknameInput = document.getElementById("nicknameInput");
 
-    // Добавляем модальное окно для подтверждения перезапуска
     this.restartModal = document.getElementById("restartModal");
     this.restartMessage = document.getElementById("restartMessage");
-    this.confirmRestart = document.getElementById("confirmRestart");
-    this.declineRestart = document.getElementById("declineRestart");
 
     this.currentPlayer = "white";
     this.selectedPiece = null;
@@ -36,8 +30,7 @@ class CheckersGame {
     this.username = "";
     this.opponentName = "";
 
-    // ★★★ ДОБАВЛЕНЫ НОВЫЕ ПЕРЕМЕННЫЕ ДЛЯ ИНФОРМАЦИИ ОБ ИГРОКАХ ★★★
-    this.continueCapturePiece = null; // Для множественного взятия
+    this.continueCapturePiece = null;
 
     this.setupLogin();
     this.initializeGame();
@@ -45,7 +38,6 @@ class CheckersGame {
     this.setupGameControls();
     this.setupRestartModal();
     
-    // ★★★ ДОБАВЛЕН ВЫЗОВ ФУНКЦИИ ДЛЯ ОБНОВЛЕНИЯ ИНФОРМАЦИИ ОБ ИГРОКАХ ★★★
     this.updatePlayersInfo();
   }
 
@@ -54,7 +46,6 @@ class CheckersGame {
     this.updateStatus("Введите ваш ник для начала игры...");
   }
 
-  // ★★★ ОБНОВЛЕННЫЙ МЕТОД - ПРАВИЛЬНАЯ РАССТАНОВКА НА ЧЕРНЫХ КЛЕТКАХ ★★★
   createBoard() {
     const board = document.getElementById('board');
     if (!board) return;
@@ -68,7 +59,6 @@ class CheckersGame {
             cell.dataset.row = row;
             cell.dataset.col = col;
             
-            // Добавляем обработчик клика только на черные клетки
             if ((row + col) % 2 !== 0) {
                 cell.addEventListener('click', (e) => {
                     e.stopPropagation();
@@ -80,23 +70,18 @@ class CheckersGame {
         }
     }
     
-    // После создания доски - расставляем шашки
     this.initializePieces();
   }
 
-  // ★★★ ИСПРАВЛЕННЫЙ МЕТОД - ПРАВИЛЬНАЯ РАССТАНОВКА ШАШЕК ★★★
   initializePieces() {
     console.log("Initializing pieces on board...");
     
-    // Сначала очищаем все существующие шашки
     this.clearBoard();
-    
-    // ★★★ ПРАВИЛЬНАЯ РАССТАНОВКА - ТОЛЬКО НА ЧЕРНЫХ КЛЕТКАХ ★★★
     
     // Чёрные шашки (верхние 3 ряда)
     for (let row = 0; row < 3; row++) {
         for (let col = 0; col < 8; col++) {
-            if ((row + col) % 2 === 1) { // Только черные клетки
+            if ((row + col) % 2 === 1) {
                 this.placePiece(row, col, 'black');
             }
         }
@@ -105,7 +90,7 @@ class CheckersGame {
     // Белые шашки (нижние 3 ряда)
     for (let row = 5; row < 8; row++) {
         for (let col = 0; col < 8; col++) {
-            if ((row + col) % 2 === 1) { // Только черные клетки
+            if ((row + col) % 2 === 1) {
                 this.placePiece(row, col, 'white');
             }
         }
@@ -121,7 +106,6 @@ class CheckersGame {
         return;
     }
 
-    // Очищаем клетку перед размещением шашки
     const existingPiece = cell.querySelector('.piece');
     if (existingPiece) {
         existingPiece.remove();
@@ -132,7 +116,6 @@ class CheckersGame {
     piece.dataset.color = color;
     piece.dataset.king = isKing;
 
-    // Создаем изображение шашки
     const img = document.createElement('img');
     let imageSrc;
 
@@ -149,7 +132,6 @@ class CheckersGame {
     
     img.onerror = () => {
         console.error(`Failed to load image: ${imageSrc}`);
-        // Запасной вариант - цветной круг
         piece.style.backgroundColor = color;
         piece.style.border = '2px solid #000';
         piece.style.borderRadius = '50%';
@@ -169,57 +151,35 @@ class CheckersGame {
     cell.appendChild(piece);
   }
 
-  // ★★★ ОБНОВЛЕННЫЙ МЕТОД СБРОСА ИГРЫ ★★★
+  // ★★★ ИСПРАВЛЕНИЕ: УПРОЩЕННЫЙ СБРОС ИГРЫ ★★★
   resetGame() {
     console.log("Resetting game to initial state...");
     
-    // Сбрасываем игровые переменные
     this.currentPlayer = 'white';
     this.selectedPiece = null;
     this.possibleMoves = [];
     this.playerColor = null;
-    this.continueCapturePiece = null; // Сбрасываем множественное взятие
+    this.continueCapturePiece = null;
     
-    // Удаляем стрелку
     this.removeMoveArrow();
-    
-    // Очищаем доску и пересоздаём с начальной расстановкой
     this.createBoard();
-    
-    // Обновляем информацию об игроках
     this.updatePlayersInfo();
-    
-    // Обновляем статус
     this.updateStatus("Новая игра началась! Ожидание подключения...");
-    
-    // Если WebSocket активен, отправляем запрос на новую игру
-    if (this.ws && this.ws.readyState === WebSocket.OPEN) {
-        this.ws.send(JSON.stringify({
-            type: 'newGame'
-        }));
-    }
   }
 
   clearBoard() {
-    // Очищаем все шашки с доски
     document.querySelectorAll(".piece").forEach((piece) => piece.remove());
   }
 
-  // ★★★ ДОБАВЛЕН МЕТОД ДЛЯ ОБНОВЛЕНИЯ ИНФОРМАЦИИ ОБ ИГРОКАХ ★★★
   updatePlayersInfo() {
     const whitePlayer = document.getElementById('whitePlayer');
     const blackPlayer = document.getElementById('blackPlayer');
     
     if (!whitePlayer || !blackPlayer) return;
     
-    const whiteIndicator = whitePlayer.querySelector('.turn-indicator');
-    const blackIndicator = blackPlayer.querySelector('.turn-indicator');
-    
-    // Сбрасываем индикаторы
     whitePlayer.classList.remove('active');
     blackPlayer.classList.remove('active');
     
-    // Обновляем никнеймы
     const whiteNickname = document.getElementById('whiteNickname');
     const blackNickname = document.getElementById('blackNickname');
     
@@ -231,7 +191,6 @@ class CheckersGame {
         blackNickname.textContent = this.playerColor === 'black' ? this.username : (this.opponentName || 'Ожидание...');
     }
     
-    // Активируем текущего игрока
     if (this.currentPlayer === 'white') {
         whitePlayer.classList.add('active');
     } else {
@@ -240,98 +199,55 @@ class CheckersGame {
   }
 
   setupLogin() {
-    // Показываем модальное окно при загрузке
     this.loginModal.style.display = "flex";
 
-    // Обработчик кнопки начала игры
     this.startGameButton.addEventListener("click", () => {
       this.startGameWithUsername();
     });
 
-    // Обработчик нажатия Enter в поле ввода
     this.usernameInput.addEventListener("keypress", (e) => {
       if (e.key === "Enter") {
         this.startGameWithUsername();
       }
     });
 
-    // Автофокус на поле ввода
     this.usernameInput.focus();
   }
 
   setupGameControls() {
-    // ★★★ ИЗМЕНЕНИЕ 3: ОБРАБОТЧИК ДЛЯ КНОПКИ "НИЧЬЯ?" ★★★
+    // ★★★ ИСПРАВЛЕНИЕ: ПРАВИЛЬНАЯ ПРИВЯЗКА КНОПКИ "НИЧЬЯ?" ★★★
     if (this.drawOfferButton) {
       this.drawOfferButton.addEventListener("click", () => {
         this.offerDraw();
       });
     }
-
-    // ★★★ ИСПРАВЛЕНИЕ: ДОБАВЛЯЕМ ОБРАБОТЧИКИ ДЛЯ КНОПОК НИЧЬИ ★★★
-    document.addEventListener('click', (e) => {
-      if (e.target && e.target.onclick && e.target.onclick.toString().includes('acceptDrawOffer')) {
-        this.acceptDrawOffer();
-      }
-      if (e.target && e.target.onclick && e.target.onclick.toString().includes('rejectDrawOffer')) {
-        this.rejectDrawOffer();
-      }
-    });
-
-    // Закрытие модальных окон при клике вне их
-    if (this.drawOfferModal) {
-      this.drawOfferModal.addEventListener("click", (e) => {
-        if (e.target === this.drawOfferModal) {
-          // Не закрываем модальное окно ничьи при клике вне - выбор обязателен
-        }
-      });
-    }
   }
 
-  // ★★★ ИСПРАВЛЕНИЕ: ОБНОВЛЕННАЯ ФУНКЦИЯ ДЛЯ ЗАПУСКА НОВОЙ ИГРЫ ★★★
+  // ★★★ ИСПРАВЛЕНИЕ: ПРАВИЛЬНАЯ ФУНКЦИЯ НОВОЙ ИГРЫ ★★★
   startNewGame() {
     console.log("Starting new game...");
     this.hideGameOverModal();
     
-    // ★★★ ИСПРАВЛЕНИЕ: ПРЯМОЙ СБРОС ИГРЫ БЕЗ ОКНА НИКА ★★★
-    this.resetGame();
-    
-    // Если WebSocket активен, отправляем запрос на новую игру
+    // ★★★ ОТПРАВЛЯЕМ ЗАПРОС НА СЕРВЕР ★★★
     if (this.ws && this.ws.readyState === WebSocket.OPEN) {
         this.ws.send(JSON.stringify({
             type: 'newGame'
         }));
+        this.updateStatus("Запрос на новую игру отправлен...");
+    } else {
+        // Если нет соединения, сбрасываем локально
+        this.resetGame();
     }
-    
-    this.updateStatus("Новая игра началась!");
   }
 
   setupRestartModal() {
-    // ★★★ ИСПРАВЛЕНИЕ: ДОБАВЛЯЕМ ОБРАБОТЧИКИ ДЛЯ КНОПОК ПЕРЕЗАПУСКА ★★★
-    document.addEventListener('click', (e) => {
-      if (e.target && e.target.onclick && e.target.onclick.toString().includes('confirmRestart')) {
-        this.confirmRestartAction();
-      }
-      if (e.target && e.target.onclick && e.target.onclick.toString().includes('declineRestart')) {
-        this.declineRestartAction();
-      }
-    });
-
-    if (this.restartModal) {
-      // Закрытие при клике вне окна
-      this.restartModal.addEventListener("click", (e) => {
-        if (e.target === this.restartModal) {
-          this.hideRestartModal();
-        }
-      });
-    }
+    // Обработчики уже есть в HTML через onclick
   }
 
   showRestartModal(opponentName) {
     if (this.restartModal && this.restartMessage) {
       this.restartMessage.textContent = `${opponentName} предлагает начать новую игру. Согласны?`;
       this.restartModal.style.display = "flex";
-      
-      // Блокируем игровое поле пока не будет выбран ответ
       this.board.style.pointerEvents = "none";
     }
   }
@@ -358,14 +274,16 @@ class CheckersGame {
     this.hideRestartModal();
   }
 
-  // ★★★ ИСПРАВЛЕНИЕ: ОБНОВЛЕННАЯ ФУНКЦИЯ ПРЕДЛОЖЕНИЯ НИЧЬИ ★★★
+  // ★★★ ИСПРАВЛЕНИЕ: ПРАВИЛЬНАЯ ФУНКЦИЯ ПРЕДЛОЖЕНИЯ НИЧЬИ ★★★
   offerDraw() {
     if (!this.ws || this.ws.readyState !== WebSocket.OPEN) {
       this.updateStatus("Нет соединения с сервером");
       return;
     }
 
-    // ★★★ ИСПРАВЛЕНИЕ: ПРАВИЛЬНЫЙ ФОРМАТ СООБЩЕНИЯ ★★★
+    console.log("Sending draw offer...");
+    
+    // ★★★ ПРАВИЛЬНЫЙ ФОРМАТ СООБЩЕНИЯ ★★★
     this.ws.send(
       JSON.stringify({
         type: "drawOffer"
@@ -379,8 +297,6 @@ class CheckersGame {
     if (this.drawOfferModal && this.drawOfferText) {
       this.drawOfferText.textContent = `${opponentName} предлагает ничью`;
       this.drawOfferModal.style.display = "flex";
-
-      // Блокируем игровое поле пока не будет выбран ответ
       this.board.style.pointerEvents = "none";
     }
   }
@@ -392,18 +308,19 @@ class CheckersGame {
     }
   }
 
-  // ★★★ ИСПРАВЛЕНИЕ: ОБНОВЛЕННЫЕ ФУНКЦИИ ОТВЕТА НА НИЧЬЮ ★★★
+  // ★★★ ИСПРАВЛЕНИЕ: ПРАВИЛЬНЫЕ ФУНКЦИИ ОТВЕТА НА НИЧЬЮ ★★★
   acceptDrawOffer() {
     if (!this.ws || this.ws.readyState !== WebSocket.OPEN) {
       this.updateStatus("Нет соединения с сервером");
       return;
     }
 
-    // ★★★ ИСПРАВЛЕНИЕ: ПРАВИЛЬНЫЙ ФОРМАТ ОТВЕТА ★★★
+    console.log("Accepting draw offer...");
+    
     this.ws.send(
       JSON.stringify({
         type: "drawResponse",
-        accept: true  // ★★★ ИСПРАВЛЕНО: было "accepted", должно быть "accept" ★★★
+        accept: true
       })
     );
 
@@ -417,11 +334,12 @@ class CheckersGame {
       return;
     }
 
-    // ★★★ ИСПРАВЛЕНИЕ: ПРАВИЛЬНЫЙ ФОРМАТ ОТВЕТА ★★★
+    console.log("Rejecting draw offer...");
+    
     this.ws.send(
       JSON.stringify({
         type: "drawResponse",
-        accept: false  // ★★★ ИСПРАВЛЕНО: было "accepted", должно быть "accept" ★★★
+        accept: false
       })
     );
 
@@ -447,19 +365,12 @@ class CheckersGame {
     this.username = username;
     this.loginModal.style.display = "none";
 
-    // ★★★ ОБНОВЛЯЕМ ИНФОРМАЦИЮ ОБ ИГРОКАХ ПОСЛЕ УСТАНОВКИ НИКА ★★★
     this.updatePlayersInfo();
+    this.updateStatus(`Добро пожаловать, ${username}! Подключение к серверу...`);
 
-    // Обновляем статус с ником
-    this.updateStatus(
-      `Добро пожаловать, ${username}! Подключение к серверу...`
-    );
-
-    // Подключаемся к WebSocket
     this.setupWebSocket();
   }
 
-  // ★★★ ОБНОВЛЕННЫЙ МЕТОД ОБРАБОТКИ КЛИКОВ С УЧЕТОМ МНОЖЕСТВЕННОГО ВЗЯТИЯ ★★★
   handleCellClick(row, col) {
     console.log("Cell clicked:", row, col);
 
@@ -476,12 +387,10 @@ class CheckersGame {
     const cell = this.getCell(row, col);
     const piece = cell.querySelector(".piece");
 
-    // ★★★ ЕСЛИ АКТИВНО МНОЖЕСТВЕННОЕ ВЗЯТИЕ - ОБРАБАТЫВАЕМ ОСОБЫМ ОБРАЗОМ ★★★
     if (this.continueCapturePiece) {
       const continueRow = this.continueCapturePiece.row;
       const continueCol = this.continueCapturePiece.col;
       
-      // Если кликнули на ту же шашку - сбрасываем выбор
       if (continueRow === row && continueCol === col) {
         this.continueCapturePiece = null;
         this.clearSelection();
@@ -489,18 +398,15 @@ class CheckersGame {
         return;
       }
       
-      // Пробуем сделать ход из позиции продолжаемого взятия
       this.makeMove(continueRow, continueCol, row, col);
       this.clearSelection();
       return;
     }
 
-    // Если уже выбрана шашка - пробуем сделать ход
     if (this.selectedPiece) {
       this.makeMove(this.selectedPiece.row, this.selectedPiece.col, row, col);
       this.clearSelection();
     }
-    // Если кликнули на свою шашку - выбираем её
     else if (piece && piece.dataset.color === this.playerColor) {
       this.selectedPiece = { row, col };
       this.highlightCell(row, col, "selected");
@@ -542,7 +448,6 @@ class CheckersGame {
 
     this.ws.onopen = () => {
       console.log("✅ WebSocket connected successfully");
-      // Отправляем ник при подключении
       this.ws.send(
         JSON.stringify({
           type: "join",
@@ -564,9 +469,7 @@ class CheckersGame {
 
     this.ws.onclose = (event) => {
       console.log("🔌 WebSocket disconnected:", event.code, event.reason);
-      this.updateStatus(
-        "Соединение потеряно. Переподключение через 3 секунды..."
-      );
+      this.updateStatus("Соединение потеряно. Переподключение через 3 секунды...");
       setTimeout(() => {
         this.setupWebSocket();
       }, 3000);
@@ -587,42 +490,30 @@ class CheckersGame {
   restartGame() {
     console.log("Restarting game...");
 
-    // Удаляем стрелку и очищаем таймер
     this.removeMoveArrow();
-
-    // Скрываем блок рестарта
     this.restartContainer.style.display = "none";
-
-    // Показываем доску и статус
     this.board.style.display = "grid";
     this.status.style.display = "block";
 
-    // Сбрасываем состояние игры
     this.selectedPiece = null;
     this.possibleMoves = [];
     this.playerColor = null;
     this.currentPlayer = "white";
-    this.continueCapturePiece = null; // Сбрасываем множественное взятие
+    this.continueCapturePiece = null;
 
-    // Обновляем статус
     this.updateStatus("Перезапуск игры...");
-
-    // Очищаем доску
     this.clearBoard();
 
-    // Переподключаемся к серверу
     if (this.ws) {
       this.ws.close();
     }
 
-    // Перезагружаем игру через небольшой таймаут
     setTimeout(() => {
       this.setupWebSocket();
     }, 1000);
   }
 
   createMoveArrow(fromRow, fromCol, toRow, toCol) {
-    // Удаляем предыдущую стрелку, если есть
     this.removeMoveArrow();
 
     const fromCell = this.getCell(fromRow, fromCol);
@@ -630,18 +521,15 @@ class CheckersGame {
 
     if (!fromCell || !toCell) return;
 
-    // Получаем координаты центров клеток
     const fromRect = fromCell.getBoundingClientRect();
     const toRect = toCell.getBoundingClientRect();
     const boardRect = this.board.getBoundingClientRect();
 
-    // Вычисляем координаты относительно доски
     const fromX = fromRect.left + fromRect.width / 2 - boardRect.left;
     const fromY = fromRect.top + fromRect.height / 2 - boardRect.top;
     const toX = toRect.left + toRect.width / 2 - boardRect.left;
     const toY = toRect.top + toRect.height / 2 - boardRect.top;
 
-    // Создаем SVG элемент для стрелки
     const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
     svg.classList.add("move-arrow");
     svg.setAttribute("width", "100%");
@@ -651,13 +539,11 @@ class CheckersGame {
     svg.style.left = "0";
     svg.style.pointerEvents = "none";
 
-    // Вычисляем длину и угол стрелки
     const dx = toX - fromX;
     const dy = toY - fromY;
     const length = Math.sqrt(dx * dx + dy * dy);
     const angle = (Math.atan2(dy, dx) * 180) / Math.PI;
 
-    // Укорачиваем стрелку, чтобы она не заходила на шашки
     const shortenBy = 25;
     const shortenedLength = length - shortenBy * 2;
     const shortenX = (dx / length) * shortenBy;
@@ -668,7 +554,6 @@ class CheckersGame {
     const adjustedToX = toX - shortenX;
     const adjustedToY = toY - shortenY;
 
-    // Создаем линию стрелки
     const line = document.createElementNS("http://www.w3.org/2000/svg", "line");
     line.classList.add("arrow-line", "arrow-animation");
     line.setAttribute("x1", adjustedFromX);
@@ -676,79 +561,56 @@ class CheckersGame {
     line.setAttribute("x2", adjustedToX);
     line.setAttribute("y2", adjustedToY);
 
-    // Создаем наконечник стрелки
     const headLength = 15;
     const headAngle = 30;
 
-    const head = document.createElementNS(
-      "http://www.w3.org/2000/svg",
-      "polygon"
-    );
+    const head = document.createElementNS("http://www.w3.org/2000/svg", "polygon");
     head.classList.add("arrow-head");
 
     const angleRad = (angle * Math.PI) / 180;
-    const x1 =
-      adjustedToX -
-      headLength * Math.cos(angleRad - (headAngle * Math.PI) / 180);
-    const y1 =
-      adjustedToY -
-      headLength * Math.sin(angleRad - (headAngle * Math.PI) / 180);
-    const x2 =
-      adjustedToX -
-      headLength * Math.cos(angleRad + (headAngle * Math.PI) / 180);
-    const y2 =
-      adjustedToY -
-      headLength * Math.sin(angleRad + (headAngle * Math.PI) / 180);
+    const x1 = adjustedToX - headLength * Math.cos(angleRad - (headAngle * Math.PI) / 180);
+    const y1 = adjustedToY - headLength * Math.sin(angleRad - (headAngle * Math.PI) / 180);
+    const x2 = adjustedToX - headLength * Math.cos(angleRad + (headAngle * Math.PI) / 180);
+    const y2 = adjustedToY - headLength * Math.sin(angleRad + (headAngle * Math.PI) / 180);
 
-    head.setAttribute(
-      "points",
-      `${adjustedToX},${adjustedToY} ${x1},${y1} ${x2},${y2}`
-    );
+    head.setAttribute("points", `${adjustedToX},${adjustedToY} ${x1},${y1} ${x2},${y2}`);
 
     svg.appendChild(line);
     svg.appendChild(head);
 
-    // Сохраняем ссылку на стрелку
     this.currentArrow = svg;
-
-    // Добавляем стрелку на доску
     this.board.appendChild(svg);
 
-    // Очищаем предыдущий таймер
     if (this.arrowTimeout) {
       clearTimeout(this.arrowTimeout);
     }
 
-    // Устанавливаем новый таймер для удаления стрелки
     this.arrowTimeout = setTimeout(() => {
       this.removeMoveArrow();
     }, 3000);
   }
 
   removeMoveArrow() {
-    // Очищаем таймер
     if (this.arrowTimeout) {
       clearTimeout(this.arrowTimeout);
       this.arrowTimeout = null;
     }
 
-    // Удаляем стрелку
     if (this.currentArrow) {
       this.currentArrow.remove();
       this.currentArrow = null;
     }
   }
 
-  // ★★★ ИСПРАВЛЕНИЕ: ОБНОВЛЕННАЯ ОБРАБОТКА СООБЩЕНИЙ ОТ СЕРВЕРА ★★★
+  // ★★★ ИСПРАВЛЕНИЕ: ОБНОВЛЕННАЯ ОБРАБОТКА СООБЩЕНИЙ ★★★
   handleServerMessage(message) {
+    console.log("Processing message type:", message.type);
+    
     switch (message.type) {
       case "playerAssigned":
         this.playerColor = message.color;
         const colorText = this.playerColor === "white" ? "белые" : "чёрные";
-        this.updateStatus(
-          `Вы играете за ${colorText}. Ожидание второго игрока...`
-        );
-        // ★★★ ОБНОВЛЯЕМ ИНФОРМАЦИЮ ОБ ИГРОКАХ ★★★
+        this.updateStatus(`Вы играете за ${colorText}. Ожидание второго игрока...`);
         this.updatePlayersInfo();
         break;
 
@@ -760,7 +622,6 @@ class CheckersGame {
         if (message.valid) {
           this.updateGameState(message.gameState);
           
-          // ★★★ ОБРАБОТКА МНОЖЕСТВЕННОГО ВЗЯТИЯ ★★★
           if (message.canContinueCapture) {
             this.continueCapturePiece = {
               row: message.continueFromRow,
@@ -768,7 +629,7 @@ class CheckersGame {
             };
             this.updateStatus("Можете продолжить взятие! Выберите следующую шашку для взятия.");
           } else {
-            this.continueCapturePiece = null; // Сбрасываем множественное взятие
+            this.continueCapturePiece = null;
           }
         } else {
           this.updateStatus(`❌ ${message.message}`);
@@ -783,6 +644,7 @@ class CheckersGame {
         this.handlePlayersInfo(message.data);
         break;
 
+      // ★★★ ИСПРАВЛЕНИЕ: ОБРАБОТКА ПРЕДЛОЖЕНИЯ НИЧЬИ ★★★
       case "drawOffer":
         this.showDrawOfferModal(message.nickname || message.from);
         break;
@@ -791,18 +653,17 @@ class CheckersGame {
         this.updateStatus(`${message.by || 'Противник'} отклонил предложение ничьи`);
         break;
 
-      // ★★★ ИСПРАВЛЕНИЕ: ДОБАВЛЯЕМ ОБРАБОТКУ УСПЕШНОЙ НИЧЬИ ★★★
+      // ★★★ ДОБАВЛЕНА ОБРАБОТКА ПРИНЯТИЯ НИЧЬИ ★★★
       case "drawAccepted":
         this.updateStatus("Ничья принята! Игра завершена.");
-        // Автоматически завершаем игру как ничью
         this.handleGameOver({ winner: 'draw' });
         break;
 
       case "gameOver":
-        // ★★★ ИЗМЕНЕНИЕ: ОБНОВЛЕННАЯ ОБРАБОТКА КОНЦА ИГРЫ С ЗАДЕРЖКОЙ ★★★
+        // ★★★ ЗАДЕРЖКА 1 СЕКУНДА ★★★
         setTimeout(() => {
           this.handleGameOver(message);
-        }, 1000); // ★★★ УВЕЛИЧИВАЕМ ЗАДЕРЖКУ ДО 1 СЕКУНДЫ ★★★
+        }, 1000);
         break;
 
       case "gameRestartRequest":
@@ -830,7 +691,6 @@ class CheckersGame {
   handleMoveMade(moveData) {
     console.log("Move made by:", moveData.player, moveData);
 
-    // Показываем стрелку для ЛЮБОГО хода
     setTimeout(() => {
       this.createMoveArrow(
         moveData.fromRow,
@@ -840,15 +700,11 @@ class CheckersGame {
       );
     }, 100);
 
-    // ОБНОВЛЯЕМ ТЕКУЩЕГО ИГРОКА на основе данных от сервера
     if (moveData.currentPlayer) {
       this.currentPlayer = moveData.currentPlayer;
     }
 
-    // ★★★ ОБНОВЛЯЕМ ИНФОРМАЦИЮ ОБ ИГРОКАХ ★★★
     this.updatePlayersInfo();
-
-    // Обновляем статус для ВСЕХ игроков
     this.updateTurnStatus();
   }
 
@@ -862,55 +718,40 @@ class CheckersGame {
 
   handlePlayersInfo(players) {
     console.log("Players info:", players);
-    // Сохраняем имя противника
     if (players.length === 2) {
       const opponent = players.find((p) => p.username !== this.username);
       if (opponent) {
         this.opponentName = opponent.username;
-        console.log(
-          `Playing against: ${this.opponentName} (${opponent.color})`
-        );
-        // ★★★ ОБНОВЛЯЕМ ИНФОРМАЦИЮ ОБ ИГРОКАх ★★★
+        console.log(`Playing against: ${this.opponentName} (${opponent.color})`);
         this.updatePlayersInfo();
       }
     }
   }
 
   updateGameState(gameState) {
-    // Очищаем доску
     this.clearBoard();
 
-    // Расставляем шашки согласно состоянию игры
     gameState.pieces.forEach((piece) => {
       this.placePiece(piece.row, piece.col, piece.color, piece.isKing);
     });
 
-    // Обновляем текущего игрока
     this.currentPlayer = gameState.currentPlayer;
-
-    // ★★★ ОБНОВЛЯЕМ ИНФОРМАЦИЮ ОБ ИГРОКАХ ★★★
     this.updatePlayersInfo();
-
-    // ОБНОВЛЯЕМ СТАТУС ХОДА
     this.updateTurnStatus();
 
     console.log("Game state updated. Current player:", this.currentPlayer);
   }
 
   getCell(row, col) {
-    return document.querySelector(
-      `.cell[data-row="${row}"][data-col="${col}"]`
-    );
+    return document.querySelector(`.cell[data-row="${row}"][data-col="${col}"]`);
   }
 
   highlightCell(row, col, className) {
     const cell = this.getCell(row, col);
     if (cell) {
-      // Сначала убираем все выделения
       document.querySelectorAll(".cell").forEach((c) => {
         c.classList.remove("selected", "possible-move");
       });
-      // Затем добавляем новое
       cell.classList.add(className);
     }
   }
@@ -922,9 +763,8 @@ class CheckersGame {
     });
   }
 
-  // ★★★ ИСПРАВЛЕНИЕ: ОБНОВЛЕННАЯ ФУНКЦИЯ ОКОНЧАНИЯ ИГРЫ С ЗАДЕРЖКОЙ ★★★
+  // ★★★ ИСПРАВЛЕНИЕ: ЗАДЕРЖКА 1 СЕКУНДА ★★★
   handleGameOver(result) {
-    // ★★★ ДОБАВЛЯЕМ ЗАДЕРЖКУ 2 СЕКУНДЫ ★★★
     setTimeout(() => {
         let winnerText;
         let gameOverMessage;
@@ -944,21 +784,15 @@ class CheckersGame {
 
         this.updateStatus(`Игра окончена! ${winnerText}`);
         
-        // ★★★ ОБНОВЛЯЕМ СООБЩЕНИЕ В МОДАЛЬНОМ ОКНЕ ★★★
         const gameOverMessageElement = document.getElementById('gameOverMessage');
         if (gameOverMessageElement) {
             gameOverMessageElement.textContent = gameOverMessage;
         }
 
-        // Удаляем стрелку при окончании игры
         this.removeMoveArrow();
-
-        // Сбрасываем множественное взятие
         this.continueCapturePiece = null;
-
-        // Показываем финальное модальное окно
         this.showGameOverModal();
-    }, 2000); // ★★★ ЗАДЕРЖКА 2 СЕКУНДЫ ★★★
+    }, 1000);
   }
 
   showGameOverModal() {
@@ -976,11 +810,8 @@ class CheckersGame {
   }
 
   showRestartContainer() {
-    // Скрываем доску и статус
     this.board.style.display = "none";
     this.status.style.display = "none";
-
-    // Показываем блок рестарта
     this.restartContainer.style.display = "block";
   }
 
@@ -988,33 +819,11 @@ class CheckersGame {
     if (this.status) {
       let statusText = message;
 
-      // Если это системное сообщение (с эмодзи), не форматируем его
-      const isSystemMessage =
-        message.includes("✅") ||
-        message.includes("⏳") ||
-        message.includes("❌") ||
-        message.includes("⚠️") ||
-        message.includes("Подключено") ||
-        message.includes("Ожидание") ||
-        message.includes("Добро пожаловать") ||
-        message.includes("Перезапуск") ||
-        message.includes("Вы играете") ||
-        message.includes("Сейчас не ваш ход") ||
-        message.includes("Ход отправляется") ||
-        message.includes("Соединение потеряно") ||
-        message.includes("Ошибка соединения") ||
-        message.includes("Выберите клетку") ||
-        message.includes("Предложение ничьи") ||
-        message.includes("отклонил предложение") ||
-        message.includes("Запрос на новую игру") ||
-        message.includes("Согласие на новую игру") ||
-        message.includes("отклонил предложение новой игры") ||
-        message.includes("Можете продолжить взятие");
+      const isSystemMessage = message.includes("✅") || message.includes("⏳") || message.includes("❌") || message.includes("⚠️") || message.includes("Подключено") || message.includes("Ожидание") || message.includes("Добро пожаловать") || message.includes("Перезапуск") || message.includes("Вы играете") || message.includes("Сейчас не ваш ход") || message.includes("Ход отправляется") || message.includes("Соединение потеряно") || message.includes("Ошибка соединения") || message.includes("Выберите клетку") || message.includes("Предложение ничьи") || message.includes("отклонил предложение") || message.includes("Запрос на новую игру") || message.includes("Согласие на новую игру") || message.includes("отклонил предложение новой игры") || message.includes("Можете продолжить взятие");
 
       if (this.username && this.playerColor && !isSystemMessage) {
         const colorText = this.playerColor === "white" ? "белые" : "чёрные";
-        const currentTurnColor =
-          this.currentPlayer === "white" ? "белых" : "чёрных";
+        const currentTurnColor = this.currentPlayer === "white" ? "белых" : "чёрных";
         statusText = `${this.username} (${colorText}) - Ход ${currentTurnColor}`;
       } else if (this.username && this.playerColor && isSystemMessage) {
         const colorText = this.playerColor === "white" ? "белые" : "чёрные";
@@ -1029,16 +838,7 @@ class CheckersGame {
   }
 }
 
-// ★★★ ИСПРАВЛЕНИЕ: УДАЛЯЕМ НЕНУЖНЫЕ ГЛОБАЛЬНЫЕ ФУНКЦИИ ★★★
-/*
-function confirmNickname() {
-  if (window.checkersGame) {
-    window.checkersGame.confirmNickname();
-  }
-}
-*/
-
-// ★★★ ОСТАВЛЯЕМ ТОЛЬКО НУЖНЫЕ ФУНКЦИИ ★★★
+// ★★★ ГЛОБАЛЬНЫЕ ФУНКЦИИ ДЛЯ HTML ★★★
 function startNewGame() {
   if (window.checkersGame) {
     window.checkersGame.startNewGame();
@@ -1074,12 +874,3 @@ document.addEventListener("DOMContentLoaded", () => {
   console.log("🚀 Starting Checkers Game...");
   window.checkersGame = new CheckersGame();
 });
-
-// Добавляем обработчик для переподключения при видимости страницы
-document.addEventListener("visibilitychange", () => {
-  if (!document.hidden) {
-    // Страница снова стала активной - проверяем соединение
-    console.log("Page became visible, checking connection...");
-  }
-});
-
