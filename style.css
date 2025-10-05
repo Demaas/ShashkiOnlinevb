@@ -19,9 +19,9 @@ body {
     color: white;
 }
 
-/* Стили для модального окна входа */
+/* Стили для модальных окон */
 .modal {
-    display: flex;
+    display: none;
     position: fixed;
     z-index: 1000;
     left: 0;
@@ -48,11 +48,17 @@ body {
     border: 2px solid rgba(255, 255, 255, 0.2);
 }
 
-.modal-content h2 {
+.modal-content h2, 
+.modal-content h3 {
     color: white;
     margin-bottom: 15px;
     font-size: 2em;
     text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
+}
+
+.modal-content h3 {
+    font-size: 1.5em;
+    margin-bottom: 20px;
 }
 
 .modal-content p {
@@ -116,6 +122,50 @@ body {
     cursor: not-allowed;
     transform: none;
     box-shadow: none;
+}
+
+/* Стили для модального окна подтверждения перезапуска */
+#restartModal .modal-content {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    border: 2px solid rgba(255, 255, 255, 0.3);
+}
+
+.modal-buttons {
+    display: flex;
+    gap: 15px;
+    justify-content: center;
+    margin-top: 25px;
+}
+
+.modal-btn {
+    padding: 12px 30px;
+    font-size: 1.1em;
+    font-weight: bold;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    min-width: 100px;
+}
+
+.confirm-btn {
+    background: linear-gradient(45deg, #4CAF50, #45a049);
+    color: white;
+}
+
+.cancel-btn {
+    background: linear-gradient(45deg, #f44336, #d32f2f);
+    color: white;
+}
+
+.modal-btn:hover {
+    transform: scale(1.05);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+}
+
+.modal-btn:active {
+    transform: scale(0.95);
 }
 
 .container {
@@ -188,7 +238,7 @@ h1 {
     background: #8B4513;
     width: min-content;
     height: min-content;
-    position: relative; /* Для позиционирования стрелки */
+    position: relative;
 }
 
 .cell {
@@ -349,44 +399,6 @@ h1 {
     box-shadow: none;
 }
 
-/* Стили для модальных окон кнопок */
-.modal-buttons {
-    display: flex;
-    gap: 15px;
-    justify-content: center;
-    margin-top: 25px;
-}
-
-.modal-btn {
-    padding: 12px 30px;
-    font-size: 1.1em;
-    font-weight: bold;
-    border: none;
-    border-radius: 8px;
-    cursor: pointer;
-    transition: all 0.3s ease;
-    min-width: 100px;
-}
-
-.confirm-btn {
-    background: linear-gradient(45deg, #4CAF50, #45a049);
-    color: white;
-}
-
-.cancel-btn {
-    background: linear-gradient(45deg, #f44336, #d32f2f);
-    color: white;
-}
-
-.modal-btn:hover {
-    transform: scale(1.05);
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
-}
-
-.modal-btn:active {
-    transform: scale(0.95);
-}
-
 /* Стили для стрелки направления */
 .move-arrow {
     position: absolute;
@@ -487,6 +499,10 @@ h1 {
         font-size: 1.7em;
     }
     
+    .modal-content h3 {
+        font-size: 1.3em;
+    }
+    
     #usernameInput {
         padding: 12px;
         font-size: 1.1em;
@@ -578,7 +594,6 @@ h1 {
         max-width: 150px;
     }
     
-    /* Адаптивность для стрелки */
     .arrow-line {
         stroke-width: 2.5;
     }
@@ -592,6 +607,10 @@ h1 {
     
     .modal-content h2 {
         font-size: 1.5em;
+    }
+    
+    .modal-content h3 {
+        font-size: 1.2em;
     }
     
     .modal-content p {
@@ -679,7 +698,6 @@ h1 {
         max-width: 120px;
     }
     
-    /* Адаптивность для стрелки */
     .arrow-line {
         stroke-width: 2;
     }
@@ -698,4 +716,64 @@ h1 {
 
 @keyframes spin {
     to { transform: rotate(360deg); }
+}
+
+/* Дополнительные стили для улучшения UX */
+.piece.selected {
+    box-shadow: 0 0 20px #4CAF50, 0 4px 8px rgba(0, 0, 0, 0.4);
+}
+
+.cell.capture-move::before {
+    background-color: rgba(244, 67, 54, 0.7);
+    border-color: #ff4444;
+}
+
+/* Анимация для новых ходов */
+@keyframes slideIn {
+    from {
+        opacity: 0;
+        transform: scale(0.8);
+    }
+    to {
+        opacity: 1;
+        transform: scale(1);
+    }
+}
+
+.piece.moved {
+    animation: slideIn 0.3s ease-out;
+}
+
+/* Стили для уведомлений */
+.notification {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    background: rgba(0, 0, 0, 0.8);
+    color: white;
+    padding: 15px 20px;
+    border-radius: 10px;
+    border-left: 4px solid #4CAF50;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+    z-index: 1001;
+    animation: slideInRight 0.3s ease-out;
+}
+
+@keyframes slideInRight {
+    from {
+        transform: translateX(100%);
+        opacity: 0;
+    }
+    to {
+        transform: translateX(0);
+        opacity: 1;
+    }
+}
+
+.notification.error {
+    border-left-color: #f44336;
+}
+
+.notification.warning {
+    border-left-color: #ff9800;
 }
