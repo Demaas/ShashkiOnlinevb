@@ -1,4 +1,4 @@
-// script.js - ОБНОВЛЕННАЯ ВЕРСИЯ с исправлениями из чата
+// script.js - ИСПРАВЛЕННАЯ ВЕРСИЯ с правильным WebSocket URL
 class CheckersGame {
   constructor() {
     // ★★★ СНАЧАЛА СОХРАНЯЕМ СЕБЯ В ГЛОБАЛЬНУЮ ПЕРЕМЕННУЮ ★★★
@@ -481,7 +481,7 @@ class CheckersGame {
   try {
     const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
     // ★★★ ИСПРАВЛЕНИЕ: ПРАВИЛЬНЫЙ URL ДЛЯ RENDER.COM ★★★
-    const wsUrl = `${protocol}//${window.location.hostname}${window.location.port ? ':' + window.location.port : ''}`;
+    const wsUrl = `${protocol}//${window.location.hostname}${window.location.port ? ':' + window.location.port : ''}/ws`;
     
     console.log("🔗 Connecting to WebSocket:", wsUrl);
 
