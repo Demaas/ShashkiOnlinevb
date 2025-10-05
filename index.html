@@ -22,10 +22,55 @@
       </div>
     </div>
 
+    <!-- Модальное окно для никнейма -->
+    <div id="nicknameModal" class="modal" style="display: none">
+      <div class="modal-content">
+        <h2>Введите никнейм</h2>
+        <input
+          type="text"
+          id="nicknameInput"
+          placeholder="Ваш никнейм"
+          maxlength="15"
+        />
+        <div class="modal-buttons">
+          <button id="confirmNickname" class="modal-btn confirm-btn">
+            Подтвердить
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Модальное окно подтверждения перезапуска -->
+    <div id="restartModal" class="modal" style="display: none">
+      <div class="modal-content">
+        <h3>Новая игра</h3>
+        <p id="restartMessage">Противник предлагает начать новую игру. Согласны?</p>
+        <div class="modal-buttons">
+          <button onclick="confirmRestart()" class="modal-btn confirm-btn">Да</button>
+          <button onclick="declineRestart()" class="modal-btn cancel-btn">Нет</button>
+        </div>
+      </div>
+    </div>
+
     <div class="container">
       <h1>
         <img src="shasemi.png" alt="Шашки" class="title-icon" /> Шашки Онлайн
       </h1>
+      
+      <!-- Информация об игроках -->
+      <div class="players-info">
+        <div class="player-info">
+          <span>Вы: </span>
+          <span id="playerNickname" class="nickname">-</span>
+          <span id="playerColor" class="color-badge"></span>
+        </div>
+        <div class="player-info">
+          <span>Противник: </span>
+          <span id="opponentNickname" class="nickname">Ожидание...</span>
+          <span id="opponentColor" class="color-badge"></span>
+        </div>
+      </div>
+
       <div class="game-container">
         <div id="status">Загрузка...</div>
         <div class="board" id="board"></div>
@@ -40,57 +85,287 @@
           </button>
         </div>
 
-      <!-- Модальное окно для новой игры -->
-      <div id="newGameModal" class="modal" style="display: none">
-        <div class="modal-content">
-          <h2>Новая Игра</h2>
-          <p>Вы уверены, что хотите начать Новую Игру?</p>
-          <div class="modal-buttons">
-            <button id="confirmNewGame" class="modal-btn confirm-btn">
-              Да
-            </button>
-            <button id="cancelNewGame" class="modal-btn cancel-btn">Нет</button>
+        <!-- Модальное окно для новой игры -->
+        <div id="newGameModal" class="modal" style="display: none">
+          <div class="modal-content">
+            <h2>Новая Игра</h2>
+            <p>Вы уверены, что хотите начать Новую Игру?</p>
+            <div class="modal-buttons">
+              <button id="confirmNewGame" class="modal-btn confirm-btn">
+                Да
+              </button>
+              <button id="cancelNewGame" class="modal-btn cancel-btn">Нет</button>
+            </div>
           </div>
         </div>
-      </div>
 
-      <!-- Модальное окно для предложения ничьи -->
-      <div id="drawOfferModal" class="modal" style="display: none">
-        <div class="modal-content">
-          <h2>Предложение ничьи</h2>
-          <p id="drawOfferText">Игрок предлагает ничью</p>
-          <div class="modal-buttons">
-            <button id="acceptDraw" class="modal-btn confirm-btn">Да</button>
-            <button id="rejectDraw" class="modal-btn cancel-btn">Нет</button>
+        <!-- Модальное окно для предложения ничьи -->
+        <div id="drawOfferModal" class="modal" style="display: none">
+          <div class="modal-content">
+            <h2>Предложение ничьи</h2>
+            <p id="drawOfferText">Игрок предлагает ничью</p>
+            <div class="modal-buttons">
+              <button id="acceptDraw" class="modal-btn confirm-btn">Да</button>
+              <button id="rejectDraw" class="modal-btn cancel-btn">Нет</button>
+            </div>
           </div>
         </div>
-      </div>
 
-      <!-- Блок рестарта игры -->
-      <div
-        id="restartContainer"
-        class="restart-container"
-        style="display: none"
-      >
-        <h2
-          style="
-            color: #ffeb3b;
-            margin-bottom: 20px;
-            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
-          "
+        <!-- Блок рестарта игры -->
+        <div
+          id="restartContainer"
+          class="restart-container"
+          style="display: none"
         >
-          Игра Завершена!
-        </h2>
-        <button id="restartButton" class="restart-button">Новая Игра</button>
-        <div class="gif-container">
-          <img
-            src="https://media1.tenor.com/m/w_PLu8IF2Y8AAAAd/sml-joseph.gif"
-            alt="Celebration"
-            class="celebration-gif"
-          />
+          <h2
+            style="
+              color: #ffeb3b;
+              margin-bottom: 20px;
+              text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
+            "
+          >
+            Игра Завершена!
+          </h2>
+          <button id="restartButton" class="restart-button">Новая Игра</button>
+          <div class="gif-container">
+            <img
+              src="https://media1.tenor.com/m/w_PLu8IF2Y8AAAAd/sml-joseph.gif"
+              alt="Celebration"
+              class="celebration-gif"
+            />
+          </div>
         </div>
       </div>
     </div>
+
+    <script>
+      // Функции для модального окна перезапуска
+      function showRestartConfirmation(requestedBy) {
+        const modal = document.getElementById('restartModal');
+        const message = document.getElementById('restartMessage');
+        
+        if (modal && message) {
+          const color = requestedBy === 'white' ? 'белые' : 'черные';
+          message.textContent = `Игрок (${color}) предлагает начать новую игру. Согласны?`;
+          modal.style.display = 'block';
+        }
+      }
+
+      function hideRestartModal() {
+        const modal = document.getElementById('restartModal');
+        if (modal) {
+          modal.style.display = 'none';
+        }
+      }
+
+      function confirmRestart() {
+        if (window.ws && window.ws.readyState === WebSocket.OPEN) {
+          window.ws.send(JSON.stringify({
+            type: 'confirmRestart'
+          }));
+        }
+        hideRestartModal();
+      }
+
+      function declineRestart() {
+        hideRestartModal();
+      }
+
+      // Глобальные функции для модальных окон
+      function showNicknameModal() {
+        const modal = document.getElementById('nicknameModal');
+        if (modal) {
+          modal.style.display = 'block';
+          document.getElementById('nicknameInput').focus();
+        }
+      }
+
+      function hideNicknameModal() {
+        const modal = document.getElementById('nicknameModal');
+        if (modal) {
+          modal.style.display = 'none';
+        }
+      }
+
+      function confirmNickname() {
+        const nicknameInput = document.getElementById('nicknameInput');
+        const nickname = nicknameInput.value.trim();
+        
+        if (nickname) {
+          if (window.playerNickname !== undefined) {
+            window.playerNickname = nickname;
+          }
+          const playerNicknameElement = document.getElementById('playerNickname');
+          if (playerNicknameElement) {
+            playerNicknameElement.textContent = nickname;
+          }
+          hideNicknameModal();
+          
+          // Инициализация игры после установки ника
+          if (window.resetGame) {
+            window.resetGame();
+          }
+          
+          // Уведомление сервера о новом игроке
+          if (window.ws && window.ws.readyState === WebSocket.OPEN) {
+            window.ws.send(JSON.stringify({
+              type: 'setNickname',
+              nickname: nickname
+            }));
+          }
+        } else {
+          alert('Пожалуйста, введите никнейм');
+        }
+      }
+
+      // Инициализация при загрузке
+      document.addEventListener('DOMContentLoaded', function() {
+        // Обработчики для модального окна никнейма
+        const confirmNicknameBtn = document.getElementById('confirmNickname');
+        const nicknameInput = document.getElementById('nicknameInput');
+        
+        if (confirmNicknameBtn) {
+          confirmNicknameBtn.addEventListener('click', confirmNickname);
+        }
+        
+        if (nicknameInput) {
+          nicknameInput.addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+              confirmNickname();
+            }
+          });
+        }
+
+        // Обработчики для кнопки новой игры
+        const newGameBtn = document.getElementById('newGameButton');
+        const confirmNewGameBtn = document.getElementById('confirmNewGame');
+        const cancelNewGameBtn = document.getElementById('cancelNewGame');
+        
+        if (newGameBtn) {
+          newGameBtn.addEventListener('click', function() {
+            const modal = document.getElementById('newGameModal');
+            if (modal) modal.style.display = 'block';
+          });
+        }
+        
+        if (confirmNewGameBtn) {
+          confirmNewGameBtn.addEventListener('click', function() {
+            const modal = document.getElementById('newGameModal');
+            if (modal) modal.style.display = 'none';
+            
+            // Показываем окно для ввода никнейма и начинаем новую игру
+            showNicknameModal();
+          });
+        }
+        
+        if (cancelNewGameBtn) {
+          cancelNewGameBtn.addEventListener('click', function() {
+            const modal = document.getElementById('newGameModal');
+            if (modal) modal.style.display = 'none';
+          });
+        }
+
+        // Обработчики для предложения ничьи
+        const drawOfferBtn = document.getElementById('drawOfferButton');
+        const acceptDrawBtn = document.getElementById('acceptDraw');
+        const rejectDrawBtn = document.getElementById('rejectDraw');
+        
+        if (drawOfferBtn) {
+          drawOfferBtn.addEventListener('click', function() {
+            if (window.ws && window.ws.readyState === WebSocket.OPEN) {
+              window.ws.send(JSON.stringify({
+                type: 'drawOffer'
+              }));
+            }
+          });
+        }
+        
+        if (acceptDrawBtn) {
+          acceptDrawBtn.addEventListener('click', function() {
+            const modal = document.getElementById('drawOfferModal');
+            if (modal) modal.style.display = 'none';
+            
+            if (window.ws && window.ws.readyState === WebSocket.OPEN) {
+              window.ws.send(JSON.stringify({
+                type: 'drawResponse',
+                accept: true
+              }));
+            }
+          });
+        }
+        
+        if (rejectDrawBtn) {
+          rejectDrawBtn.addEventListener('click', function() {
+            const modal = document.getElementById('drawOfferModal');
+            if (modal) modal.style.display = 'none';
+            
+            if (window.ws && window.ws.readyState === WebSocket.OPEN) {
+              window.ws.send(JSON.stringify({
+                type: 'drawResponse',
+                accept: false
+              }));
+            }
+          });
+        }
+
+        // Обработчик для кнопки рестарта
+        const restartBtn = document.getElementById('restartButton');
+        if (restartBtn) {
+          restartBtn.addEventListener('click', function() {
+            const restartContainer = document.getElementById('restartContainer');
+            if (restartContainer) restartContainer.style.display = 'none';
+            
+            // Начинаем новую игру
+            showNicknameModal();
+          });
+        }
+
+        // Обработчик для кнопки начала игры
+        const startGameBtn = document.getElementById('startGameButton');
+        const usernameInput = document.getElementById('usernameInput');
+        
+        if (startGameBtn && usernameInput) {
+          startGameBtn.addEventListener('click', function() {
+            const username = usernameInput.value.trim();
+            if (username) {
+              // Скрываем модальное окно входа
+              const loginModal = document.getElementById('loginModal');
+              if (loginModal) loginModal.style.display = 'none';
+              
+              // Устанавливаем никнейм
+              if (window.playerNickname !== undefined) {
+                window.playerNickname = username;
+              }
+              const playerNicknameElement = document.getElementById('playerNickname');
+              if (playerNicknameElement) {
+                playerNicknameElement.textContent = username;
+              }
+              
+              // Инициализируем игру
+              if (window.initGame) {
+                window.initGame();
+              }
+              
+              // Отправляем никнейм на сервер
+              if (window.ws && window.ws.readyState === WebSocket.OPEN) {
+                window.ws.send(JSON.stringify({
+                  type: 'setNickname',
+                  nickname: username
+                }));
+              }
+            } else {
+              alert('Пожалуйста, введите никнейм');
+            }
+          });
+
+          usernameInput.addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+              startGameBtn.click();
+            }
+          });
+        }
+      });
+    </script>
     <script src="script.js"></script>
   </body>
 </html>
