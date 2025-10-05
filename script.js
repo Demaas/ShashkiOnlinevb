@@ -478,22 +478,27 @@ class CheckersGame {
   }
 
   setupWebSocket() {
+  try {
     const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
+    // ★★★ ИСПРАВЛЕНИЕ: ПРАВИЛЬНЫЙ URL ДЛЯ RENDER.COM ★★★
     const wsUrl = `${protocol}//${window.location.hostname}${window.location.port ? ':' + window.location.port : ''}`;
-
-    console.log("Connecting to WebSocket:", wsUrl);
+    
+    console.log("🔗 Connecting to WebSocket:", wsUrl);
 
     this.ws = new WebSocket(wsUrl);
 
     this.ws.onopen = () => {
       console.log("✅ WebSocket connected successfully");
-      this.ws.send(
-        JSON.stringify({
+      this.updateStatus("Подключено! Ожидание второго игрока...");
+      
+      // ★★★ ОТПРАВЛЯЕМ СООБЩЕНИЕ О ПОДКЛЮЧЕНИИ ★★★
+      if (this.username) {
+        this.ws.send(JSON.stringify({
           type: "join",
           username: this.username,
-        })
-      );
-      this.updateStatus("Подключено! Ожидание второго игрока...");
+        }));
+        console.log("✅ Join message sent with username:", this.username);
+      }
     };
 
     this.ws.onmessage = (event) => {
@@ -503,13 +508,15 @@ class CheckersGame {
         this.handleServerMessage(message);
       } catch (error) {
         console.error("❌ Error parsing message:", error);
+        console.log("Raw message:", event.data);
       }
     };
 
     this.ws.onclose = (event) => {
       console.log("🔌 WebSocket disconnected:", event.code, event.reason);
-      this.updateStatus("Соединение потеряно. Переподключение через 3 секунды...");
+      this.updateStatus(`Соединение потеряно (${event.code}). Переподключение через 3 секунды...`);
       setTimeout(() => {
+        console.log("🔄 Attempting to reconnect...");
         this.setupWebSocket();
       }, 3000);
     };
@@ -518,7 +525,21 @@ class CheckersGame {
       console.error("💥 WebSocket error:", error);
       this.updateStatus("Ошибка соединения с сервером");
     };
+
+    // ★★★ ТАЙМАУТ ДЛЯ ПОДКЛЮЧЕНИЯ ★★★
+    setTimeout(() => {
+      if (this.ws && this.ws.readyState === WebSocket.CONNECTING) {
+        console.log("⏰ WebSocket connection timeout");
+        this.updateStatus("Таймаут подключения. Проверьте сервер.");
+        this.ws.close();
+      }
+    }, 10000);
+
+  } catch (error) {
+    console.error("💥 Error setting up WebSocket:", error);
+    this.updateStatus("Ошибка создания соединения");
   }
+}
 
   // ★★★ ИСПРАВЛЕНИЕ: ДОБАВЛЕНА ПРОВЕРКА ★★★
   setupRestartButton() {
@@ -953,4 +974,5 @@ if (document.readyState === 'loading') {
 } else {
   initGame();
 }
+
 
