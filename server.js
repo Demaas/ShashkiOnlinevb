@@ -28,7 +28,8 @@ class CheckersGameServer {
         this.gameState = 'waiting';
         this.winner = null;
         this.drawOffer = null;
-        this.pendingRestart = null; // ★★★ ДОБАВЛЕНО ДЛЯ НОВОЙ ИГРЫ ★★★
+        this.pendingRestart = null;
+        this.continueCapture = null; // ★★★ ДОБАВЛЕНО ДЛЯ МНОЖЕСТВЕННОГО ВЗЯТИЯ ★★★
     }
 
     initializePieces() {
@@ -84,7 +85,8 @@ class CheckersGameServer {
         this.gameState = 'playing';
         this.currentPlayer = 'white';
         this.drawOffer = null;
-        this.pendingRestart = null; // ★★★ ДОБАВЛЕНО ★★★
+        this.pendingRestart = null;
+        this.continueCapture = null; // ★★★ СБРОС МНОЖЕСТВЕННОГО ВЗЯТИЯ ★★★
         console.log('Game started! White moves first.');
         this.broadcastGameState();
     }
@@ -105,7 +107,6 @@ class CheckersGameServer {
         }
     }
 
-    // ★★★ ПЕРЕРАБОТАННЫЙ МЕТОД ДЛЯ НОВОЙ ИГРЫ ★★★
     handleNewGame(ws) {
         const player = this.players.find(p => p.ws === ws);
         if (!player) return;
@@ -139,7 +140,6 @@ class CheckersGameServer {
         console.log(`Restart request sent to other player. Waiting for confirmation...`);
     }
 
-    // ★★★ ДОБАВЛЕН МЕТОД ДЛЯ ПОДТВЕРЖДЕНИЯ ПЕРЕЗАПУСКА ★★★
     handleRestartConfirm(ws) {
         const player = this.players.find(p => p.ws === ws);
         if (!player || !this.pendingRestart) return;
@@ -155,7 +155,6 @@ class CheckersGameServer {
         }
     }
 
-    // ★★★ ДОБАВЛЕН МЕТОД ДЛЯ ПОЛНОГО ПЕРЕЗАПУСКА ★★★
     restartGame() {
         console.log("Restarting game with both players confirmed");
         
@@ -166,10 +165,10 @@ class CheckersGameServer {
         this.winner = null;
         this.drawOffer = null;
         this.pendingRestart = null;
+        this.continueCapture = null; // ★★★ СБРОС МНОЖЕСТВЕННОГО ВЗЯТИЯ ★★★
 
         this.broadcastGameState();
         
-        // Уведомляем всех игроков о начале новой игры
         this.broadcast(JSON.stringify({
             type: 'gameRestarted',
             message: 'Новая игра началась!'
@@ -178,7 +177,6 @@ class CheckersGameServer {
         console.log("New game started successfully");
     }
 
-    // ★★★ СОХРАНЕН СТАРЫЙ МЕТОД ДЛЯ СОВМЕСТИМОСТИ ★★★
     resetGame() {
         console.log("Resetting game to initial state...");
         
@@ -189,6 +187,7 @@ class CheckersGameServer {
         this.winner = null;
         this.drawOffer = null;
         this.pendingRestart = null;
+        this.continueCapture = null; // ★★★ СБРОС МНОЖЕСТВЕННОГО ВЗЯТИЯ ★★★
         
         console.log("Game reset successfully");
         this.broadcastGameState();
@@ -204,7 +203,18 @@ class CheckersGameServer {
             return;
         }
 
-        if (player.color !== this.currentPlayer) {
+        // ★★★ ПРОВЕРКА ДЛЯ МНОЖЕСТВЕННОГО ВЗЯТИЯ ★★★
+        if (this.continueCapture && this.continueCapture.player === player.color) {
+            // Игрок продолжает взятие - проверяем, что ход идет от правильной позиции
+            if (moveData.fromRow !== this.continueCapture.position.row || 
+                moveData.fromCol !== this.continueCapture.position.col) {
+                ws.send(JSON.stringify({
+                    type: 'error',
+                    message: 'Продолжайте взятие с текущей позиции'
+                }));
+                return;
+            }
+        } else if (player.color !== this.currentPlayer) {
             ws.send(JSON.stringify({
                 type: 'error',
                 message: 'Сейчас не ваш ход'
@@ -220,48 +230,61 @@ class CheckersGameServer {
             // Сбрасываем предложение ничьи после хода
             this.drawOffer = null;
             
-            // Проверка возможности продолжения взятия
-            if (validation.capturedPiece && this.canContinueCapture(moveData.toRow, moveData.toCol)) {
-                console.log(`Player ${player.color} can continue capturing`);
-                this.broadcastGameState();
+            // ★★★ УЛУЧШЕННАЯ ПРОВЕРКА ПРОДОЛЖЕНИЯ ВЗЯТИЯ ★★★
+            if (validation.capturedPiece) {
+                const canContinue = this.canContinueCapture(moveData.toRow, moveData.toCol);
                 
-                // Отправляем информацию о выполненном ходе
-                this.broadcast(JSON.stringify({
-                    type: 'moveMade',
-                    data: {
-                        fromRow: moveData.fromRow,
-                        fromCol: moveData.fromCol,
-                        toRow: moveData.toRow,
-                        toCol: moveData.toCol,
+                if (canContinue) {
+                    console.log(`Player ${player.color} can continue capturing`);
+                    // Сохраняем информацию о продолжении взятия
+                    this.continueCapture = {
                         player: player.color,
-                        currentPlayer: this.currentPlayer,
-                        username: player.username
-                    }
-                }));
+                        position: { row: moveData.toRow, col: moveData.toCol }
+                    };
+                    
+                    this.broadcastGameState();
+                    
+                    // Уведомляем клиента о возможности продолжения взятия
+                    ws.send(JSON.stringify({
+                        type: 'canContinueCapture',
+                        position: { row: moveData.toRow, col: moveData.toCol }
+                    }));
+                } else {
+                    // Взятие завершено - переключаем игрока
+                    this.continueCapture = null;
+                    this.switchPlayer();
+                    this.broadcastGameState();
+                    this.checkGameOver();
+                }
             } else {
+                // Обычный ход без взятия
+                this.continueCapture = null;
                 this.switchPlayer();
                 this.broadcastGameState();
                 this.checkGameOver();
-                
-                // Отправляем информацию о выполненном ходе
-                this.broadcast(JSON.stringify({
-                    type: 'moveMade',
-                    data: {
-                        fromRow: moveData.fromRow,
-                        fromCol: moveData.fromCol,
-                        toRow: moveData.toRow,
-                        toCol: moveData.toCol,
-                        player: player.color,
-                        currentPlayer: this.currentPlayer,
-                        username: player.username
-                    }
-                }));
             }
+            
+            // Отправляем информацию о выполненном ходе
+            this.broadcast(JSON.stringify({
+                type: 'moveMade',
+                data: {
+                    fromRow: moveData.fromRow,
+                    fromCol: moveData.fromCol,
+                    toRow: moveData.toRow,
+                    toCol: moveData.toCol,
+                    player: player.color,
+                    currentPlayer: this.currentPlayer,
+                    username: player.username,
+                    isCapture: !!validation.capturedPiece,
+                    canContinue: !!validation.capturedPiece && this.canContinueCapture(moveData.toRow, moveData.toCol)
+                }
+            }));
             
             ws.send(JSON.stringify({
                 type: 'moveResult',
                 valid: true,
-                gameState: this.getGameState()
+                gameState: this.getGameState(),
+                canContinue: !!validation.capturedPiece && this.canContinueCapture(moveData.toRow, moveData.toCol)
             }));
         } else {
             ws.send(JSON.stringify({
@@ -302,36 +325,64 @@ class CheckersGameServer {
 
         const rowDiff = toRow - fromRow;
 
-        // Проверка обязательных взятий
+        // ★★★ УЛУЧШЕННАЯ ПРОВЕРКА ОБЯЗАТЕЛЬНЫХ ВЗЯТИЙ ★★★
         const forcedCaptures = this.getForcedCaptures(this.currentPlayer);
+        const isCaptureMove = Math.abs(rowDiff) >= 2;
+
+        if (forcedCaptures.length > 0 && !isCaptureMove) {
+            return { valid: false, message: 'Обязательно брать шашку!' };
+        }
+
+        // Проверка обязательных взятий
         if (forcedCaptures.length > 0) {
-            const isCaptureMove = Math.abs(rowDiff) >= 2; // ★★★ ИСПРАВЛЕНО: для дамки ход может быть больше 2 ★★★
             if (!isCaptureMove) {
                 return { valid: false, message: 'Обязательно брать шашку!' };
             }
             
             // Проверка взятия для дамки и простой шашки
             if (piece.isKing) {
-                // ★★★ ПЕРЕРАБОТАННАЯ ЛОГИКА ДЛЯ ДАМКИ ★★★
                 const validation = this.validateKingCapture(fromRow, fromCol, toRow, toCol, piece);
                 if (!validation.valid) {
                     return { valid: false, message: validation.message };
                 }
                 return validation;
             } else {
-                // Проверка взятия для простой шашки
-                const captureRow = fromRow + rowDiff / 2;
-                const captureCol = fromCol + (toCol - fromCol) / 2;
-                const capturedPiece = this.getPiece(captureRow, captureCol);
+                // ★★★ УЛУЧШЕННАЯ ПРОВЕРКА ВЗЯТИЯ ДЛЯ ПРОСТОЙ ШАШКИ ★★★
+                const rowStep = toRow > fromRow ? 1 : -1;
+                const colStep = toCol > fromCol ? 1 : -1;
+                let currentRow = fromRow + rowStep;
+                let currentCol = fromCol + colStep;
+                let capturedPiece = null;
                 
-                if (!capturedPiece || capturedPiece.color === piece.color) {
-                    return { valid: false, message: 'Неверное взятие' };
+                while (currentRow !== toRow || currentCol !== toCol) {
+                    const targetPiece = this.getPiece(currentRow, currentCol);
+                    
+                    if (targetPiece) {
+                        if (targetPiece.color !== piece.color) {
+                            if (capturedPiece) {
+                                // Уже нашли одну шашку - множественное взятие
+                                capturedPiece = { row: currentRow, col: currentCol };
+                                break;
+                            }
+                            capturedPiece = { row: currentRow, col: currentCol };
+                        } else {
+                            // Своя шашка на пути
+                            return { valid: false, message: 'На пути своя шашка' };
+                        }
+                    }
+                    
+                    currentRow += rowStep;
+                    currentCol += colStep;
                 }
                 
-                return { 
-                    valid: true, 
-                    capturedPiece: { row: captureRow, col: captureCol } 
-                };
+                if (capturedPiece) {
+                    return { 
+                        valid: true, 
+                        capturedPiece: capturedPiece 
+                    };
+                } else {
+                    return { valid: false, message: 'Неверное взятие' };
+                }
             }
         }
 
@@ -354,7 +405,6 @@ class CheckersGameServer {
         return { valid: true };
     }
 
-    // ★★★ ДОБАВЛЕН МЕТОД ДЛЯ ПРОВЕРКИ ВЗЯТИЯ ДАМКИ ★★★
     validateKingCapture(fromRow, fromCol, toRow, toCol, piece) {
         const rowStep = toRow > fromRow ? 1 : -1;
         const colStep = toCol > fromCol ? 1 : -1;
@@ -439,7 +489,6 @@ class CheckersGameServer {
     getPossibleCaptures(piece) {
         const captures = [];
         
-        // ★★★ ПЕРЕРАБОТАННАЯ ЛОГИКА ДЛЯ ДАМКИ - 4 НАПРАВЛЕНИЯ ★★★
         const directions = [
             { rowDir: -1, colDir: -1 }, // вверх-влево
             { rowDir: -1, colDir: 1 },  // вверх-вправо  
@@ -449,7 +498,6 @@ class CheckersGameServer {
         
         directions.forEach(({ rowDir, colDir }) => {
             if (piece.isKing) {
-                // ★★★ УЛУЧШЕННАЯ ЛОГИКА ВЗЯТИЯ ДЛЯ ДАМКИ ★★★
                 let foundOpponent = false;
                 let captureRow, captureCol;
                 
@@ -496,29 +544,37 @@ class CheckersGameServer {
                     }
                 }
             } else {
-                // Логика взятия для простой шашки
-                const direction = piece.color === 'white' ? -1 : 1;
-                const captureRow = piece.row + direction;
-                const captureCol = piece.col + colDir;
-                const landRow = piece.row + 2 * direction;
-                const landCol = piece.col + 2 * colDir;
+                // ★★★ УЛУЧШЕННАЯ ЛОГИКА ДЛЯ ПРОСТЫХ ШАШЕК - 4 НАПРАВЛЕНИЯ ★★★
+                const directions = [
+                    { rowDir: -1, colDir: -1 }, // вверх-влево
+                    { rowDir: -1, colDir: 1 },  // вверх-вправо  
+                    { rowDir: 1, colDir: -1 },  // вниз-влево
+                    { rowDir: 1, colDir: 1 }    // вниз-вправо
+                ];
                 
-                if (this.isValidPosition(captureRow, captureCol) && 
-                    this.isValidPosition(landRow, landCol)) {
-                    const capturedPiece = this.getPiece(captureRow, captureCol);
-                    const landingCell = this.getPiece(landRow, landCol);
+                directions.forEach(({ rowDir, colDir }) => {
+                    const captureRow = piece.row + rowDir;
+                    const captureCol = piece.col + colDir;
+                    const landRow = piece.row + 2 * rowDir;
+                    const landCol = piece.col + 2 * colDir;
                     
-                    if (capturedPiece && capturedPiece.color !== piece.color && !landingCell) {
-                        captures.push({
-                            fromRow: piece.row,
-                            fromCol: piece.col,
-                            toRow: landRow,
-                            toCol: landCol,
-                            captureRow: captureRow,
-                            captureCol: captureCol
-                        });
+                    if (this.isValidPosition(captureRow, captureCol) && 
+                        this.isValidPosition(landRow, landCol)) {
+                        const capturedPiece = this.getPiece(captureRow, captureCol);
+                        const landingCell = this.getPiece(landRow, landCol);
+                        
+                        if (capturedPiece && capturedPiece.color !== piece.color && !landingCell) {
+                            captures.push({
+                                fromRow: piece.row,
+                                fromCol: piece.col,
+                                toRow: landRow,
+                                toCol: landCol,
+                                captureRow: captureRow,
+                                captureCol: captureCol
+                            });
+                        }
                     }
-                }
+                });
             }
         });
         
@@ -577,6 +633,11 @@ class CheckersGameServer {
     }
 
     canPlayerMove(color) {
+        // ★★★ УЧИТЫВАЕМ МНОЖЕСТВЕННОЕ ВЗЯТИЕ ★★★
+        if (this.continueCapture && this.continueCapture.player === color) {
+            return true; // Игрок может продолжать взятие
+        }
+        
         return this.pieces.some(piece => {
             if (piece.color === color) {
                 const moves = this.getPossibleMoves(piece);
@@ -587,10 +648,13 @@ class CheckersGameServer {
     }
 
     getPossibleMoves(piece) {
-        // Сначала проверяем обязательные взятия
-        const captures = this.getPossibleCaptures(piece);
-        if (captures.length > 0) {
-            return captures;
+        // ★★★ УЧИТЫВАЕМ ОБЯЗАТЕЛЬНЫЕ ВЗЯТИЯ ★★★
+        const forcedCaptures = this.getForcedCaptures(piece.color);
+        if (forcedCaptures.length > 0) {
+            // Возвращаем только взятия для этой шашки
+            return forcedCaptures.filter(capture => 
+                capture.fromRow === piece.row && capture.fromCol === piece.col
+            );
         }
         
         // Затем обычные ходы
@@ -641,6 +705,7 @@ class CheckersGameServer {
     endGame(winner) {
         this.gameState = 'finished';
         this.winner = winner;
+        this.continueCapture = null; // ★★★ СБРОС МНОЖЕСТВЕННОГО ВЗЯТИЯ ★★★
         console.log(`Game over! Winner: ${winner}`);
         
         this.broadcast(JSON.stringify({
@@ -719,7 +784,8 @@ class CheckersGameServer {
         return {
             pieces: [...this.pieces],
             currentPlayer: this.currentPlayer,
-            gameState: this.gameState
+            gameState: this.gameState,
+            continueCapture: this.continueCapture // ★★★ ДОБАВЛЕНО ДЛЯ КЛИЕНТА ★★★
         };
     }
 }
@@ -747,13 +813,11 @@ wss.on('connection', (ws, req) => {
                     game.handleMove(data.data, ws);
                     break;
                     
-                // ★★★ ОБНОВЛЕННАЯ ОБРАБОТКА НОВОЙ ИГРЫ ★★★
                 case 'newGame':
                     console.log("Received new game request");
                     game.handleNewGame(ws);
                     break;
                     
-                // ★★★ ДОБАВЛЕНА ОБРАБОТКА ПОДТВЕРЖДЕНИЯ ПЕРЕЗАПУСКА ★★★
                 case 'confirmRestart':
                     console.log("Received restart confirmation");
                     game.handleRestartConfirm(ws);
