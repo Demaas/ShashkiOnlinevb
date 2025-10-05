@@ -1,11 +1,6 @@
-// script.js - ИСПРАВЛЕННАЯ ВЕРСИЯ с правильными ID
+// script.js - ОБНОВЛЕННАЯ ВЕРСИЯ с исправлениями для множественного взятия, ников и модальных окон
 class CheckersGame {
   constructor() {
-    // ★★★ СНАЧАЛА СОХРАНЯЕМ СЕБЯ В ГЛОБАЛЬНУЮ ПЕРЕМЕННУЮ ★★★
-    window.checkersGame = this;
-    console.log("✅ CheckersGame instance created and saved to window.checkersGame");
-    
-    // Затем получаем элементы
     this.board = document.getElementById("board");
     this.status = document.getElementById("status");
     this.restartContainer = document.getElementById("restartContainer");
@@ -14,23 +9,22 @@ class CheckersGame {
     this.usernameInput = document.getElementById("usernameInput");
     this.startGameButton = document.getElementById("startGameButton");
 
-    // ★★★ ИСПРАВЛЕНИЕ: ПРАВИЛЬНЫЕ ID ДЛЯ КНОПКИ НИЧЬИ ★★★
-    this.drawOfferButton = document.getElementById("drawOfferBtn"); // Изменил на drawOfferBtn!
+    // Добавляем новые свойства для кнопок
+    this.newGameButton = document.getElementById("newGameButton");
+    this.drawOfferButton = document.getElementById("drawOfferButton");
+    this.newGameModal = document.getElementById("newGameModal");
     this.drawOfferModal = document.getElementById("drawOfferModal");
+    this.confirmNewGame = document.getElementById("confirmNewGame");
+    this.cancelNewGame = document.getElementById("cancelNewGame");
+    this.acceptDraw = document.getElementById("acceptDraw");
+    this.rejectDraw = document.getElementById("rejectDraw");
     this.drawOfferText = document.getElementById("drawOfferText");
 
-    this.nicknameModal = document.getElementById("nicknameModal");
-    this.nicknameInput = document.getElementById("nicknameInput");
-
+    // Добавляем модальное окно для подтверждения перезапуска
     this.restartModal = document.getElementById("restartModal");
     this.restartMessage = document.getElementById("restartMessage");
-
-    // ★★★ ПРОВЕРЯЕМ ОСНОВНЫЕ ЭЛЕМЕНТЫ ★★★
-    console.log("Board found:", !!this.board);
-    console.log("Status found:", !!this.status);
-    console.log("RestartButton found:", !!this.restartButton);
-    console.log("LoginModal found:", !!this.loginModal);
-    console.log("DrawOfferButton found:", !!this.drawOfferButton);
+    this.confirmRestart = document.getElementById("confirmRestart");
+    this.declineRestart = document.getElementById("declineRestart");
 
     this.currentPlayer = "white";
     this.selectedPiece = null;
@@ -42,29 +36,17 @@ class CheckersGame {
     this.username = "";
     this.opponentName = "";
 
-    this.continueCapturePiece = null;
+    // ★★★ ДОБАВЛЕНЫ НОВЫЕ ПЕРЕМЕННЫЕ ДЛЯ ИНФОРМАЦИИ ОБ ИГРОКАХ ★★★
+    this.continueCapturePiece = null; // Для множественного взятия
 
-    // ★★★ ДОБАВЛЯЕМ ПРОВЕРКИ ПЕРЕД ВЫЗОВОМ МЕТОДОВ ★★★
-    if (this.loginModal && this.usernameInput && this.startGameButton) {
-      this.setupLogin();
-    } else {
-      console.warn("⚠️ Login elements not found, skipping setupLogin");
-    }
-
+    this.setupLogin();
     this.initializeGame();
-    
-    // ★★★ ПРОВЕРКА ПЕРЕД setupRestartButton ★★★
-    if (this.restartButton) {
-      this.setupRestartButton();
-    } else {
-      console.warn("⚠️ restartButton not found, skipping setupRestartButton");
-    }
-    
+    this.setupRestartButton();
     this.setupGameControls();
     this.setupRestartModal();
+
+    // ★★★ ДОБАВЛЕН ВЫЗОВ ФУНКЦИИ ДЛЯ ОБНОВЛЕНИЯ ИНФОРМАЦИИ ОБ ИГРОКАХ ★★★
     this.updatePlayersInfo();
-    
-    console.log("🎯 CheckersGame constructor completed successfully");
   }
 
   initializeGame() {
@@ -72,241 +54,334 @@ class CheckersGame {
     this.updateStatus("Введите ваш ник для начала игры...");
   }
 
+  // ★★★ ОБНОВЛЕННЫЙ МЕТОД - ПРАВИЛЬНАЯ РАССТАНОВКА НА ЧЕРНЫХ КЛЕТКАХ ★★★
   createBoard() {
-    const board = document.getElementById('board');
+    const board = document.getElementById("board");
     if (!board) return;
-    
-    board.innerHTML = '';
-    
+
+    board.innerHTML = "";
+
     for (let row = 0; row < 8; row++) {
-        for (let col = 0; col < 8; col++) {
-            const cell = document.createElement('div');
-            cell.className = `cell ${(row + col) % 2 === 0 ? 'white' : 'black'}`;
-            cell.dataset.row = row;
-            cell.dataset.col = col;
-            
-            if ((row + col) % 2 !== 0) {
-                cell.addEventListener('click', (e) => {
-                    e.stopPropagation();
-                    this.handleCellClick(row, col);
-                });
-            }
-            
-            board.appendChild(cell);
+      for (let col = 0; col < 8; col++) {
+        const cell = document.createElement("div");
+        cell.className = `cell ${(row + col) % 2 === 0 ? "white" : "black"}`;
+        cell.dataset.row = row;
+        cell.dataset.col = col;
+
+        // Добавляем обработчик клика только на черные клетки
+        if ((row + col) % 2 !== 0) {
+          cell.addEventListener("click", (e) => {
+            e.stopPropagation();
+            this.handleCellClick(row, col);
+          });
         }
+
+        board.appendChild(cell);
+      }
     }
-    
+
+    // После создания доски - расставляем шашки
     this.initializePieces();
   }
 
+  // ★★★ ИСПРАВЛЕННЫЙ МЕТОД - ПРАВИЛЬНАЯ РАССТАНОВКА ШАШЕК ★★★
   initializePieces() {
     console.log("Initializing pieces on board...");
-    
+
+    // Сначала очищаем все существующие шашки
     this.clearBoard();
-    
+
+    // ★★★ ПРАВИЛЬНАЯ РАССТАНОВКА - ТОЛЬКО НА ЧЕРНЫХ КЛЕТКАХ ★★★
+
     // Чёрные шашки (верхние 3 ряда)
     for (let row = 0; row < 3; row++) {
-        for (let col = 0; col < 8; col++) {
-            if ((row + col) % 2 === 1) {
-                this.placePiece(row, col, 'black');
-            }
+      for (let col = 0; col < 8; col++) {
+        if ((row + col) % 2 === 1) {
+          // Только черные клетки
+          this.placePiece(row, col, "black");
         }
+      }
     }
-    
+
     // Белые шашки (нижние 3 ряда)
     for (let row = 5; row < 8; row++) {
-        for (let col = 0; col < 8; col++) {
-            if ((row + col) % 2 === 1) {
-                this.placePiece(row, col, 'white');
-            }
+      for (let col = 0; col < 8; col++) {
+        if ((row + col) % 2 === 1) {
+          // Только черные клетки
+          this.placePiece(row, col, "white");
         }
+      }
     }
-    
+
     console.log("Pieces initialized successfully");
   }
 
   placePiece(row, col, color, isKing = false) {
     const cell = this.getCell(row, col);
     if (!cell) {
-        console.warn(`Cell not found at row:${row}, col:${col}`);
-        return;
+      console.warn(`Cell not found at row:${row}, col:${col}`);
+      return;
     }
 
-    const existingPiece = cell.querySelector('.piece');
+    // Очищаем клетку перед размещением шашки
+    const existingPiece = cell.querySelector(".piece");
     if (existingPiece) {
-        existingPiece.remove();
+      existingPiece.remove();
     }
 
-    const piece = document.createElement('div');
-    piece.className = `piece ${color} ${isKing ? 'king' : ''}`;
+    const piece = document.createElement("div");
+    piece.className = `piece ${color} ${isKing ? "king" : ""}`;
     piece.dataset.color = color;
     piece.dataset.king = isKing;
 
-    const img = document.createElement('img');
+    // Создаем изображение шашки
+    const img = document.createElement("img");
     let imageSrc;
 
-    if (color === 'white') {
-        imageSrc = isKing ? 'shabedam.png' : 'shabe.png';
+    if (color === "white") {
+      imageSrc = isKing ? "shabedam.png" : "shabe.png";
     } else {
-        imageSrc = isKing ? 'shachdam.png' : 'shach.png';
+      imageSrc = isKing ? "shachdam.png" : "shach.png";
     }
 
     img.src = imageSrc;
     img.alt = isKing ? `${color} дамка` : `${color} шашка`;
-    img.style.width = '80%';
-    img.style.height = '80%';
-    
+    img.style.width = "80%";
+    img.style.height = "80%";
+
     img.onerror = () => {
-        console.error(`Failed to load image: ${imageSrc}`);
-        piece.style.backgroundColor = color;
-        piece.style.border = '2px solid #000';
-        piece.style.borderRadius = '50%';
-        piece.style.width = '40px';
-        piece.style.height = '40px';
-        piece.style.display = 'flex';
-        piece.style.alignItems = 'center';
-        piece.style.justifyContent = 'center';
-        if (isKing) {
-            piece.innerHTML = '♔';
-            piece.style.color = 'gold';
-            piece.style.fontWeight = 'bold';
-        }
+      console.error(`Failed to load image: ${imageSrc}`);
+      // Запасной вариант - цветной круг
+      piece.style.backgroundColor = color;
+      piece.style.border = "2px solid #000";
+      piece.style.borderRadius = "50%";
+      piece.style.width = "40px";
+      piece.style.height = "40px";
+      piece.style.display = "flex";
+      piece.style.alignItems = "center";
+      piece.style.justifyContent = "center";
+      if (isKing) {
+        piece.innerHTML = "♔";
+        piece.style.color = "gold";
+        piece.style.fontWeight = "bold";
+      }
     };
 
     piece.appendChild(img);
     cell.appendChild(piece);
   }
 
-  // ★★★ ИСПРАВЛЕНИЕ: УПРОЩЕННЫЙ СБРОС ИГРЫ ★★★
+  // ★★★ ОБНОВЛЕННЫЙ МЕТОД СБРОСА ИГРЫ ★★★
   resetGame() {
     console.log("Resetting game to initial state...");
-    
-    this.currentPlayer = 'white';
+
+    // Сбрасываем игровые переменные
+    this.currentPlayer = "white";
     this.selectedPiece = null;
     this.possibleMoves = [];
     this.playerColor = null;
-    this.continueCapturePiece = null;
-    
+    this.continueCapturePiece = null; // Сбрасываем множественное взятие
+
+    // Удаляем стрелку
     this.removeMoveArrow();
+
+    // Очищаем доску и пересоздаём с начальной расстановкой
     this.createBoard();
+
+    // Обновляем информацию об игроках
     this.updatePlayersInfo();
+
+    // Обновляем статус
     this.updateStatus("Новая игра началась! Ожидание подключения...");
+
+    // Если WebSocket активен, отправляем запрос на новую игру
+    if (this.ws && this.ws.readyState === WebSocket.OPEN) {
+      this.ws.send(
+        JSON.stringify({
+          type: "newGame",
+        })
+      );
+    }
+
+    // Скрываем модальное окно новой игры
+    this.hideNewGameModal();
   }
 
   clearBoard() {
+    // Очищаем все шашки с доски
     document.querySelectorAll(".piece").forEach((piece) => piece.remove());
   }
 
+  // ★★★ ДОБАВЛЕН МЕТОД ДЛЯ ОБНОВЛЕНИЯ ИНФОРМАЦИИ ОБ ИГРОКАХ ★★★
   updatePlayersInfo() {
-    const whitePlayer = document.getElementById('whitePlayer');
-    const blackPlayer = document.getElementById('blackPlayer');
-    
+    const whitePlayer = document.getElementById("whitePlayer");
+    const blackPlayer = document.getElementById("blackPlayer");
+
     if (!whitePlayer || !blackPlayer) return;
-    
-    whitePlayer.classList.remove('active');
-    blackPlayer.classList.remove('active');
-    
-    const whiteNickname = document.getElementById('whiteNickname');
-    const blackNickname = document.getElementById('blackNickname');
-    
+
+    const whiteIndicator = whitePlayer.querySelector(".turn-indicator");
+    const blackIndicator = blackPlayer.querySelector(".turn-indicator");
+
+    // Сбрасываем индикаторы
+    whitePlayer.classList.remove("active");
+    blackPlayer.classList.remove("active");
+
+    // Обновляем никнеймы
+    const whiteNickname = document.getElementById("whiteNickname");
+    const blackNickname = document.getElementById("blackNickname");
+
     if (whiteNickname) {
-        whiteNickname.textContent = this.playerColor === 'white' ? this.username : (this.opponentName || 'Ожидание...');
+      whiteNickname.textContent =
+        this.playerColor === "white"
+          ? this.username
+          : this.opponentName || "Ожидание...";
     }
-    
+
     if (blackNickname) {
-        blackNickname.textContent = this.playerColor === 'black' ? this.username : (this.opponentName || 'Ожидание...');
+      blackNickname.textContent =
+        this.playerColor === "black"
+          ? this.username
+          : this.opponentName || "Ожидание...";
     }
-    
-    if (this.currentPlayer === 'white') {
-        whitePlayer.classList.add('active');
+
+    // Активируем текущего игрока
+    if (this.currentPlayer === "white") {
+      whitePlayer.classList.add("active");
     } else {
-        blackPlayer.classList.add('active');
+      blackPlayer.classList.add("active");
     }
   }
 
   setupLogin() {
+    // Показываем модальное окно при загрузке
     this.loginModal.style.display = "flex";
 
+    // Обработчик кнопки начала игры
     this.startGameButton.addEventListener("click", () => {
       this.startGameWithUsername();
     });
 
+    // Обработчик нажатия Enter в поле ввода
     this.usernameInput.addEventListener("keypress", (e) => {
       if (e.key === "Enter") {
         this.startGameWithUsername();
       }
     });
 
+    // Автофокус на поле ввода
     this.usernameInput.focus();
   }
 
   setupGameControls() {
-    // ★★★ ИСПРАВЛЕНИЕ: ПРАВИЛЬНАЯ ПРИВЯЗКА КНОПКИ "НИЧЬЯ?" С ПРАВИЛЬНЫМ ID ★★★
-    const drawOfferButton = document.getElementById("drawOfferBtn"); // Изменил на drawOfferBtn!
-    
-    if (drawOfferButton) {
-      drawOfferButton.addEventListener("click", () => {
-        this.offerDraw();
-      });
-      console.log("✅ Draw offer button setup successfully with ID: drawOfferBtn");
-    } else {
-      console.warn("⚠️ drawOfferButton not found with ID: drawOfferBtn");
-      // Попробуем найти кнопку по другому ID или классу
-      const alternativeButton = document.querySelector("#drawOfferButton, .draw-offer-btn, .control-button");
-      if (alternativeButton) {
-        console.log("✅ Found alternative draw button:", alternativeButton);
-        alternativeButton.addEventListener("click", () => {
-          this.offerDraw();
-        });
-      }
-    }
-  }
+    // Обработчики для кнопки "Новая Игра"
+    this.newGameButton.addEventListener("click", () => {
+      this.showNewGameModal();
+    });
 
-  // ★★★ ИСПРАВЛЕНИЕ: ПРАВИЛЬНАЯ ФУНКЦИЯ НОВОЙ ИГРЫ ★★★
-  startNewGame() {
-    console.log("Starting new game...");
-    this.hideGameOverModal();
-    
-    // ★★★ ОТПРАВЛЯЕМ ЗАПРОС НА СЕРВЕР ★★★
-    if (this.ws && this.ws.readyState === WebSocket.OPEN) {
-        this.ws.send(JSON.stringify({
-            type: 'newGame'
-        }));
-        this.updateStatus("Запрос на новую игру отправлен...");
-    } else {
-        // Если нет соединения, сбрасываем локально
-        this.resetGame();
-    }
+    this.confirmNewGame.addEventListener("click", () => {
+      this.confirmNewGameAction();
+    });
+
+    this.cancelNewGame.addEventListener("click", () => {
+      this.hideNewGameModal();
+    });
+
+    // Обработчики для кнопки "Ничья?"
+    this.drawOfferButton.addEventListener("click", () => {
+      this.offerDraw();
+    });
+
+    this.acceptDraw.addEventListener("click", () => {
+      this.acceptDrawOffer();
+    });
+
+    this.rejectDraw.addEventListener("click", () => {
+      this.rejectDrawOffer();
+    });
+
+    // Закрытие модальных окон при клике вне их
+    this.newGameModal.addEventListener("click", (e) => {
+      if (e.target === this.newGameModal) {
+        this.hideNewGameModal();
+      }
+    });
+
+    this.drawOfferModal.addEventListener("click", (e) => {
+      if (e.target === this.drawOfferModal) {
+        // Не закрываем модальное окно ничьи при клике вне - выбор обязателен
+      }
+    });
   }
 
   setupRestartModal() {
-    // Обработчики уже есть в HTML через onclick
+    if (this.restartModal) {
+      this.confirmRestart.addEventListener("click", () => {
+        this.confirmRestartAction();
+      });
+
+      this.declineRestart.addEventListener("click", () => {
+        this.declineRestartAction();
+      });
+
+      // Закрытие при клике вне окна
+      this.restartModal.addEventListener("click", (e) => {
+        if (e.target === this.restartModal) {
+          this.hideRestartModal();
+        }
+      });
+    }
+  }
+
+  showNewGameModal() {
+    this.newGameModal.style.display = "flex";
+  }
+
+  hideNewGameModal() {
+    this.newGameModal.style.display = "none";
+  }
+
+  confirmNewGameAction() {
+    console.log("Confirming new game...");
+
+    // Отправляем запрос на новую игру на сервер
+    if (this.ws && this.ws.readyState === WebSocket.OPEN) {
+      this.ws.send(
+        JSON.stringify({
+          type: "newGame",
+        })
+      );
+      this.updateStatus("Запрос на новую игру отправлен противнику...");
+    } else {
+      this.updateStatus("Нет соединения с сервером");
+    }
+
+    this.hideNewGameModal();
   }
 
   showRestartModal(opponentName) {
     if (this.restartModal && this.restartMessage) {
       this.restartMessage.textContent = `${opponentName} предлагает начать новую игру. Согласны?`;
       this.restartModal.style.display = "flex";
-      if (this.board) {
-        this.board.style.pointerEvents = "none";
-      }
+
+      // Блокируем игровое поле пока не будет выбран ответ
+      this.board.style.pointerEvents = "none";
     }
   }
 
   hideRestartModal() {
     if (this.restartModal) {
       this.restartModal.style.display = "none";
-      if (this.board) {
-        this.board.style.pointerEvents = "auto";
-      }
+      this.board.style.pointerEvents = "auto";
     }
   }
 
   confirmRestartAction() {
     if (this.ws && this.ws.readyState === WebSocket.OPEN) {
-      this.ws.send(JSON.stringify({
-        type: 'confirmRestart'
-      }));
+      this.ws.send(
+        JSON.stringify({
+          type: "confirmRestart",
+        })
+      );
       this.updateStatus("Согласие на новую игру отправлено...");
     }
     this.hideRestartModal();
@@ -317,19 +392,17 @@ class CheckersGame {
     this.hideRestartModal();
   }
 
-  // ★★★ ИСПРАВЛЕНИЕ: ПРАВИЛЬНАЯ ФУНКЦИЯ ПРЕДЛОЖЕНИЯ НИЧЬИ ★★★
   offerDraw() {
     if (!this.ws || this.ws.readyState !== WebSocket.OPEN) {
       this.updateStatus("Нет соединения с сервером");
       return;
     }
 
-    console.log("Sending draw offer...");
-    
-    // ★★★ ПРАВИЛЬНЫЙ ФОРМАТ СООБЩЕНИЯ ★★★
+    // Отправляем предложение ничьи на сервер
     this.ws.send(
       JSON.stringify({
-        type: "drawOffer"
+        type: "drawOffer",
+        from: this.username,
       })
     );
 
@@ -337,42 +410,33 @@ class CheckersGame {
   }
 
   showDrawOfferModal(opponentName) {
-    if (this.drawOfferModal && this.drawOfferText) {
-      this.drawOfferText.textContent = `${opponentName} предлагает ничью`;
-      this.drawOfferModal.style.display = "flex";
-      if (this.board) {
-        this.board.style.pointerEvents = "none";
-      }
-    }
+    this.drawOfferText.textContent = `${opponentName} предлагает ничью`;
+    this.drawOfferModal.style.display = "flex";
+
+    // Блокируем игровое поле пока не будет выбран ответ
+    this.board.style.pointerEvents = "none";
   }
 
   hideDrawOfferModal() {
-    if (this.drawOfferModal) {
-      this.drawOfferModal.style.display = "none";
-      if (this.board) {
-        this.board.style.pointerEvents = "auto";
-      }
-    }
+    this.drawOfferModal.style.display = "none";
+    this.board.style.pointerEvents = "auto";
   }
 
-  // ★★★ ИСПРАВЛЕНИЕ: ПРАВИЛЬНЫЕ ФУНКЦИИ ОТВЕТА НА НИЧЬЮ ★★★
   acceptDrawOffer() {
     if (!this.ws || this.ws.readyState !== WebSocket.OPEN) {
       this.updateStatus("Нет соединения с сервером");
       return;
     }
 
-    console.log("Accepting draw offer...");
-    
+    // Отправляем согласие на ничью
     this.ws.send(
       JSON.stringify({
         type: "drawResponse",
-        accept: true
+        accepted: true,
       })
     );
 
     this.hideDrawOfferModal();
-    this.updateStatus("Вы приняли предложение ничьи");
   }
 
   rejectDrawOffer() {
@@ -381,12 +445,11 @@ class CheckersGame {
       return;
     }
 
-    console.log("Rejecting draw offer...");
-    
+    // Отправляем отказ от ничьи
     this.ws.send(
       JSON.stringify({
         type: "drawResponse",
-        accept: false
+        accepted: false,
       })
     );
 
@@ -412,23 +475,24 @@ class CheckersGame {
     this.username = username;
     this.loginModal.style.display = "none";
 
+    // ★★★ ОБНОВЛЯЕМ ИНФОРМАЦИЮ ОБ ИГРОКАХ ПОСЛЕ УСТАНОВКИ НИКА ★★★
     this.updatePlayersInfo();
-    this.updateStatus(`Добро пожаловать, ${username}! Подключение к серверу...`);
 
+    // Обновляем статус с ником
+    this.updateStatus(
+      `Добро пожаловать, ${username}! Подключение к серверу...`
+    );
+
+    // Подключаемся к WebSocket
     this.setupWebSocket();
   }
 
+  // ★★★ ОБНОВЛЕННЫЙ МЕТОД ОБРАБОТКИ КЛИКОВ С УЧЕТОМ МНОЖЕСТВЕННОГО ВЗЯТИЯ ★★★
   handleCellClick(row, col) {
-    console.log("Cell clicked:", row, col, "Player color:", this.playerColor, "Current player:", this.currentPlayer);
+    console.log("Cell clicked:", row, col);
 
-    // ★★★ ИСПРАВЛЕНИЕ: ПРАВИЛЬНАЯ ПРОВЕРКА ПОДКЛЮЧЕНИЯ ★★★
-    if (!this.ws || this.ws.readyState !== WebSocket.OPEN) {
-      this.updateStatus("Нет соединения с сервером");
-      return;
-    }
-
-    if (this.playerColor === null) {
-      this.updateStatus("Ожидание назначения цвета...");
+    if (!this.playerColor) {
+      this.updateStatus("Ожидание подключения...");
       return;
     }
 
@@ -440,26 +504,31 @@ class CheckersGame {
     const cell = this.getCell(row, col);
     const piece = cell.querySelector(".piece");
 
+    // ★★★ ЕСЛИ АКТИВНО МНОЖЕСТВЕННОЕ ВЗЯТИЕ - ОБРАБАТЫВАЕМ ОСОБЫМ ОБРАЗОМ ★★★
     if (this.continueCapturePiece) {
       const continueRow = this.continueCapturePiece.row;
       const continueCol = this.continueCapturePiece.col;
-      
+
+      // Если кликнули на ту же шашку - сбрасываем выбор
       if (continueRow === row && continueCol === col) {
         this.continueCapturePiece = null;
         this.clearSelection();
         this.updateStatus("Выберите направление для продолжения взятия");
         return;
       }
-      
+
+      // Пробуем сделать ход из позиции продолжаемого взятия
       this.makeMove(continueRow, continueCol, row, col);
       this.clearSelection();
       return;
     }
 
+    // Если уже выбрана шашка - пробуем сделать ход
     if (this.selectedPiece) {
       this.makeMove(this.selectedPiece.row, this.selectedPiece.col, row, col);
       this.clearSelection();
     }
+    // Если кликнули на свою шашку - выбираем её
     else if (piece && piece.dataset.color === this.playerColor) {
       this.selectedPiece = { row, col };
       this.highlightCell(row, col, "selected");
@@ -492,27 +561,23 @@ class CheckersGame {
   }
 
   setupWebSocket() {
-  try {
     const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
-    // ★★★ ИСПРАВЛЕНИЕ: ПРАВИЛЬНЫЙ URL ДЛЯ RENDER.COM ★★★
-    const wsUrl = `${protocol}//${window.location.hostname}${window.location.port ? ':' + window.location.port : ''}/ws`;
-    
-    console.log("🔗 Connecting to WebSocket:", wsUrl);
+    const wsUrl = `${protocol}//${window.location.host}`;
+
+    console.log("Connecting to WebSocket:", wsUrl);
 
     this.ws = new WebSocket(wsUrl);
 
     this.ws.onopen = () => {
       console.log("✅ WebSocket connected successfully");
-      this.updateStatus("Подключено! Ожидание второго игрока...");
-      
-      // ★★★ ОТПРАВЛЯЕМ СООБЩЕНИЕ О ПОДКЛЮЧЕНИИ ★★★
-      if (this.username) {
-        this.ws.send(JSON.stringify({
+      // Отправляем ник при подключении
+      this.ws.send(
+        JSON.stringify({
           type: "join",
           username: this.username,
-        }));
-        console.log("✅ Join message sent with username:", this.username);
-      }
+        })
+      );
+      this.updateStatus("Подключено! Ожидание второго игрока...");
     };
 
     this.ws.onmessage = (event) => {
@@ -522,15 +587,15 @@ class CheckersGame {
         this.handleServerMessage(message);
       } catch (error) {
         console.error("❌ Error parsing message:", error);
-        console.log("Raw message:", event.data);
       }
     };
 
     this.ws.onclose = (event) => {
       console.log("🔌 WebSocket disconnected:", event.code, event.reason);
-      this.updateStatus(`Соединение потеряно (${event.code}). Переподключение через 3 секунды...`);
+      this.updateStatus(
+        "Соединение потеряно. Переподключение через 3 секунды..."
+      );
       setTimeout(() => {
-        console.log("🔄 Attempting to reconnect...");
         this.setupWebSocket();
       }, 3000);
     };
@@ -539,29 +604,9 @@ class CheckersGame {
       console.error("💥 WebSocket error:", error);
       this.updateStatus("Ошибка соединения с сервером");
     };
-
-    // ★★★ ТАЙМАУТ ДЛЯ ПОДКЛЮЧЕНИЯ ★★★
-    setTimeout(() => {
-      if (this.ws && this.ws.readyState === WebSocket.CONNECTING) {
-        console.log("⏰ WebSocket connection timeout");
-        this.updateStatus("Таймаут подключения. Проверьте сервер.");
-        this.ws.close();
-      }
-    }, 10000);
-
-  } catch (error) {
-    console.error("💥 Error setting up WebSocket:", error);
-    this.updateStatus("Ошибка создания соединения");
   }
-}
 
-  // ★★★ ИСПРАВЛЕНИЕ: ДОБАВЛЕНА ПРОВЕРКА ★★★
   setupRestartButton() {
-    if (!this.restartButton) {
-      console.warn("⚠️ restartButton is null, cannot setup event listener");
-      return;
-    }
-    
     this.restartButton.addEventListener("click", () => {
       this.restartGame();
     });
@@ -570,36 +615,42 @@ class CheckersGame {
   restartGame() {
     console.log("Restarting game...");
 
+    // Удаляем стрелку и очищаем таймер
     this.removeMoveArrow();
-    if (this.restartContainer) {
-      this.restartContainer.style.display = "none";
-    }
-    if (this.board) {
-      this.board.style.display = "grid";
-    }
-    if (this.status) {
-      this.status.style.display = "block";
-    }
 
+    // Скрываем блок рестарта
+    this.restartContainer.style.display = "none";
+
+    // Показываем доску и статус
+    this.board.style.display = "grid";
+    this.status.style.display = "block";
+
+    // Сбрасываем состояние игры
     this.selectedPiece = null;
     this.possibleMoves = [];
     this.playerColor = null;
     this.currentPlayer = "white";
-    this.continueCapturePiece = null;
+    this.continueCapturePiece = null; // Сбрасываем множественное взятие
 
+    // Обновляем статус
     this.updateStatus("Перезапуск игры...");
+
+    // Очищаем доску
     this.clearBoard();
 
+    // Переподключаемся к серверу
     if (this.ws) {
       this.ws.close();
     }
 
+    // Перезагружаем игру через небольшой таймаут
     setTimeout(() => {
       this.setupWebSocket();
     }, 1000);
   }
 
   createMoveArrow(fromRow, fromCol, toRow, toCol) {
+    // Удаляем предыдущую стрелку, если есть
     this.removeMoveArrow();
 
     const fromCell = this.getCell(fromRow, fromCol);
@@ -607,15 +658,18 @@ class CheckersGame {
 
     if (!fromCell || !toCell) return;
 
+    // Получаем координаты центров клеток
     const fromRect = fromCell.getBoundingClientRect();
     const toRect = toCell.getBoundingClientRect();
     const boardRect = this.board.getBoundingClientRect();
 
+    // Вычисляем координаты относительно доски
     const fromX = fromRect.left + fromRect.width / 2 - boardRect.left;
     const fromY = fromRect.top + fromRect.height / 2 - boardRect.top;
     const toX = toRect.left + toRect.width / 2 - boardRect.left;
     const toY = toRect.top + toRect.height / 2 - boardRect.top;
 
+    // Создаем SVG элемент для стрелки
     const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
     svg.classList.add("move-arrow");
     svg.setAttribute("width", "100%");
@@ -625,11 +679,13 @@ class CheckersGame {
     svg.style.left = "0";
     svg.style.pointerEvents = "none";
 
+    // Вычисляем длину и угол стрелки
     const dx = toX - fromX;
     const dy = toY - fromY;
     const length = Math.sqrt(dx * dx + dy * dy);
     const angle = (Math.atan2(dy, dx) * 180) / Math.PI;
 
+    // Укорачиваем стрелку, чтобы она не заходила на шашки
     const shortenBy = 25;
     const shortenedLength = length - shortenBy * 2;
     const shortenX = (dx / length) * shortenBy;
@@ -640,6 +696,7 @@ class CheckersGame {
     const adjustedToX = toX - shortenX;
     const adjustedToY = toY - shortenY;
 
+    // Создаем линию стрелки
     const line = document.createElementNS("http://www.w3.org/2000/svg", "line");
     line.classList.add("arrow-line", "arrow-animation");
     line.setAttribute("x1", adjustedFromX);
@@ -647,56 +704,78 @@ class CheckersGame {
     line.setAttribute("x2", adjustedToX);
     line.setAttribute("y2", adjustedToY);
 
+    // Создаем наконечник стрелки
     const headLength = 15;
     const headAngle = 30;
 
-    const head = document.createElementNS("http://www.w3.org/2000/svg", "polygon");
+    const head = document.createElementNS(
+      "http://www.w3.org/2000/svg",
+      "polygon"
+    );
     head.classList.add("arrow-head");
 
     const angleRad = (angle * Math.PI) / 180;
-    const x1 = adjustedToX - headLength * Math.cos(angleRad - (headAngle * Math.PI) / 180);
-    const y1 = adjustedToY - headLength * Math.sin(angleRad - (headAngle * Math.PI) / 180);
-    const x2 = adjustedToX - headLength * Math.cos(angleRad + (headAngle * Math.PI) / 180);
-    const y2 = adjustedToY - headLength * Math.sin(angleRad + (headAngle * Math.PI) / 180);
+    const x1 =
+      adjustedToX -
+      headLength * Math.cos(angleRad - (headAngle * Math.PI) / 180);
+    const y1 =
+      adjustedToY -
+      headLength * Math.sin(angleRad - (headAngle * Math.PI) / 180);
+    const x2 =
+      adjustedToX -
+      headLength * Math.cos(angleRad + (headAngle * Math.PI) / 180);
+    const y2 =
+      adjustedToY -
+      headLength * Math.sin(angleRad + (headAngle * Math.PI) / 180);
 
-    head.setAttribute("points", `${adjustedToX},${adjustedToY} ${x1},${y1} ${x2},${y2}`);
+    head.setAttribute(
+      "points",
+      `${adjustedToX},${adjustedToY} ${x1},${y1} ${x2},${y2}`
+    );
 
     svg.appendChild(line);
     svg.appendChild(head);
 
+    // Сохраняем ссылку на стрелку
     this.currentArrow = svg;
+
+    // Добавляем стрелку на доску
     this.board.appendChild(svg);
 
+    // Очищаем предыдущий таймер
     if (this.arrowTimeout) {
       clearTimeout(this.arrowTimeout);
     }
 
+    // Устанавливаем новый таймер для удаления стрелки
     this.arrowTimeout = setTimeout(() => {
       this.removeMoveArrow();
     }, 3000);
   }
 
   removeMoveArrow() {
+    // Очищаем таймер
     if (this.arrowTimeout) {
       clearTimeout(this.arrowTimeout);
       this.arrowTimeout = null;
     }
 
+    // Удаляем стрелку
     if (this.currentArrow) {
       this.currentArrow.remove();
       this.currentArrow = null;
     }
   }
 
-  // ★★★ ИСПРАВЛЕНИЕ: ОБНОВЛЕННАЯ ОБРАБОТКА СООБЩЕНИЙ ★★★
   handleServerMessage(message) {
-    console.log("Processing message type:", message.type);
-    
     switch (message.type) {
       case "playerAssigned":
         this.playerColor = message.color;
         const colorText = this.playerColor === "white" ? "белые" : "чёрные";
-        this.updateStatus(`Вы играете за ${colorText}. Ожидание второго игрока...`);
+        this.updateStatus(
+          `Вы играете за ${colorText}. Ожидание второго игрока...`
+        );
+        // ★★★ ОБНОВЛЯЕМ ИНФОРМАЦИЮ ОБ ИГРОКАХ ★★★
         this.updatePlayersInfo();
         break;
 
@@ -707,15 +786,18 @@ class CheckersGame {
       case "moveResult":
         if (message.valid) {
           this.updateGameState(message.gameState);
-          
+
+          // ★★★ ОБРАБОТКА МНОЖЕСТВЕННОГО ВЗЯТИЯ ★★★
           if (message.canContinueCapture) {
             this.continueCapturePiece = {
               row: message.continueFromRow,
-              col: message.continueFromCol
+              col: message.continueFromCol,
             };
-            this.updateStatus("Можете продолжить взятие! Выберите следующую шашку для взятия.");
+            this.updateStatus(
+              "Можете продолжить взятие! Выберите следующую шашку для взятия."
+            );
           } else {
-            this.continueCapturePiece = null;
+            this.continueCapturePiece = null; // Сбрасываем множественное взятие
           }
         } else {
           this.updateStatus(`❌ ${message.message}`);
@@ -730,26 +812,20 @@ class CheckersGame {
         this.handlePlayersInfo(message.data);
         break;
 
-      // ★★★ ИСПРАВЛЕНИЕ: ОБРАБОТКА ПРЕДЛОЖЕНИЯ НИЧЬИ ★★★
-      case "drawOffer":
-        this.showDrawOfferModal(message.nickname || message.from);
+      case "drawOfferReceived":
+        this.showDrawOfferModal(message.from);
         break;
 
       case "drawRejected":
-        this.updateStatus(`${message.by || 'Противник'} отклонил предложение ничьи`);
-        break;
-
-      // ★★★ ДОБАВЛЕНА ОБРАБОТКА ПРИНЯТИЯ НИЧЬИ ★★★
-      case "drawAccepted":
-        this.updateStatus("Ничья принята! Игра завершена.");
-        this.handleGameOver({ winner: 'draw' });
+        this.updateStatus(`${message.by} отклонил предложение ничьи`);
         break;
 
       case "gameOver":
-        // ★★★ ЗАДЕРЖКА 1 СЕКУНДА ★★★
-        setTimeout(() => {
+        if (message.result === "draw") {
+          this.handleGameOver({ winner: null, result: "draw" });
+        } else {
           this.handleGameOver(message);
-        }, 1000);
+        }
         break;
 
       case "gameRestartRequest":
@@ -777,6 +853,7 @@ class CheckersGame {
   handleMoveMade(moveData) {
     console.log("Move made by:", moveData.player, moveData);
 
+    // Показываем стрелку для ЛЮБОГО хода
     setTimeout(() => {
       this.createMoveArrow(
         moveData.fromRow,
@@ -786,11 +863,15 @@ class CheckersGame {
       );
     }, 100);
 
+    // ОБНОВЛЯЕМ ТЕКУЩЕГО ИГРОКА на основе данных от сервера
     if (moveData.currentPlayer) {
       this.currentPlayer = moveData.currentPlayer;
     }
 
+    // ★★★ ОБНОВЛЯЕМ ИНФОРМАЦИЮ ОБ ИГРОКАХ ★★★
     this.updatePlayersInfo();
+
+    // Обновляем статус для ВСЕХ игроков
     this.updateTurnStatus();
   }
 
@@ -804,40 +885,55 @@ class CheckersGame {
 
   handlePlayersInfo(players) {
     console.log("Players info:", players);
+    // Сохраняем имя противника
     if (players.length === 2) {
       const opponent = players.find((p) => p.username !== this.username);
       if (opponent) {
         this.opponentName = opponent.username;
-        console.log(`Playing against: ${this.opponentName} (${opponent.color})`);
+        console.log(
+          `Playing against: ${this.opponentName} (${opponent.color})`
+        );
+        // ★★★ ОБНОВЛЯЕМ ИНФОРМАЦИЮ ОБ ИГРОКАХ ★★★
         this.updatePlayersInfo();
       }
     }
   }
 
   updateGameState(gameState) {
+    // Очищаем доску
     this.clearBoard();
 
+    // Расставляем шашки согласно состоянию игры
     gameState.pieces.forEach((piece) => {
       this.placePiece(piece.row, piece.col, piece.color, piece.isKing);
     });
 
+    // Обновляем текущего игрока
     this.currentPlayer = gameState.currentPlayer;
+
+    // ★★★ ОБНОВЛЯЕМ ИНФОРМАЦИЮ ОБ ИГРОКАХ ★★★
     this.updatePlayersInfo();
+
+    // ОБНОВЛЯЕМ СТАТУС ХОДА
     this.updateTurnStatus();
 
     console.log("Game state updated. Current player:", this.currentPlayer);
   }
 
   getCell(row, col) {
-    return document.querySelector(`.cell[data-row="${row}"][data-col="${col}"]`);
+    return document.querySelector(
+      `.cell[data-row="${row}"][data-col="${col}"]`
+    );
   }
 
   highlightCell(row, col, className) {
     const cell = this.getCell(row, col);
     if (cell) {
+      // Сначала убираем все выделения
       document.querySelectorAll(".cell").forEach((c) => {
         c.classList.remove("selected", "possible-move");
       });
+      // Затем добавляем новое
       cell.classList.add(className);
     }
   }
@@ -849,67 +945,70 @@ class CheckersGame {
     });
   }
 
-  // ★★★ ИСПРАВЛЕНИЕ: ЗАДЕРЖКА 1 СЕКУНДА ★★★
   handleGameOver(result) {
-    setTimeout(() => {
-        let winnerText;
-        let gameOverMessage;
-        
-        if (result.winner === 'draw') {
-            winnerText = "🤝 Ничья!";
-            gameOverMessage = "Ничья!";
-        } else if (result.winner) {
-            const winnerName = result.winner === this.playerColor ? this.username : this.opponentName;
-            const colorText = result.winner === "white" ? "белые" : "чёрные";
-            winnerText = `🏆 Победил ${winnerName} (${colorText})`;
-            gameOverMessage = `Победил ${winnerName} (${colorText})`;
-        } else {
-            winnerText = "🤝 Ничья!";
-            gameOverMessage = "Ничья!";
-        }
-
-        this.updateStatus(`Игра окончена! ${winnerText}`);
-        
-        const gameOverMessageElement = document.getElementById('gameOverMessage');
-        if (gameOverMessageElement) {
-            gameOverMessageElement.textContent = gameOverMessage;
-        }
-
-        this.removeMoveArrow();
-        this.continueCapturePiece = null;
-        this.showGameOverModal();
-    }, 1000);
-  }
-
-  showGameOverModal() {
-    const modal = document.getElementById('gameOverModal');
-    if (modal) {
-      modal.style.display = 'flex';
+    let winnerText;
+    if (result.result === "draw") {
+      winnerText = "🤝 Ничья!";
+    } else if (result.winner) {
+      winnerText = `🏆 Победитель: ${
+        result.winner === "white" ? "белые" : "чёрные"
+      }`;
+    } else {
+      winnerText = "🤝 Ничья!";
     }
-  }
 
-  hideGameOverModal() {
-    const modal = document.getElementById('gameOverModal');
-    if (modal) {
-      modal.style.display = 'none';
-    }
+    this.updateStatus(`Игра окончена! ${winnerText}`);
+
+    // Удаляем стрелку при окончании игры
+    this.removeMoveArrow();
+
+    // Сбрасываем множественное взятие
+    this.continueCapturePiece = null;
+
+    // Показываем блок рестарта
+    this.showRestartContainer();
   }
 
   showRestartContainer() {
-    if (this.board) this.board.style.display = "none";
-    if (this.status) this.status.style.display = "none";
-    if (this.restartContainer) this.restartContainer.style.display = "block";
+    // Скрываем доску и статус
+    this.board.style.display = "none";
+    this.status.style.display = "none";
+
+    // Показываем блок рестарта
+    this.restartContainer.style.display = "block";
   }
 
   updateStatus(message) {
     if (this.status) {
       let statusText = message;
 
-      const isSystemMessage = message.includes("✅") || message.includes("⏳") || message.includes("❌") || message.includes("⚠️") || message.includes("Подключено") || message.includes("Ожидание") || message.includes("Добро пожаловать") || message.includes("Перезапуск") || message.includes("Вы играете") || message.includes("Сейчас не ваш ход") || message.includes("Ход отправляется") || message.includes("Соединение потеряно") || message.includes("Ошибка соединения") || message.includes("Выберите клетку") || message.includes("Предложение ничьи") || message.includes("отклонил предложение") || message.includes("Запрос на новую игру") || message.includes("Согласие на новую игру") || message.includes("отклонил предложение новой игры") || message.includes("Можете продолжить взятие");
+      // Если это системное сообщение (с эмодзи), не форматируем его
+      const isSystemMessage =
+        message.includes("✅") ||
+        message.includes("⏳") ||
+        message.includes("❌") ||
+        message.includes("⚠️") ||
+        message.includes("Подключено") ||
+        message.includes("Ожидание") ||
+        message.includes("Добро пожаловать") ||
+        message.includes("Перезапуск") ||
+        message.includes("Вы играете") ||
+        message.includes("Сейчас не ваш ход") ||
+        message.includes("Ход отправляется") ||
+        message.includes("Соединение потеряно") ||
+        message.includes("Ошибка соединения") ||
+        message.includes("Выберите клетку") ||
+        message.includes("Предложение ничьи") ||
+        message.includes("отклонил предложение") ||
+        message.includes("Запрос на новую игру") ||
+        message.includes("Согласие на новую игру") ||
+        message.includes("отклонил предложение новой игры") ||
+        message.includes("Можете продолжить взятие");
 
       if (this.username && this.playerColor && !isSystemMessage) {
         const colorText = this.playerColor === "white" ? "белые" : "чёрные";
-        const currentTurnColor = this.currentPlayer === "white" ? "белых" : "чёрных";
+        const currentTurnColor =
+          this.currentPlayer === "white" ? "белых" : "чёрных";
         statusText = `${this.username} (${colorText}) - Ход ${currentTurnColor}`;
       } else if (this.username && this.playerColor && isSystemMessage) {
         const colorText = this.playerColor === "white" ? "белые" : "чёрные";
@@ -924,67 +1023,16 @@ class CheckersGame {
   }
 }
 
-// ★★★ ГЛОБАЛЬНЫЕ ФУНКЦИИ ДЛЯ HTML ★★★
-function startNewGame() {
-  console.log("🔄 startNewGame called globally");
-  if (window.checkersGame && typeof window.checkersGame.startNewGame === 'function') {
-    window.checkersGame.startNewGame();
-  } else {
-    console.error("❌ checkersGame not available, reloading page");
-    location.reload();
+// Запускаем игру когда страница полностью загружена
+document.addEventListener("DOMContentLoaded", () => {
+  console.log("🚀 Starting Checkers Game...");
+  new CheckersGame();
+});
+
+// Добавляем обработчик для переподключения при видимости страницы
+document.addEventListener("visibilitychange", () => {
+  if (!document.hidden) {
+    // Страница снова стала активной - проверяем соединение
+    console.log("Page became visible, checking connection...");
   }
-}
-
-function offerDraw() {
-  console.log("🤝 offerDraw called globally");
-  if (window.checkersGame && typeof window.checkersGame.offerDraw === 'function') {
-    window.checkersGame.offerDraw();
-  } else {
-    alert("Игра еще не загружена. Попробуйте через несколько секунд.");
-  }
-}
-
-function acceptDrawOffer() {
-  if (window.checkersGame && typeof window.checkersGame.acceptDrawOffer === 'function') {
-    window.checkersGame.acceptDrawOffer();
-  }
-}
-
-function rejectDrawOffer() {
-  if (window.checkersGame && typeof window.checkersGame.rejectDrawOffer === 'function') {
-    window.checkersGame.rejectDrawOffer();
-  }
-}
-
-function confirmRestart() {
-  if (window.checkersGame && typeof window.checkersGame.confirmRestartAction === 'function') {
-    window.checkersGame.confirmRestartAction();
-  }
-}
-
-function declineRestart() {
-  if (window.checkersGame && typeof window.checkersGame.declineRestartAction === 'function') {
-    window.checkersGame.declineRestartAction();
-  }
-}
-
-// ★★★ ИСПРАВЛЕННОЕ СОЗДАНИЕ ЭКЗЕМПЛЯРА ИГРЫ ★★★
-console.log("📝 script.js loaded, waiting for DOM...");
-
-function initGame() {
-  console.log("🎮 Initializing Checkers Game...");
-  try {
-    window.checkersGame = new CheckersGame();
-    console.log("✅ CheckersGame initialized successfully");
-    console.log("checkersGame object:", window.checkersGame);
-  } catch (error) {
-    console.error("❌ Error initializing CheckersGame:", error);
-  }
-}
-
-// Несколько способов инициализации для надежности
-if (document.readyState === 'loading') {
-  document.addEventListener('DOMContentLoaded', initGame);
-} else {
-  initGame();
-}
+});
