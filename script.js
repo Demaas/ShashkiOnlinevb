@@ -206,24 +206,26 @@ class CheckersGame {
     this.setupWebSocket();
   }
 
-  createBoard() {
-    this.board.innerHTML = "";
+  function createBoard() {
+    const board = document.getElementById('board');
+    board.innerHTML = '';
+    
     for (let row = 0; row < 8; row++) {
-      for (let col = 0; col < 8; col++) {
-        const cell = document.createElement("div");
-        cell.className = `cell ${(row + col) % 2 === 0 ? "white" : "black"}`;
-        cell.dataset.row = row;
-        cell.dataset.col = col;
-
-        // Только черные клетки кликабельны
-        if ((row + col) % 2 !== 0) {
-          cell.addEventListener("click", () => this.handleCellClick(row, col));
+        for (let col = 0; col < 8; col++) {
+            const cell = document.createElement('div');
+            cell.className = `cell ${(row + col) % 2 === 0 ? 'white' : 'black'}`;
+            cell.dataset.row = row;
+            cell.dataset.col = col;
+            
+            // Добавляем обработчик клика только на черные клетки
+            if ((row + col) % 2 !== 0) {
+                cell.addEventListener('click', () => handleCellClick(row, col));
+            }
+            
+            board.appendChild(cell);
         }
-
-        this.board.appendChild(cell);
-      }
     }
-  }
+}
 
   handleCellClick(row, col) {
     console.log("Cell clicked:", row, col);
@@ -752,3 +754,4 @@ document.addEventListener("visibilitychange", () => {
     console.log("Page became visible, checking connection...");
   }
 });
+
