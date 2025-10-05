@@ -1,4 +1,4 @@
-// script.js - ФИНАЛЬНАЯ ВЕРСИЯ с кнопками управления игрой
+// script.js - ФИНАЛЬНАЯ ВЕРСИЯ с исправлениями для дамки и новой игры
 class CheckersGame {
   constructor() {
     this.board = document.getElementById("board");
@@ -20,6 +20,12 @@ class CheckersGame {
     this.rejectDraw = document.getElementById("rejectDraw");
     this.drawOfferText = document.getElementById("drawOfferText");
 
+    // Добавляем модальное окно для подтверждения перезапуска
+    this.restartModal = document.getElementById("restartModal");
+    this.restartMessage = document.getElementById("restartMessage");
+    this.confirmRestart = document.getElementById("confirmRestart");
+    this.declineRestart = document.getElementById("declineRestart");
+
     this.currentPlayer = "white";
     this.selectedPiece = null;
     this.possibleMoves = [];
@@ -28,11 +34,13 @@ class CheckersGame {
     this.currentArrow = null;
     this.arrowTimeout = null;
     this.username = "";
+    this.opponentName = "";
 
     this.setupLogin();
     this.initializeGame();
     this.setupRestartButton();
     this.setupGameControls();
+    this.setupRestartModal();
   }
 
   initializeGame() {
@@ -259,6 +267,26 @@ class CheckersGame {
     });
   }
 
+  // ★★★ ДОБАВЛЕН МЕТОД ДЛЯ НАСТРОЙКИ МОДАЛЬНОГО ОКНА ПЕРЕЗАПУСКА ★★★
+  setupRestartModal() {
+    if (this.restartModal) {
+      this.confirmRestart.addEventListener("click", () => {
+        this.confirmRestartAction();
+      });
+
+      this.declineRestart.addEventListener("click", () => {
+        this.declineRestartAction();
+      });
+
+      // Закрытие при клике вне окна
+      this.restartModal.addEventListener("click", (e) => {
+        if (e.target === this.restartModal) {
+          this.hideRestartModal();
+        }
+      });
+    }
+  }
+
   showNewGameModal() {
     this.newGameModal.style.display = "flex";
   }
@@ -271,8 +299,50 @@ class CheckersGame {
   confirmNewGameAction() {
     console.log("Confirming new game...");
     
-    // Вместо перезагрузки страницы - сбрасываем игру
-    this.resetGame();
+    // Отправляем запрос на новую игру на сервер
+    if (this.ws && this.ws.readyState === WebSocket.OPEN) {
+      this.ws.send(JSON.stringify({
+        type: 'newGame'
+      }));
+      this.updateStatus("Запрос на новую игру отправлен противнику...");
+    } else {
+      this.updateStatus("Нет соединения с сервером");
+    }
+    
+    this.hideNewGameModal();
+  }
+
+  // ★★★ НОВЫЕ МЕТОДЫ ДЛЯ ОБРАБОТКИ ПРЕДЛОЖЕНИЯ ПЕРЕЗАПУСКА ★★★
+  showRestartModal(opponentName) {
+    if (this.restartModal && this.restartMessage) {
+      this.restartMessage.textContent = `${opponentName} предлагает начать новую игру. Согласны?`;
+      this.restartModal.style.display = "flex";
+      
+      // Блокируем игровое поле пока не будет выбран ответ
+      this.board.style.pointerEvents = "none";
+    }
+  }
+
+  hideRestartModal() {
+    if (this.restartModal) {
+      this.restartModal.style.display = "none";
+      this.board.style.pointerEvents = "auto";
+    }
+  }
+
+  confirmRestartAction() {
+    if (this.ws && this.ws.readyState === WebSocket.OPEN) {
+      this.ws.send(JSON.stringify({
+        type: 'confirmRestart'
+      }));
+      this.updateStatus("Согласие на новую игру отправлено...");
+    }
+    this.hideRestartModal();
+  }
+
+  declineRestartAction() {
+    this.updateStatus("Вы отклонили предложение новой игры");
+    this.hideRestartModal();
   }
 
   offerDraw() {
@@ -673,6 +743,20 @@ class CheckersGame {
         }
         break;
 
+      // ★★★ ДОБАВЛЕНЫ НОВЫЕ ОБРАБОТЧИКИ ДЛЯ ПЕРЕЗАПУСКА ИГРЫ ★★★
+      case "gameRestartRequest":
+        this.showRestartModal(message.requestedBy);
+        break;
+
+      case "gameRestarted":
+        this.resetGame();
+        this.updateStatus("Новая игра началась!");
+        break;
+
+      case "restartRejected":
+        this.updateStatus("Противник отклонил предложение новой игры");
+        break;
+
       case "error":
         this.updateStatus(`⚠️ ${message.message}`);
         break;
@@ -715,12 +799,13 @@ class CheckersGame {
 
   handlePlayersInfo(players) {
     console.log("Players info:", players);
-    // Можно использовать для отображения информации об игроках
+    // Сохраняем имя противника
     if (players.length === 2) {
       const opponent = players.find((p) => p.username !== this.username);
       if (opponent) {
+        this.opponentName = opponent.username;
         console.log(
-          `Playing against: ${opponent.username} (${opponent.color})`
+          `Playing against: ${this.opponentName} (${opponent.color})`
         );
       }
     }
@@ -820,7 +905,10 @@ class CheckersGame {
         message.includes("Ошибка соединения") ||
         message.includes("Выберите клетку") ||
         message.includes("Предложение ничьи") ||
-        message.includes("отклонил предложение");
+        message.includes("отклонил предложение") ||
+        message.includes("Запрос на новую игру") ||
+        message.includes("Согласие на новую игру") ||
+        message.includes("отклонил предложение новой игры");
 
       if (this.username && this.playerColor && !isSystemMessage) {
         const colorText = this.playerColor === "white" ? "белые" : "чёрные";
