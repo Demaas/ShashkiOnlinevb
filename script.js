@@ -1,4 +1,4 @@
-// script.js - ОБНОВЛЕННАЯ ВЕРСИЯ с исправлениями для множественного взятия, ников и модальных окон
+// script.js - ОБНОВЛЕННАЯ ВЕРСИЯ с исправлениями для кнопок, финального окна и фона модальных окон
 class CheckersGame {
   constructor() {
     this.board = document.getElementById("board");
@@ -9,16 +9,16 @@ class CheckersGame {
     this.usernameInput = document.getElementById("usernameInput");
     this.startGameButton = document.getElementById("startGameButton");
 
-    // Добавляем новые свойства для кнопок
-    this.newGameButton = document.getElementById("newGameButton");
+    // ★★★ ИЗМЕНЕНИЕ 1: УБИРАЕМ ССЫЛКИ НА УДАЛЕННЫЕ КНОПКИ ★★★
     this.drawOfferButton = document.getElementById("drawOfferButton");
-    this.newGameModal = document.getElementById("newGameModal");
     this.drawOfferModal = document.getElementById("drawOfferModal");
-    this.confirmNewGame = document.getElementById("confirmNewGame");
-    this.cancelNewGame = document.getElementById("cancelNewGame");
     this.acceptDraw = document.getElementById("acceptDraw");
     this.rejectDraw = document.getElementById("rejectDraw");
     this.drawOfferText = document.getElementById("drawOfferText");
+
+    // ★★★ ИЗМЕНЕНИЕ 2: ДОБАВЛЯЕМ НОВОЕ МОДАЛЬНОЕ ОКНО ДЛЯ НОВОЙ ИГРЫ ★★★
+    this.nicknameModal = document.getElementById("nicknameModal");
+    this.nicknameInput = document.getElementById("nicknameInput");
 
     // Добавляем модальное окно для подтверждения перезапуска
     this.restartModal = document.getElementById("restartModal");
@@ -198,9 +198,6 @@ class CheckersGame {
             type: 'newGame'
         }));
     }
-    
-    // Скрываем модальное окно новой игры
-    this.hideNewGameModal();
   }
 
   clearBoard() {
@@ -263,44 +260,77 @@ class CheckersGame {
   }
 
   setupGameControls() {
-    // Обработчики для кнопки "Новая Игра"
-    this.newGameButton.addEventListener("click", () => {
-      this.showNewGameModal();
-    });
+    // ★★★ ИЗМЕНЕНИЕ 3: ОБРАБОТЧИК ДЛЯ КНОПКИ "НИЧЬЯ?" ★★★
+    if (this.drawOfferButton) {
+      this.drawOfferButton.addEventListener("click", () => {
+        this.offerDraw();
+      });
+    }
 
-    this.confirmNewGame.addEventListener("click", () => {
-      this.confirmNewGameAction();
-    });
+    if (this.acceptDraw) {
+      this.acceptDraw.addEventListener("click", () => {
+        this.acceptDrawOffer();
+      });
+    }
 
-    this.cancelNewGame.addEventListener("click", () => {
-      this.hideNewGameModal();
-    });
+    if (this.rejectDraw) {
+      this.rejectDraw.addEventListener("click", () => {
+        this.rejectDrawOffer();
+      });
+    }
 
-    // Обработчики для кнопки "Ничья?"
-    this.drawOfferButton.addEventListener("click", () => {
-      this.offerDraw();
-    });
-
-    this.acceptDraw.addEventListener("click", () => {
-      this.acceptDrawOffer();
-    });
-
-    this.rejectDraw.addEventListener("click", () => {
-      this.rejectDrawOffer();
-    });
+    // ★★★ ИЗМЕНЕНИЕ 4: ОБРАБОТЧИК ДЛЯ КНОПКИ "НОВАЯ ИГРА" В ФИНАЛЬНОМ ОКНЕ ★★★
+    const newGameBtn = document.querySelector('#gameOverModal button');
+    if (newGameBtn) {
+      newGameBtn.addEventListener('click', () => {
+        this.startNewGame();
+      });
+    }
 
     // Закрытие модальных окон при клике вне их
-    this.newGameModal.addEventListener("click", (e) => {
-      if (e.target === this.newGameModal) {
-        this.hideNewGameModal();
-      }
-    });
+    if (this.drawOfferModal) {
+      this.drawOfferModal.addEventListener("click", (e) => {
+        if (e.target === this.drawOfferModal) {
+          // Не закрываем модальное окно ничьи при клике вне - выбор обязателен
+        }
+      });
+    }
+  }
 
-    this.drawOfferModal.addEventListener("click", (e) => {
-      if (e.target === this.drawOfferModal) {
-        // Не закрываем модальное окно ничьи при клике вне - выбор обязателен
+  // ★★★ ИЗМЕНЕНИЕ 5: НОВАЯ ФУНКЦИЯ ДЛЯ ЗАПУСКА НОВОЙ ИГРЫ ★★★
+  startNewGame() {
+    console.log("Starting new game...");
+    this.hideGameOverModal();
+    this.showNicknameModal();
+  }
+
+  showNicknameModal() {
+    if (this.nicknameModal) {
+      this.nicknameModal.style.display = "flex";
+      if (this.nicknameInput) {
+        this.nicknameInput.value = this.username; // Предзаполняем текущим ником
+        this.nicknameInput.focus();
       }
-    });
+    }
+  }
+
+  hideNicknameModal() {
+    if (this.nicknameModal) {
+      this.nicknameModal.style.display = "none";
+    }
+  }
+
+  confirmNickname() {
+    const nickname = this.nicknameInput ? this.nicknameInput.value.trim() : '';
+    
+    if (nickname && nickname.length >= 2) {
+      this.username = nickname;
+      this.hideNicknameModal();
+      this.resetGame();
+      this.updateStatus(`Новая игра началась! Ваш ник: ${this.username}`);
+    } else {
+      alert('Пожалуйста, введите никнейм (минимум 2 символа)');
+    }
   }
 
   setupRestartModal() {
@@ -320,30 +350,6 @@ class CheckersGame {
         }
       });
     }
-  }
-
-  showNewGameModal() {
-    this.newGameModal.style.display = "flex";
-  }
-
-  hideNewGameModal() {
-    this.newGameModal.style.display = "none";
-  }
-
-  confirmNewGameAction() {
-    console.log("Confirming new game...");
-    
-    // Отправляем запрос на новую игру на сервер
-    if (this.ws && this.ws.readyState === WebSocket.OPEN) {
-      this.ws.send(JSON.stringify({
-        type: 'newGame'
-      }));
-      this.updateStatus("Запрос на новую игру отправлен противнику...");
-    } else {
-      this.updateStatus("Нет соединения с сервером");
-    }
-    
-    this.hideNewGameModal();
   }
 
   showRestartModal(opponentName) {
@@ -396,16 +402,20 @@ class CheckersGame {
   }
 
   showDrawOfferModal(opponentName) {
-    this.drawOfferText.textContent = `${opponentName} предлагает ничью`;
-    this.drawOfferModal.style.display = "flex";
+    if (this.drawOfferModal && this.drawOfferText) {
+      this.drawOfferText.textContent = `${opponentName} предлагает ничью`;
+      this.drawOfferModal.style.display = "flex";
 
-    // Блокируем игровое поле пока не будет выбран ответ
-    this.board.style.pointerEvents = "none";
+      // Блокируем игровое поле пока не будет выбран ответ
+      this.board.style.pointerEvents = "none";
+    }
   }
 
   hideDrawOfferModal() {
-    this.drawOfferModal.style.display = "none";
-    this.board.style.pointerEvents = "auto";
+    if (this.drawOfferModal) {
+      this.drawOfferModal.style.display = "none";
+      this.board.style.pointerEvents = "auto";
+    }
   }
 
   acceptDrawOffer() {
@@ -805,11 +815,8 @@ class CheckersGame {
         break;
 
       case "gameOver":
-        if (message.result === "draw") {
-          this.handleGameOver({ winner: null, result: "draw" });
-        } else {
-          this.handleGameOver(message);
-        }
+        // ★★★ ИЗМЕНЕНИЕ 6: ОБНОВЛЕННАЯ ОБРАБОТКА КОНЦА ИГРЫ С РЕЗУЛЬТАТОМ ★★★
+        this.handleGameOver(message);
         break;
 
       case "gameRestartRequest":
@@ -929,19 +936,31 @@ class CheckersGame {
     });
   }
 
+  // ★★★ ИЗМЕНЕНИЕ 7: ОБНОВЛЕННАЯ ФУНКЦИЯ ОКОНЧАНИЯ ИГРЫ С РЕЗУЛЬТАТОМ ★★★
   handleGameOver(result) {
     let winnerText;
-    if (result.result === "draw") {
+    let gameOverMessage;
+    
+    if (result.winner === 'draw') {
       winnerText = "🤝 Ничья!";
+      gameOverMessage = "Ничья!";
     } else if (result.winner) {
-      winnerText = `🏆 Победитель: ${
-        result.winner === "white" ? "белые" : "чёрные"
-      }`;
+      const winnerName = result.winner === this.playerColor ? this.username : this.opponentName;
+      const colorText = result.winner === "white" ? "белые" : "чёрные";
+      winnerText = `🏆 Победил ${winnerName} (${colorText})`;
+      gameOverMessage = `Победил ${winnerName} (${colorText})`;
     } else {
       winnerText = "🤝 Ничья!";
+      gameOverMessage = "Ничья!";
     }
 
     this.updateStatus(`Игра окончена! ${winnerText}`);
+    
+    // ★★★ ОБНОВЛЯЕМ СООБЩЕНИЕ В МОДАЛЬНОМ ОКНЕ ★★★
+    const gameOverMessageElement = document.getElementById('gameOverMessage');
+    if (gameOverMessageElement) {
+      gameOverMessageElement.textContent = gameOverMessage;
+    }
 
     // Удаляем стрелку при окончании игры
     this.removeMoveArrow();
@@ -949,8 +968,22 @@ class CheckersGame {
     // Сбрасываем множественное взятие
     this.continueCapturePiece = null;
 
-    // Показываем блок рестарта
-    this.showRestartContainer();
+    // Показываем финальное модальное окно
+    this.showGameOverModal();
+  }
+
+  showGameOverModal() {
+    const modal = document.getElementById('gameOverModal');
+    if (modal) {
+      modal.style.display = 'flex';
+    }
+  }
+
+  hideGameOverModal() {
+    const modal = document.getElementById('gameOverModal');
+    if (modal) {
+      modal.style.display = 'none';
+    }
   }
 
   showRestartContainer() {
@@ -1007,10 +1040,23 @@ class CheckersGame {
   }
 }
 
+// ★★★ ИЗМЕНЕНИЕ 8: ГЛОБАЛЬНЫЕ ФУНКЦИИ ДЛЯ HTML ★★★
+function confirmNickname() {
+  if (window.checkersGame) {
+    window.checkersGame.confirmNickname();
+  }
+}
+
+function startNewGame() {
+  if (window.checkersGame) {
+    window.checkersGame.startNewGame();
+  }
+}
+
 // Запускаем игру когда страница полностью загружена
 document.addEventListener("DOMContentLoaded", () => {
   console.log("🚀 Starting Checkers Game...");
-  new CheckersGame();
+  window.checkersGame = new CheckersGame();
 });
 
 // Добавляем обработчик для переподключения при видимости страницы
