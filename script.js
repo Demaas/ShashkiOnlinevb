@@ -1,4 +1,4 @@
-// script.js - ИСПРАВЛЕННАЯ ВЕРСИЯ с правильным WebSocket URL
+// script.js - ИСПРАВЛЕННАЯ ВЕРСИЯ с правильными ID
 class CheckersGame {
   constructor() {
     // ★★★ СНАЧАЛА СОХРАНЯЕМ СЕБЯ В ГЛОБАЛЬНУЮ ПЕРЕМЕННУЮ ★★★
@@ -14,8 +14,8 @@ class CheckersGame {
     this.usernameInput = document.getElementById("usernameInput");
     this.startGameButton = document.getElementById("startGameButton");
 
-    // ★★★ ИСПРАВЛЕНИЕ: ПРАВИЛЬНЫЕ ССЫЛКИ НА ЭЛЕМЕНТЫ ★★★
-    this.drawOfferButton = document.getElementById("drawOfferButton");
+    // ★★★ ИСПРАВЛЕНИЕ: ПРАВИЛЬНЫЕ ID ДЛЯ КНОПКИ НИЧЬИ ★★★
+    this.drawOfferButton = document.getElementById("drawOfferBtn"); // Изменил на drawOfferBtn!
     this.drawOfferModal = document.getElementById("drawOfferModal");
     this.drawOfferText = document.getElementById("drawOfferText");
 
@@ -241,16 +241,24 @@ class CheckersGame {
   }
 
   setupGameControls() {
-    // ★★★ ИСПРАВЛЕНИЕ: ПРАВИЛЬНАЯ ПРИВЯЗКА КНОПКИ "НИЧЬЯ?" ★★★
-    const drawOfferButton = document.getElementById("drawOfferButton");
+    // ★★★ ИСПРАВЛЕНИЕ: ПРАВИЛЬНАЯ ПРИВЯЗКА КНОПКИ "НИЧЬЯ?" С ПРАВИЛЬНЫМ ID ★★★
+    const drawOfferButton = document.getElementById("drawOfferBtn"); // Изменил на drawOfferBtn!
     
     if (drawOfferButton) {
       drawOfferButton.addEventListener("click", () => {
         this.offerDraw();
       });
-      console.log("✅ Draw offer button setup successfully");
+      console.log("✅ Draw offer button setup successfully with ID: drawOfferBtn");
     } else {
-      console.warn("⚠️ drawOfferButton not found");
+      console.warn("⚠️ drawOfferButton not found with ID: drawOfferBtn");
+      // Попробуем найти кнопку по другому ID или классу
+      const alternativeButton = document.querySelector("#drawOfferButton, .draw-offer-btn, .control-button");
+      if (alternativeButton) {
+        console.log("✅ Found alternative draw button:", alternativeButton);
+        alternativeButton.addEventListener("click", () => {
+          this.offerDraw();
+        });
+      }
     }
   }
 
@@ -411,10 +419,16 @@ class CheckersGame {
   }
 
   handleCellClick(row, col) {
-    console.log("Cell clicked:", row, col);
+    console.log("Cell clicked:", row, col, "Player color:", this.playerColor, "Current player:", this.currentPlayer);
 
-    if (!this.playerColor) {
-      this.updateStatus("Ожидание подключения...");
+    // ★★★ ИСПРАВЛЕНИЕ: ПРАВИЛЬНАЯ ПРОВЕРКА ПОДКЛЮЧЕНИЯ ★★★
+    if (!this.ws || this.ws.readyState !== WebSocket.OPEN) {
+      this.updateStatus("Нет соединения с сервером");
+      return;
+    }
+
+    if (this.playerColor === null) {
+      this.updateStatus("Ожидание назначения цвета...");
       return;
     }
 
