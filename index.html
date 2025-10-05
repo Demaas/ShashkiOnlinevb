@@ -58,6 +58,14 @@
       <div class="modal-content">
         <h3>Игра Завершена!</h3>
         <p id="gameOverMessage"></p>
+        <div class="gif-container">
+          <img
+            src="https://media1.tenor.com/m/w_PLu8IF2Y8AAAAd/sml-joseph.gif"
+            alt="Celebration"
+            class="celebration-gif"
+            style="max-width: 200px; border-radius: 10px; margin: 10px 0;"
+          />
+        </div>
         <div class="modal-buttons">
           <button onclick="startNewGame()" style="background-color: #2196F3;">Новая игра</button>
         </div>
@@ -213,8 +221,16 @@
       }
 
       function startNewGame() {
+        console.log("Starting new game...");
         hideGameOverModal();
+        
+        // Показываем окно для ввода ника
         showNicknameModal();
+        
+        // Сбрасываем игровое состояние
+        if (window.resetGame) {
+          window.resetGame();
+        }
       }
 
       // Функции для предложения ничьи
@@ -223,6 +239,9 @@
           window.ws.send(JSON.stringify({
             type: 'drawOffer'
           }));
+          if (window.updateStatus) {
+            window.updateStatus('Предложение ничьи отправлено');
+          }
         }
       }
 
@@ -248,6 +267,9 @@
             accept: false
           }));
         }
+        if (window.updateStatus) {
+          window.updateStatus('Предложение ничьи отклонено');
+        }
       }
 
       function showDrawOfferModal(opponentNickname) {
@@ -271,7 +293,11 @@
         const modal = document.getElementById('nicknameModal');
         if (modal) {
           modal.style.display = 'flex';
-          document.getElementById('nicknameInput').focus();
+          const nicknameInput = document.getElementById('nicknameInput');
+          if (nicknameInput) {
+            nicknameInput.value = window.playerNickname || '';
+            nicknameInput.focus();
+          }
         }
       }
 
@@ -309,6 +335,10 @@
               type: 'setNickname',
               nickname: nickname
             }));
+          }
+
+          if (window.updateStatus) {
+            window.updateStatus('Новая игра начинается...');
           }
         } else {
           alert('Пожалуйста, введите никнейм');
