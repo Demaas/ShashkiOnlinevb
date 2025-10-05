@@ -115,6 +115,10 @@ class CheckersGameServer {
         `Player ${player.username} (${player.color}) disconnected. Remaining players: ${this.players.length}`
       );
 
+      // Отправляем обновленную информацию об игроках
+      this.sendPlayersInfo();
+
+      // Завершаем игру только если игра шла и игрок вышел во время игры
       if (this.gameState === "playing") {
         this.gameState = "finished";
         this.winner = this.players[0] ? this.players[0].color : null;
@@ -736,6 +740,38 @@ class CheckersGameServer {
   }
 }
 
+// Функция для обработки запроса новой игры
+function handleNewGame(ws, username) {
+  console.log("Handling new game request");
+  
+  // Удаляем игрока из текущей игры
+  game.removePlayer(ws);
+  
+  // Если игра пустая или остался 1 игрок, создаем новую игру
+  if (game.players.length === 0 || game.players.length === 1) {
+    console.log("Creating new game instance");
+    game = new CheckersGameServer();
+  }
+  
+  // Добавляем игрока в новую игру
+  const playerColor = game.addPlayer(ws, username);
+  
+  if (playerColor) {
+    console.log(`Player ${username} rejoined as ${playerColor} in new game`);
+    
+    // Отправляем обновленное состояние
+    ws.send(JSON.stringify({
+      type: "gameState",
+      data: game.getGameState()
+    }));
+  } else {
+    ws.send(JSON.stringify({
+      type: "error",
+      message: "Не удалось начать новую игру"
+    }));
+  }
+}
+
 const game = new CheckersGameServer();
 
 wss.on("connection", (ws, req) => {
@@ -787,6 +823,11 @@ wss.on("connection", (ws, req) => {
 
         case "drawResponse":
           game.handleDrawResponse(ws, data.accepted);
+          break;
+
+        case "newGame":
+          console.log(`Player ${playerUsername} requested new game`);
+          handleNewGame(ws, playerUsername);
           break;
 
         case "ping":
