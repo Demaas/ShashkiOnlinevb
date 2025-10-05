@@ -869,8 +869,27 @@ function declineRestart() {
   }
 }
 
-// Запускаем игру когда страница полностью загружена
-document.addEventListener("DOMContentLoaded", () => {
-  console.log("🚀 Starting Checkers Game...");
-  window.checkersGame = new CheckersGame();
-});
+// ★★★ ИСПРАВЛЕННОЕ СОЗДАНИЕ ЭКЗЕМПЛЯРА ИГРЫ ★★★
+console.log("📝 script.js loaded, waiting for DOM...");
+
+function initGame() {
+  console.log("🎮 Initializing Checkers Game...");
+  try {
+    window.checkersGame = new CheckersGame();
+    console.log("✅ CheckersGame initialized successfully");
+    console.log("checkersGame object:", window.checkersGame);
+  } catch (error) {
+    console.error("❌ Error initializing CheckersGame:", error);
+  }
+}
+
+// Несколько способов инициализации для надежности
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', initGame);
+} else {
+  initGame();
+}
+
+// Дублирующая инициализация на случай если DOM уже загружен
+setTimeout(initGame, 1000);
+
