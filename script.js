@@ -479,7 +479,7 @@ class CheckersGame {
 
   setupWebSocket() {
     const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
-    const wsUrl = `${protocol}//${window.location.host}`;
+    const wsUrl = `${protocol}//${window.location.hostname}${window.location.port ? ':' + window.location.port : ''}`;
 
     console.log("Connecting to WebSocket:", wsUrl);
 
@@ -953,3 +953,4 @@ if (document.readyState === 'loading') {
 } else {
   initGame();
 }
+
