@@ -40,6 +40,127 @@ class CheckersGame {
     this.updateStatus("Введите ваш ник для начала игры...");
   }
 
+  createBoard() {
+    const board = document.getElementById('board');
+    if (!board) return;
+    
+    board.innerHTML = '';
+    
+    for (let row = 0; row < 8; row++) {
+        for (let col = 0; col < 8; col++) {
+            const cell = document.createElement('div');
+            cell.className = `cell ${(row + col) % 2 === 0 ? 'white' : 'black'}`;
+            cell.dataset.row = row;
+            cell.dataset.col = col;
+            
+            // Добавляем обработчик клика только на черные клетки
+            if ((row + col) % 2 !== 0) {
+                cell.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    this.handleCellClick(row, col);
+                });
+            }
+            
+            board.appendChild(cell);
+        }
+    }
+    
+    // После создания доски - расставляем шашки
+    this.initializePieces();
+}
+
+initializePieces() {
+    console.log("Initializing pieces on board...");
+    
+    // Сначала очищаем все существующие шашки
+    this.clearBoard();
+    
+    // ★ Белые шашки (нижняя часть доски - ряды 5,6,7) ★
+    this.placePiece(5, 0, 'white');
+    this.placePiece(5, 2, 'white');
+    this.placePiece(5, 4, 'white');
+    this.placePiece(5, 6, 'white');
+    this.placePiece(6, 1, 'white');
+    this.placePiece(6, 3, 'white');
+    this.placePiece(6, 5, 'white');
+    this.placePiece(6, 7, 'white');
+    this.placePiece(7, 0, 'white');
+    this.placePiece(7, 2, 'white');
+    this.placePiece(7, 4, 'white');
+    this.placePiece(7, 6, 'white');
+
+    // ★ Чёрные шашки (верхняя часть доски - ряды 0,1,2) ★
+    this.placePiece(0, 1, 'black');
+    this.placePiece(0, 3, 'black');
+    this.placePiece(0, 5, 'black');
+    this.placePiece(0, 7, 'black');
+    this.placePiece(1, 0, 'black');
+    this.placePiece(1, 2, 'black');
+    this.placePiece(1, 4, 'black');
+    this.placePiece(1, 6, 'black');
+    this.placePiece(2, 1, 'black');
+    this.placePiece(2, 3, 'black');
+    this.placePiece(2, 5, 'black');
+    this.placePiece(2, 7, 'black');
+    
+    console.log("Pieces initialized successfully");
+}
+
+placePiece(row, col, color, isKing = false) {
+    const cell = this.getCell(row, col);
+    if (!cell) {
+        console.warn(`Cell not found at row:${row}, col:${col}`);
+        return;
+    }
+
+    // Очищаем клетку перед размещением шашки
+    const existingPiece = cell.querySelector('.piece');
+    if (existingPiece) {
+        existingPiece.remove();
+    }
+
+    const piece = document.createElement('div');
+    piece.className = `piece ${color} ${isKing ? 'king' : ''}`;
+    piece.dataset.color = color;
+    piece.dataset.king = isKing;
+
+    // Создаем изображение шашки
+    const img = document.createElement('img');
+    let imageSrc;
+
+    if (color === 'white') {
+        imageSrc = isKing ? 'shabedam.png' : 'shabe.png';
+    } else {
+        imageSrc = isKing ? 'shachdam.png' : 'shach.png';
+    }
+
+    img.src = imageSrc;
+    img.alt = isKing ? `${color} дамка` : `${color} шашка`;
+    img.style.width = '80%';
+    img.style.height = '80%';
+    
+    img.onerror = () => {
+        console.error(`Failed to load image: ${imageSrc}`);
+        // Запасной вариант - цветной круг
+        piece.style.backgroundColor = color;
+        piece.style.border = '2px solid #000';
+        piece.style.borderRadius = '50%';
+        piece.style.width = '40px';
+        piece.style.height = '40px';
+        piece.style.display = 'flex';
+        piece.style.alignItems = 'center';
+        piece.style.justifyContent = 'center';
+        if (isKing) {
+            piece.innerHTML = '♔';
+            piece.style.color = 'gold';
+            piece.style.fontWeight = 'bold';
+        }
+    };
+
+    piece.appendChild(img);
+    cell.appendChild(piece);
+}
+
   setupLogin() {
     // Показываем модальное окно при загрузке
     this.loginModal.style.display = "flex";
@@ -754,4 +875,5 @@ document.addEventListener("visibilitychange", () => {
     console.log("Page became visible, checking connection...");
   }
 });
+
 
