@@ -267,25 +267,15 @@ class CheckersGame {
       });
     }
 
-    if (this.acceptDraw) {
-      this.acceptDraw.addEventListener("click", () => {
+    // ★★★ ИСПРАВЛЕНИЕ: ДОБАВЛЯЕМ ОБРАБОТЧИКИ ДЛЯ КНОПОК НИЧЬИ ★★★
+    document.addEventListener('click', (e) => {
+      if (e.target && e.target.onclick && e.target.onclick.toString().includes('acceptDrawOffer')) {
         this.acceptDrawOffer();
-      });
-    }
-
-    if (this.rejectDraw) {
-      this.rejectDraw.addEventListener("click", () => {
+      }
+      if (e.target && e.target.onclick && e.target.onclick.toString().includes('rejectDrawOffer')) {
         this.rejectDrawOffer();
-      });
-    }
-
-    // ★★★ ИЗМЕНЕНИЕ 4: ОБРАБОТЧИК ДЛЯ КНОПКИ "НОВАЯ ИГРА" В ФИНАЛЬНОМ ОКНЕ ★★★
-    const newGameBtn = document.querySelector('#gameOverModal button');
-    if (newGameBtn) {
-      newGameBtn.addEventListener('click', () => {
-        this.startNewGame();
-      });
-    }
+      }
+    });
 
     // Закрытие модальных окон при клике вне их
     if (this.drawOfferModal) {
@@ -334,15 +324,17 @@ class CheckersGame {
   }
 
   setupRestartModal() {
-    if (this.restartModal) {
-      this.confirmRestart.addEventListener("click", () => {
+    // ★★★ ИСПРАВЛЕНИЕ: ДОБАВЛЯЕМ ОБРАБОТЧИКИ ДЛЯ КНОПОК ПЕРЕЗАПУСКА ★★★
+    document.addEventListener('click', (e) => {
+      if (e.target && e.target.onclick && e.target.onclick.toString().includes('confirmRestart')) {
         this.confirmRestartAction();
-      });
-
-      this.declineRestart.addEventListener("click", () => {
+      }
+      if (e.target && e.target.onclick && e.target.onclick.toString().includes('declineRestart')) {
         this.declineRestartAction();
-      });
+      }
+    });
 
+    if (this.restartModal) {
       // Закрытие при клике вне окна
       this.restartModal.addEventListener("click", (e) => {
         if (e.target === this.restartModal) {
@@ -433,6 +425,7 @@ class CheckersGame {
     );
 
     this.hideDrawOfferModal();
+    this.updateStatus("Вы приняли предложение ничьи");
   }
 
   rejectDrawOffer() {
@@ -806,17 +799,19 @@ class CheckersGame {
         this.handlePlayersInfo(message.data);
         break;
 
-      case "drawOfferReceived":
-        this.showDrawOfferModal(message.from);
+      case "drawOffer":
+        this.showDrawOfferModal(message.nickname || message.from);
         break;
 
       case "drawRejected":
-        this.updateStatus(`${message.by} отклонил предложение ничьи`);
+        this.updateStatus(`${message.by || 'Противник'} отклонил предложение ничьи`);
         break;
 
       case "gameOver":
-        // ★★★ ИЗМЕНЕНИЕ 6: ОБНОВЛЕННАЯ ОБРАБОТКА КОНЦА ИГРЫ С РЕЗУЛЬТАТОМ ★★★
-        this.handleGameOver(message);
+        // ★★★ ИЗМЕНЕНИЕ 6: ОБНОВЛЕННАЯ ОБРАБОТКА КОНЦА ИГРЫ С ЗАДЕРЖКОЙ ★★★
+        setTimeout(() => {
+          this.handleGameOver(message);
+        }, 2000); // Задержка 2 секунды
         break;
 
       case "gameRestartRequest":
@@ -1050,6 +1045,31 @@ function confirmNickname() {
 function startNewGame() {
   if (window.checkersGame) {
     window.checkersGame.startNewGame();
+  }
+}
+
+// ★★★ ДОБАВЛЯЕМ ГЛОБАЛЬНЫЕ ФУНКЦИИ ДЛЯ НИЧЬИ ★★★
+function acceptDrawOffer() {
+  if (window.checkersGame) {
+    window.checkersGame.acceptDrawOffer();
+  }
+}
+
+function rejectDrawOffer() {
+  if (window.checkersGame) {
+    window.checkersGame.rejectDrawOffer();
+  }
+}
+
+function confirmRestart() {
+  if (window.checkersGame) {
+    window.checkersGame.confirmRestartAction();
+  }
+}
+
+function declineRestart() {
+  if (window.checkersGame) {
+    window.checkersGame.declineRestartAction();
   }
 }
 
