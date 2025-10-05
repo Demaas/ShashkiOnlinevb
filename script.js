@@ -811,7 +811,7 @@ class CheckersGame {
         // ★★★ ИЗМЕНЕНИЕ 6: ОБНОВЛЕННАЯ ОБРАБОТКА КОНЦА ИГРЫ С ЗАДЕРЖКОЙ ★★★
         setTimeout(() => {
           this.handleGameOver(message);
-        }, 2000); // Задержка 2 секунды
+        }, 1000); // Задержка 1 секунда
         break;
 
       case "gameRestartRequest":
@@ -1086,3 +1086,4 @@ document.addEventListener("visibilitychange", () => {
     console.log("Page became visible, checking connection...");
   }
 });
+
