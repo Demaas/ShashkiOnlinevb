@@ -25,7 +25,8 @@
     <!-- Модальное окно для никнейма -->
     <div id="nicknameModal" class="modal" style="display: none">
       <div class="modal-content">
-        <h2>Введите никнейм</h2>
+        <h2>Новая игра</h2>
+        <p>Введите ваш никнейм:</p>
         <input
           type="text"
           id="nicknameInput"
@@ -33,8 +34,8 @@
           maxlength="15"
         />
         <div class="modal-buttons">
-          <button id="confirmNickname" class="modal-btn confirm-btn">
-            Подтвердить
+          <button onclick="confirmNickname()" class="modal-btn confirm-btn" style="background-color: #2196F3;">
+            Начать игру
           </button>
         </div>
       </div>
@@ -52,22 +53,33 @@
       </div>
     </div>
 
+    <!-- Модальное окно завершения игры -->
+    <div id="gameOverModal" class="modal" style="display: none">
+      <div class="modal-content">
+        <h3>Игра завершена</h3>
+        <p id="gameOverMessage"></p>
+        <div class="modal-buttons">
+          <button onclick="startNewGame()" class="modal-btn confirm-btn" style="background-color: #2196F3;">Новая игра</button>
+        </div>
+      </div>
+    </div>
+
     <div class="container">
       <h1>
         <img src="shasemi.png" alt="Шашки" class="title-icon" /> Шашки Онлайн
       </h1>
       
-      <!-- Информация об игроках -->
+      <!-- Обновленная информация об игроках с фото и индикатором хода -->
       <div class="players-info">
-        <div class="player-info">
-          <span>Вы: </span>
-          <span id="playerNickname" class="nickname">-</span>
-          <span id="playerColor" class="color-badge"></span>
+        <div class="player-info" id="whitePlayer">
+          <img src="shabe.png" alt="Белые" class="player-icon">
+          <span class="player-nickname" id="whiteNickname">Ожидание игрока...</span>
+          <span class="turn-indicator">⬅️ Ход</span>
         </div>
-        <div class="player-info">
-          <span>Противник: </span>
-          <span id="opponentNickname" class="nickname">Ожидание...</span>
-          <span id="opponentColor" class="color-badge"></span>
+        <div class="player-info" id="blackPlayer">
+          <img src="shach.png" alt="Черные" class="player-icon">
+          <span class="player-nickname" id="blackNickname">Ожидание игрока...</span>
+          <span class="turn-indicator">⬅️ Ход</span>
         </div>
       </div>
 
@@ -111,7 +123,7 @@
           </div>
         </div>
 
-        <!-- Блок рестарта игры -->
+        <!-- Блок рестарта игры (скрываем, т.к. используем модальное окно) -->
         <div
           id="restartContainer"
           class="restart-container"
@@ -171,6 +183,53 @@
         hideRestartModal();
       }
 
+      // Функции для обновления информации об игроках
+      function updatePlayersInfo() {
+        const whitePlayer = document.getElementById('whitePlayer');
+        const blackPlayer = document.getElementById('blackPlayer');
+        
+        if (!whitePlayer || !blackPlayer) return;
+        
+        // Сбрасываем индикаторы
+        whitePlayer.classList.remove('active');
+        blackPlayer.classList.remove('active');
+        
+        // Активируем текущего игрока
+        if (window.currentPlayer === 'white') {
+          whitePlayer.classList.add('active');
+        } else {
+          blackPlayer.classList.add('active');
+        }
+      }
+
+      function setPlayerNickname(color, nickname) {
+        const element = document.getElementById(color + 'Nickname');
+        if (element) {
+          element.textContent = nickname || 'Ожидание игрока...';
+        }
+      }
+
+      function showGameOverModal(message) {
+        const modal = document.getElementById('gameOverModal');
+        const messageElement = document.getElementById('gameOverMessage');
+        if (modal && messageElement) {
+          messageElement.textContent = message;
+          modal.style.display = 'block';
+        }
+      }
+
+      function hideGameOverModal() {
+        const modal = document.getElementById('gameOverModal');
+        if (modal) {
+          modal.style.display = 'none';
+        }
+      }
+
+      function startNewGame() {
+        hideGameOverModal();
+        showNicknameModal();
+      }
+
       // Глобальные функции для модальных окон
       function showNicknameModal() {
         const modal = document.getElementById('nicknameModal');
@@ -195,10 +254,12 @@
           if (window.playerNickname !== undefined) {
             window.playerNickname = nickname;
           }
-          const playerNicknameElement = document.getElementById('playerNickname');
-          if (playerNicknameElement) {
-            playerNicknameElement.textContent = nickname;
+          
+          // Устанавливаем никнейм для соответствующего игрока
+          if (window.playerColor) {
+            setPlayerNickname(window.playerColor, nickname);
           }
+          
           hideNicknameModal();
           
           // Инициализация игры после установки ника
@@ -221,12 +282,7 @@
       // Инициализация при загрузке
       document.addEventListener('DOMContentLoaded', function() {
         // Обработчики для модального окна никнейма
-        const confirmNicknameBtn = document.getElementById('confirmNickname');
         const nicknameInput = document.getElementById('nicknameInput');
-        
-        if (confirmNicknameBtn) {
-          confirmNicknameBtn.addEventListener('click', confirmNickname);
-        }
         
         if (nicknameInput) {
           nicknameInput.addEventListener('keypress', function(e) {
@@ -335,10 +391,6 @@
               // Устанавливаем никнейм
               if (window.playerNickname !== undefined) {
                 window.playerNickname = username;
-              }
-              const playerNicknameElement = document.getElementById('playerNickname');
-              if (playerNicknameElement) {
-                playerNicknameElement.textContent = username;
               }
               
               // Инициализируем игру
