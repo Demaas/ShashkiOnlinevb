@@ -107,6 +107,25 @@ class CheckersGameServer {
         }
     }
 
+    // ДОБАВЛЕНА ФУНКЦИЯ ДЛЯ УСТАНОВКИ НИКНЕЙМА
+    setPlayerNickname(ws, nickname) {
+        const player = this.players.find(p => p.ws === ws);
+        if (player) {
+            player.nickname = nickname;
+            console.log(`Player ${player.color} set nickname: ${nickname}`);
+            
+            // Уведомляем другого игрока о никнейме оппонента
+            this.players.forEach(p => {
+                if (p.ws !== ws) {
+                    p.ws.send(JSON.stringify({
+                        type: 'opponentNickname',
+                        nickname: nickname
+                    }));
+                }
+            });
+        }
+    }
+
     handleNewGame(ws) {
         const player = this.players.find(p => p.ws === ws);
         if (!player) return;
@@ -191,6 +210,47 @@ class CheckersGameServer {
         
         console.log("Game reset successfully");
         this.broadcastGameState();
+    }
+
+    // ДОБАВЛЕНЫ ФУНКЦИИ ДЛЯ ОБРАБОТКИ НИЧЬИ
+    handleDrawOffer(ws) {
+        const player = this.players.find(p => p.ws === ws);
+        if (!player) return;
+
+        console.log(`Draw offered by ${player.username} (${player.color})`);
+
+        // Отправляем предложение ничьи второму игроку
+        this.players.forEach(p => {
+            if (p.ws !== ws) {
+                p.ws.send(JSON.stringify({
+                    type: 'drawOffer',
+                    from: player.color,
+                    nickname: player.username || `Player ${player.color}`
+                }));
+            }
+        });
+    }
+
+    handleDrawResponse(ws, accept) {
+        const player = this.players.find(p => p.ws === ws);
+        if (!player) return;
+
+        console.log(`Draw response from ${player.username} (${player.color}): ${accept}`);
+
+        if (accept) {
+            // Если оба согласны - завершаем игру ничьей
+            this.endGame('draw');
+        } else {
+            // Уведомляем другого игрока об отказе
+            this.players.forEach(p => {
+                if (p.ws !== ws) {
+                    p.ws.send(JSON.stringify({
+                        type: 'drawRejected',
+                        from: player.color
+                    }));
+                }
+            });
+        }
     }
 
     handleMove(moveData, ws) {
@@ -684,48 +744,15 @@ class CheckersGameServer {
         const winnerPlayer = this.players.find(p => p.color === winner);
         const winnerUsername = winnerPlayer ? winnerPlayer.username : null;
         
-        this.broadcast(JSON.stringify({
-            type: 'gameOver',
-            winner: winner,
-            winnerUsername: winnerUsername,
-            result: winner ? 'win' : 'draw'
-        }));
-    }
-
-    handleDrawOffer(ws, fromUsername) {
-        const player = this.players.find(p => p.ws === ws);
-        if (!player) return;
-
-        this.drawOffer = { from: player.color, username: fromUsername };
-        
-        // Отправляем предложение ничьи другому игроку
-        const opponent = this.players.find(p => p.color !== player.color);
-        if (opponent) {
-            opponent.ws.send(JSON.stringify({
-                type: 'drawOfferReceived',
-                from: fromUsername
+        // ДОБАВЛЕНА ЗАДЕРЖКА 2 СЕКУНДЫ ПЕРЕД ОТПРАВКОЙ СООБЩЕНИЯ
+        setTimeout(() => {
+            this.broadcast(JSON.stringify({
+                type: 'gameOver',
+                winner: winner,
+                winnerUsername: winnerUsername,
+                result: winner ? 'win' : 'draw'
             }));
-        }
-    }
-
-    handleDrawResponse(ws, accepted) {
-        const player = this.players.find(p => p.ws === ws);
-        if (!player || !this.drawOffer) return;
-
-        if (accepted) {
-            // Оба игрока согласились на ничью
-            this.endGame(null);
-        } else {
-            // Отказ от ничьи
-            const opponent = this.players.find(p => p.color !== player.color);
-            if (opponent) {
-                opponent.ws.send(JSON.stringify({
-                    type: 'drawRejected',
-                    by: player.username
-                }));
-            }
-            this.drawOffer = null;
-        }
+        }, 2000);
     }
 
     broadcastGameState() {
@@ -747,6 +774,15 @@ class CheckersGameServer {
         };
         
         this.broadcast(JSON.stringify(playersInfo));
+    }
+
+    broadcastGameOver() {
+        const gameOver = {
+            type: 'gameOver',
+            winner: this.winner
+        };
+        
+        this.broadcast(JSON.stringify(gameOver));
     }
 
     broadcast(message) {
@@ -786,6 +822,10 @@ wss.on('connection', (ws, req) => {
                     game.addPlayer(ws, data.username);
                     break;
                     
+                case 'setNickname': // ДОБАВЛЕН ОБРАБОТЧИК ДЛЯ НИКНЕЙМА
+                    game.setPlayerNickname(ws, data.nickname);
+                    break;
+                    
                 case 'move':
                     game.handleMove(data.data, ws);
                     break;
@@ -800,12 +840,12 @@ wss.on('connection', (ws, req) => {
                     game.handleRestartConfirm(ws);
                     break;
                     
-                case 'drawOffer':
-                    game.handleDrawOffer(ws, data.from);
+                case 'drawOffer': // ДОБАВЛЕН ОБРАБОТЧИК ДЛЯ ПРЕДЛОЖЕНИЯ НИЧЬИ
+                    game.handleDrawOffer(ws);
                     break;
                     
-                case 'drawResponse':
-                    game.handleDrawResponse(ws, data.accepted);
+                case 'drawResponse': // ДОБАВЛЕН ОБРАБОТЧИК ДЛЯ ОТВЕТА НА НИЧЬЮ
+                    game.handleDrawResponse(ws, data.accept);
                     break;
                     
                 case 'ping':
