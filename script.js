@@ -1,4 +1,4 @@
-// script.js - ИСПРАВЛЕННАЯ ВЕРСИЯ с работающими кнопками
+// script.js - ОБНОВЛЕННАЯ ВЕРСИЯ с исправлениями из чата
 class CheckersGame {
   constructor() {
     // ★★★ СНАЧАЛА СОХРАНЯЕМ СЕБЯ В ГЛОБАЛЬНУЮ ПЕРЕМЕННУЮ ★★★
@@ -974,5 +974,3 @@ if (document.readyState === 'loading') {
 } else {
   initGame();
 }
-
-
