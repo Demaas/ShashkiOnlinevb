@@ -1,4 +1,4 @@
-// script.js - ОБНОВЛЕННАЯ ВЕРСИЯ с исправлениями для кнопок, финального окна и фона модальных окон
+// script.js - ИСПРАВЛЕННАЯ ВЕРСИЯ с работающими кнопками "Новая игра" и "Ничья?"
 class CheckersGame {
   constructor() {
     this.board = document.getElementById("board");
@@ -287,40 +287,22 @@ class CheckersGame {
     }
   }
 
-  // ★★★ ИЗМЕНЕНИЕ 5: НОВАЯ ФУНКЦИЯ ДЛЯ ЗАПУСКА НОВОЙ ИГРЫ ★★★
+  // ★★★ ИСПРАВЛЕНИЕ: ОБНОВЛЕННАЯ ФУНКЦИЯ ДЛЯ ЗАПУСКА НОВОЙ ИГРЫ ★★★
   startNewGame() {
     console.log("Starting new game...");
     this.hideGameOverModal();
-    this.showNicknameModal();
-  }
-
-  showNicknameModal() {
-    if (this.nicknameModal) {
-      this.nicknameModal.style.display = "flex";
-      if (this.nicknameInput) {
-        this.nicknameInput.value = this.username; // Предзаполняем текущим ником
-        this.nicknameInput.focus();
-      }
-    }
-  }
-
-  hideNicknameModal() {
-    if (this.nicknameModal) {
-      this.nicknameModal.style.display = "none";
-    }
-  }
-
-  confirmNickname() {
-    const nickname = this.nicknameInput ? this.nicknameInput.value.trim() : '';
     
-    if (nickname && nickname.length >= 2) {
-      this.username = nickname;
-      this.hideNicknameModal();
-      this.resetGame();
-      this.updateStatus(`Новая игра началась! Ваш ник: ${this.username}`);
-    } else {
-      alert('Пожалуйста, введите никнейм (минимум 2 символа)');
+    // ★★★ ИСПРАВЛЕНИЕ: ПРЯМОЙ СБРОС ИГРЫ БЕЗ ОКНА НИКА ★★★
+    this.resetGame();
+    
+    // Если WebSocket активен, отправляем запрос на новую игру
+    if (this.ws && this.ws.readyState === WebSocket.OPEN) {
+        this.ws.send(JSON.stringify({
+            type: 'newGame'
+        }));
     }
+    
+    this.updateStatus("Новая игра началась!");
   }
 
   setupRestartModal() {
@@ -376,17 +358,17 @@ class CheckersGame {
     this.hideRestartModal();
   }
 
+  // ★★★ ИСПРАВЛЕНИЕ: ОБНОВЛЕННАЯ ФУНКЦИЯ ПРЕДЛОЖЕНИЯ НИЧЬИ ★★★
   offerDraw() {
     if (!this.ws || this.ws.readyState !== WebSocket.OPEN) {
       this.updateStatus("Нет соединения с сервером");
       return;
     }
 
-    // Отправляем предложение ничьи на сервер
+    // ★★★ ИСПРАВЛЕНИЕ: ПРАВИЛЬНЫЙ ФОРМАТ СООБЩЕНИЯ ★★★
     this.ws.send(
       JSON.stringify({
-        type: "drawOffer",
-        from: this.username,
+        type: "drawOffer"
       })
     );
 
@@ -410,17 +392,18 @@ class CheckersGame {
     }
   }
 
+  // ★★★ ИСПРАВЛЕНИЕ: ОБНОВЛЕННЫЕ ФУНКЦИИ ОТВЕТА НА НИЧЬЮ ★★★
   acceptDrawOffer() {
     if (!this.ws || this.ws.readyState !== WebSocket.OPEN) {
       this.updateStatus("Нет соединения с сервером");
       return;
     }
 
-    // Отправляем согласие на ничью
+    // ★★★ ИСПРАВЛЕНИЕ: ПРАВИЛЬНЫЙ ФОРМАТ ОТВЕТА ★★★
     this.ws.send(
       JSON.stringify({
         type: "drawResponse",
-        accepted: true,
+        accept: true  // ★★★ ИСПРАВЛЕНО: было "accepted", должно быть "accept" ★★★
       })
     );
 
@@ -434,11 +417,11 @@ class CheckersGame {
       return;
     }
 
-    // Отправляем отказ от ничьи
+    // ★★★ ИСПРАВЛЕНИЕ: ПРАВИЛЬНЫЙ ФОРМАТ ОТВЕТА ★★★
     this.ws.send(
       JSON.stringify({
         type: "drawResponse",
-        accepted: false,
+        accept: false  // ★★★ ИСПРАВЛЕНО: было "accepted", должно быть "accept" ★★★
       })
     );
 
@@ -756,6 +739,7 @@ class CheckersGame {
     }
   }
 
+  // ★★★ ИСПРАВЛЕНИЕ: ОБНОВЛЕННАЯ ОБРАБОТКА СООБЩЕНИЙ ОТ СЕРВЕРА ★★★
   handleServerMessage(message) {
     switch (message.type) {
       case "playerAssigned":
@@ -807,11 +791,18 @@ class CheckersGame {
         this.updateStatus(`${message.by || 'Противник'} отклонил предложение ничьи`);
         break;
 
+      // ★★★ ИСПРАВЛЕНИЕ: ДОБАВЛЯЕМ ОБРАБОТКУ УСПЕШНОЙ НИЧЬИ ★★★
+      case "drawAccepted":
+        this.updateStatus("Ничья принята! Игра завершена.");
+        // Автоматически завершаем игру как ничью
+        this.handleGameOver({ winner: 'draw' });
+        break;
+
       case "gameOver":
-        // ★★★ ИЗМЕНЕНИЕ 6: ОБНОВЛЕННАЯ ОБРАБОТКА КОНЦА ИГРЫ С ЗАДЕРЖКОЙ ★★★
+        // ★★★ ИЗМЕНЕНИЕ: ОБНОВЛЕННАЯ ОБРАБОТКА КОНЦА ИГРЫ С ЗАДЕРЖКОЙ ★★★
         setTimeout(() => {
           this.handleGameOver(message);
-        }, 1000); // Задержка 1 секунда
+        }, 2000); // ★★★ УВЕЛИЧИВАЕМ ЗАДЕРЖКУ ДО 2 СЕКУНД ★★★
         break;
 
       case "gameRestartRequest":
@@ -879,7 +870,7 @@ class CheckersGame {
         console.log(
           `Playing against: ${this.opponentName} (${opponent.color})`
         );
-        // ★★★ ОБНОВЛЯЕМ ИНФОРМАЦИЮ ОБ ИГРОКАХ ★★★
+        // ★★★ ОБНОВЛЯЕМ ИНФОРМАЦИЮ ОБ ИГРОКАх ★★★
         this.updatePlayersInfo();
       }
     }
@@ -931,40 +922,43 @@ class CheckersGame {
     });
   }
 
-  // ★★★ ИЗМЕНЕНИЕ 7: ОБНОВЛЕННАЯ ФУНКЦИЯ ОКОНЧАНИЯ ИГРЫ С РЕЗУЛЬТАТОМ ★★★
+  // ★★★ ИСПРАВЛЕНИЕ: ОБНОВЛЕННАЯ ФУНКЦИЯ ОКОНЧАНИЯ ИГРЫ С ЗАДЕРЖКОЙ ★★★
   handleGameOver(result) {
-    let winnerText;
-    let gameOverMessage;
-    
-    if (result.winner === 'draw') {
-      winnerText = "🤝 Ничья!";
-      gameOverMessage = "Ничья!";
-    } else if (result.winner) {
-      const winnerName = result.winner === this.playerColor ? this.username : this.opponentName;
-      const colorText = result.winner === "white" ? "белые" : "чёрные";
-      winnerText = `🏆 Победил ${winnerName} (${colorText})`;
-      gameOverMessage = `Победил ${winnerName} (${colorText})`;
-    } else {
-      winnerText = "🤝 Ничья!";
-      gameOverMessage = "Ничья!";
-    }
+    // ★★★ ДОБАВЛЯЕМ ЗАДЕРЖКУ 2 СЕКУНДЫ ★★★
+    setTimeout(() => {
+        let winnerText;
+        let gameOverMessage;
+        
+        if (result.winner === 'draw') {
+            winnerText = "🤝 Ничья!";
+            gameOverMessage = "Ничья!";
+        } else if (result.winner) {
+            const winnerName = result.winner === this.playerColor ? this.username : this.opponentName;
+            const colorText = result.winner === "white" ? "белые" : "чёрные";
+            winnerText = `🏆 Победил ${winnerName} (${colorText})`;
+            gameOverMessage = `Победил ${winnerName} (${colorText})`;
+        } else {
+            winnerText = "🤝 Ничья!";
+            gameOverMessage = "Ничья!";
+        }
 
-    this.updateStatus(`Игра окончена! ${winnerText}`);
-    
-    // ★★★ ОБНОВЛЯЕМ СООБЩЕНИЕ В МОДАЛЬНОМ ОКНЕ ★★★
-    const gameOverMessageElement = document.getElementById('gameOverMessage');
-    if (gameOverMessageElement) {
-      gameOverMessageElement.textContent = gameOverMessage;
-    }
+        this.updateStatus(`Игра окончена! ${winnerText}`);
+        
+        // ★★★ ОБНОВЛЯЕМ СООБЩЕНИЕ В МОДАЛЬНОМ ОКНЕ ★★★
+        const gameOverMessageElement = document.getElementById('gameOverMessage');
+        if (gameOverMessageElement) {
+            gameOverMessageElement.textContent = gameOverMessage;
+        }
 
-    // Удаляем стрелку при окончании игры
-    this.removeMoveArrow();
+        // Удаляем стрелку при окончании игры
+        this.removeMoveArrow();
 
-    // Сбрасываем множественное взятие
-    this.continueCapturePiece = null;
+        // Сбрасываем множественное взятие
+        this.continueCapturePiece = null;
 
-    // Показываем финальное модальное окно
-    this.showGameOverModal();
+        // Показываем финальное модальное окно
+        this.showGameOverModal();
+    }, 2000); // ★★★ ЗАДЕРЖКА 2 СЕКУНДЫ ★★★
   }
 
   showGameOverModal() {
@@ -1035,20 +1029,22 @@ class CheckersGame {
   }
 }
 
-// ★★★ ИЗМЕНЕНИЕ 8: ГЛОБАЛЬНЫЕ ФУНКЦИИ ДЛЯ HTML ★★★
+// ★★★ ИСПРАВЛЕНИЕ: УДАЛЯЕМ НЕНУЖНЫЕ ГЛОБАЛЬНЫЕ ФУНКЦИИ ★★★
+/*
 function confirmNickname() {
   if (window.checkersGame) {
     window.checkersGame.confirmNickname();
   }
 }
+*/
 
+// ★★★ ОСТАВЛЯЕМ ТОЛЬКО НУЖНЫЕ ФУНКЦИИ ★★★
 function startNewGame() {
   if (window.checkersGame) {
     window.checkersGame.startNewGame();
   }
 }
 
-// ★★★ ДОБАВЛЯЕМ ГЛОБАЛЬНЫЕ ФУНКЦИИ ДЛЯ НИЧЬИ ★★★
 function acceptDrawOffer() {
   if (window.checkersGame) {
     window.checkersGame.acceptDrawOffer();
@@ -1086,4 +1082,3 @@ document.addEventListener("visibilitychange", () => {
     console.log("Page became visible, checking connection...");
   }
 });
-
