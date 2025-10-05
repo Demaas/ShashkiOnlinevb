@@ -192,6 +192,12 @@ class CheckersGame {
     this.hideNewGameModal();
   }
 
+  // ★★★ ДОБАВЛЕН МЕТОД clearBoard() КОТОРЫЙ ОТСУТСТВОВАЛ ★★★
+  clearBoard() {
+    // Очищаем все шашки с доски
+    document.querySelectorAll(".piece").forEach((piece) => piece.remove());
+  }
+
   setupLogin() {
     // Показываем модальное окно при загрузке
     this.loginModal.style.display = "flex";
@@ -500,11 +506,6 @@ class CheckersGame {
     setTimeout(() => {
       this.setupWebSocket();
     }, 1000);
-  }
-
-  clearBoard() {
-    // Очищаем все шашки с доски
-    document.querySelectorAll(".piece").forEach((piece) => piece.remove());
   }
 
   createMoveArrow(fromRow, fromCol, toRow, toCol) {
