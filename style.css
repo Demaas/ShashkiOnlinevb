@@ -35,8 +35,7 @@ body {
 }
 
 .modal-content {
-  background: linear-gradient(rgba(0, 0, 0, 0.7), rgba(0, 0, 0, 0.7)),
-    url("shanick.png");
+  background-color: rgba(0, 0, 0, 0.8);
   background-size: cover;
   background-position: center;
   padding: 40px;
@@ -931,3 +930,4 @@ h1 {
 .notification.warning {
   border-left-color: #ff9800;
 }
+
