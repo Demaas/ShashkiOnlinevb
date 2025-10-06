@@ -131,7 +131,7 @@ body {
 .modal-content {
   background: none;
   backdrop-filter: blur(10px);
-  color: black;
+  color: none;
   border-radius: 15px;
   padding: 30px;
   text-align: center;
@@ -932,6 +932,7 @@ h1 {
 .notification.warning {
   border-left-color: #ff9800;
 }
+
 
 
 
