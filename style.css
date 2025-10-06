@@ -129,8 +129,9 @@ body {
 
 /* Улучшенные стили для модальных окон */
 .modal-content {
-  background: linear-gradient(135deg, #000000 0%, #333333 100%);
-  color: white;
+  background: rgba(0, 0, 0, 0.7); /* тёмный полупрозрачный */
+  backdrop-filter: blur(10px);
+  color: black;
   border-radius: 15px;
   padding: 30px;
   text-align: center;
@@ -931,6 +932,7 @@ h1 {
 .notification.warning {
   border-left-color: #ff9800;
 }
+
 
 
 
