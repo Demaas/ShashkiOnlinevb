@@ -129,7 +129,7 @@ body {
 
 /* Улучшенные стили для модальных окон */
 .modal-content {
-  background: rgba(0, 0, 0, 0.7); /* тёмный полупрозрачный */
+  background: none;
   backdrop-filter: blur(10px);
   color: black;
   border-radius: 15px;
@@ -932,6 +932,7 @@ h1 {
 .notification.warning {
   border-left-color: #ff9800;
 }
+
 
 
 
