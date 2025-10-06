@@ -1,4 +1,4 @@
-// script.js - ОБНОВЛЕННАЯ ВЕРСИЯ с исправлениями для множественного взятия, ников и модальных окон
+// script.js - ОБНОВЛЕННАЯ ВЕРСИЯ с исправлениями для кнопок новой игры
 class CheckersGame {
   constructor() {
     this.board = document.getElementById("board");
@@ -25,6 +25,9 @@ class CheckersGame {
     this.restartMessage = document.getElementById("restartMessage");
     this.confirmRestart = document.getElementById("confirmRestart");
     this.declineRestart = document.getElementById("declineRestart");
+
+    // ★★★ ДОБАВЛЕН ЭЛЕМЕНТ УПРАВЛЕНИЯ КНОПКАМИ ★★★
+    this.gameControls = document.getElementById("gameControls");
 
     this.currentPlayer = "white";
     this.selectedPiece = null;
@@ -392,6 +395,72 @@ class CheckersGame {
     this.hideRestartModal();
   }
 
+  // ★★★ ИСПРАВЛЕННЫЙ МЕТОД НОВОЙ ИГРЫ ★★★
+  startNewGame() {
+    console.log("🔄 Starting new game properly...");
+
+    // Скрываем модальное окно окончания игры
+    this.hideGameOverModal();
+
+    // Показываем кнопки управления
+    if (this.gameControls) {
+      this.gameControls.style.display = "flex";
+    }
+
+    // Показываем доску и статус
+    if (this.board) this.board.style.display = "grid";
+    if (this.status) this.status.style.display = "block";
+
+    // Скрываем блок рестарта
+    if (this.restartContainer) {
+      this.restartContainer.style.display = "none";
+    }
+
+    // Сбрасываем игровое состояние
+    this.currentPlayer = "white";
+    this.selectedPiece = null;
+    this.possibleMoves = [];
+    this.playerColor = null;
+    this.continueCapturePiece = null;
+    this.opponentName = "";
+
+    // Удаляем стрелку
+    this.removeMoveArrow();
+
+    // Очищаем и пересоздаем доску
+    this.clearBoard();
+    this.createBoard();
+
+    // Обновляем информацию об игроках
+    this.updatePlayersInfo();
+
+    // Обновляем статус
+    this.updateStatus("Новая игра! Ожидание подключения...");
+
+    // ★★★ ВАЖНО: Переподключаем WebSocket ★★★
+    if (this.ws) {
+      this.ws.close(); // Закрываем старое соединение
+    }
+
+    // Даем время на закрытие соединения и переподключаемся
+    setTimeout(() => {
+      this.setupWebSocket();
+    }, 1000);
+  }
+
+  // ★★★ ДОБАВЛЕН МЕТОД ДЛЯ СКРЫТИЯ МОДАЛЬНОГО ОКНА ★★★
+  hideGameOverModal() {
+    const modal = document.getElementById("gameOverModal");
+    if (modal) {
+      modal.style.display = "none";
+    }
+
+    // Показываем кнопки управления снова
+    if (this.gameControls) {
+      this.gameControls.style.display = "flex";
+    }
+  }
+
   offerDraw() {
     if (!this.ws || this.ws.readyState !== WebSocket.OPEN) {
       this.updateStatus("Нет соединения с сервером");
@@ -613,7 +682,7 @@ class CheckersGame {
   }
 
   restartGame() {
-    console.log("Restarting game...");
+    console.log(startNewGame());
 
     // Удаляем стрелку и очищаем таймер
     this.removeMoveArrow();
@@ -947,14 +1016,21 @@ class CheckersGame {
 
   handleGameOver(result) {
     let winnerText;
+    let gameOverMessage;
+
     if (result.result === "draw") {
       winnerText = "🤝 Ничья!";
+      gameOverMessage = "Ничья!";
     } else if (result.winner) {
-      winnerText = `🏆 Победитель: ${
-        result.winner === "white" ? "белые" : "чёрные"
-      }`;
+      // ★★★ ДОБАВЛЕНО: ОПРЕДЕЛЯЕМ НИК ПОБЕДИТЕЛЯ ★★★
+      const winnerName =
+        result.winner === this.playerColor ? this.username : this.opponentName;
+      const colorText = result.winner === "white" ? "белые" : "чёрные";
+      winnerText = `🏆 Победил ${winnerName} (${colorText})`;
+      gameOverMessage = `Победил ${winnerName} (${colorText})`;
     } else {
       winnerText = "🤝 Ничья!";
+      gameOverMessage = "Ничья!";
     }
 
     this.updateStatus(`Игра окончена! ${winnerText}`);
@@ -962,11 +1038,18 @@ class CheckersGame {
     // Удаляем стрелку при окончании игры
     this.removeMoveArrow();
 
-    // Сбрасываем множественное взятие
-    this.continueCapturePiece = null;
+    // ★★★ СКРЫВАЕМ КНОПКИ УПРАВЛЕНИЯ ПРИ ОКОНЧАНИИ ИГРЫ ★★★
+    if (this.gameControls) {
+      this.gameControls.style.display = "none";
+    }
 
-    // Показываем блок рестарта
-    this.showRestartContainer();
+    // ★★★ ПОКАЗЫВАЕМ МОДАЛЬНОЕ ОКНО ОКОНЧАНИЯ ИГРЫ ★★★
+    const modal = document.getElementById("gameOverModal");
+    const messageElement = document.getElementById("gameOverMessage");
+    if (modal && messageElement) {
+      messageElement.textContent = winnerText;
+      modal.style.display = "flex";
+    }
   }
 
   showRestartContainer() {
@@ -1023,17 +1106,18 @@ class CheckersGame {
   }
 }
 
-// ★★★ ДОБАВЬТЕ ЭТУ ФУНКЦИЮ В КОНЕЦ ФАЙЛА ★★★
+// ★★★ ИСПРАВЛЕННАЯ ГЛОБАЛЬНАЯ ФУНКЦИЯ ★★★
 function startNewGame() {
   console.log("🔄 startNewGame called globally");
-  if (window.checkersGame && typeof window.checkersGame.startNewGame === 'function') {
+  if (
+    window.checkersGame &&
+    typeof window.checkersGame.startNewGame === "function"
+  ) {
     window.checkersGame.startNewGame();
-  }
-  // ★★★ ДОБАВЛЕНО: Всегда перезагружаем страницу через 1 секунду ★★★
-  setTimeout(() => {
-    console.log("🔄 Reloading page for new game...");
+  } else {
+    console.error("❌ checkersGame not available, reloading page");
     location.reload();
-  }, 1000);
+  }
 }
 
 // Запускаем игру когда страница полностью загружена
