@@ -1023,6 +1023,19 @@ class CheckersGame {
   }
 }
 
+// ★★★ ДОБАВЬТЕ ЭТУ ФУНКЦИЮ В КОНЕЦ ФАЙЛА ★★★
+function startNewGame() {
+  console.log("🔄 startNewGame called globally");
+  if (window.checkersGame && typeof window.checkersGame.startNewGame === 'function') {
+    window.checkersGame.startNewGame();
+  }
+  // ★★★ ДОБАВЛЕНО: Всегда перезагружаем страницу через 1 секунду ★★★
+  setTimeout(() => {
+    console.log("🔄 Reloading page for new game...");
+    location.reload();
+  }, 1000);
+}
+
 // Запускаем игру когда страница полностью загружена
 document.addEventListener("DOMContentLoaded", () => {
   console.log("🚀 Starting Checkers Game...");
