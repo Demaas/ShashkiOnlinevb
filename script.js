@@ -208,9 +208,10 @@ class CheckersGame {
     this.currentPlayer = "white";
     this.selectedPiece = null;
     this.possibleMoves = [];
-    // ★★★ НЕ СБРАСЫВАЕМ playerColor и username ★★★
+    // ★★★ НЕ СБРАСЫВАЕМ playerColor, username и opponentName ★★★
     // this.playerColor = null;
     // this.username = "";
+    // this.opponentName = "";
     this.continueCapturePiece = null; // Сбрасываем множественное взятие
 
     // Удаляем стрелку
@@ -232,7 +233,7 @@ class CheckersGame {
     document.querySelectorAll(".piece").forEach((piece) => piece.remove());
   }
 
-  // ★★★ ДОБАВЛЕН МЕТОД ДЛЯ ОБНОВЛЕНИЯ ИНФОРМАЦИИ ОБ ИГРОКАХ ★★★
+  // ★★★ ОБНОВЛЕННЫЙ МЕТОД ДЛЯ ОБНОВЛЕНИЯ ИНФОРМАЦИИ ОБ ИГРОКАХ ★★★
   updatePlayersInfo() {
     const whitePlayer = document.getElementById("whitePlayer");
     const blackPlayer = document.getElementById("blackPlayer");
@@ -246,22 +247,26 @@ class CheckersGame {
     whitePlayer.classList.remove("active");
     blackPlayer.classList.remove("active");
 
-    // Обновляем никнеймы
+    // ★★★ ИСПРАВЛЕННАЯ ЛОГИКА ОТОБРАЖЕНИЯ НИКОВ ★★★
     const whiteNickname = document.getElementById("whiteNickname");
     const blackNickname = document.getElementById("blackNickname");
 
-    if (whiteNickname) {
-      whiteNickname.textContent =
-        this.playerColor === "white"
-          ? this.username
-          : this.opponentName || "Ожидание...";
-    }
-
-    if (blackNickname) {
-      blackNickname.textContent =
-        this.playerColor === "black"
-          ? this.username
-          : this.opponentName || "Ожидание...";
+    if (whiteNickname && blackNickname) {
+      // Определяем ник для белых
+      if (this.playerColor === "white") {
+        whiteNickname.textContent = this.username || "Вы";
+        blackNickname.textContent = this.opponentName || "Ожидание...";
+      }
+      // Определяем ник для черных
+      else if (this.playerColor === "black") {
+        whiteNickname.textContent = this.opponentName || "Ожидание...";
+        blackNickname.textContent = this.username || "Вы";
+      }
+      // Если цвет еще не назначен
+      else {
+        whiteNickname.textContent = "Ожидание...";
+        blackNickname.textContent = "Ожидание...";
+      }
     }
 
     // Активируем текущего игрока
@@ -270,6 +275,14 @@ class CheckersGame {
     } else {
       blackPlayer.classList.add("active");
     }
+
+    // ★★★ ДОБАВИМ ОТЛАДОЧНЫЙ ВЫВОД ★★★
+    console.log("🔄 Updated players info:", {
+      playerColor: this.playerColor,
+      username: this.username,
+      opponentName: this.opponentName,
+      currentPlayer: this.currentPlayer,
+    });
   }
 
   setupLogin() {
@@ -565,6 +578,7 @@ class CheckersGame {
 
   // ★★★ МЕТОД ДЛЯ ПОКАЗА ЗАПРОСА НОВОЙ ИГРЫ ОТ ПРОТИВНИКА ★★★
   showNewGameRequestModal(opponentName) {
+    // ★★★ ВАЖНО: ИСПОЛЬЗУЕМ restartModal ДЛЯ ЗАПРОСОВ НОВОЙ ИГРЫ ★★★
     if (this.restartModal && this.restartMessage) {
       this.restartMessage.textContent = `${opponentName} предлагает начать новую игру. Согласны?`;
       this.restartModal.style.display = "flex";
@@ -572,6 +586,7 @@ class CheckersGame {
       // Блокируем игровое поле пока не будет выбран ответ
       this.board.style.pointerEvents = "none";
     }
+    console.log("🔄 New game request modal shown for:", opponentName);
   }
 
   hideRestartModal() {
@@ -618,7 +633,8 @@ class CheckersGame {
     this.selectedPiece = null;
     this.possibleMoves = [];
     this.continueCapturePiece = null;
-    this.opponentName = "";
+    // ★★★ НЕ СБРАСЫВАЕМ opponentName! ★★★
+    // this.opponentName = ""; // ★★★ УБРАТЬ ЭТУ СТРОКУ ★★★
 
     // ★★★ НЕ СБРАСЫВАЕМ playerColor и username ★★★
 
@@ -638,13 +654,15 @@ class CheckersGame {
     this.updatePlayersInfo();
 
     // Обновляем статус
-    this.updateStatus("Новая игра! Ожидание подключения...");
+    this.updateStatus("Новая игра началась! Ожидание подключения...");
 
     // Скрываем окно ожидания если оно открыто
     this.hideNewGameModal();
 
     // ★★★ СКРЫВАЕМ МОДАЛЬНОЕ ОКНО ОКОНЧАНИЯ ИГРЫ ★★★
     this.hideGameOverModal();
+
+    console.log("✅ Fresh game started, opponent:", this.opponentName);
   }
 
   // ★★★ ДОБАВЛЕН МЕТОД ДЛЯ СКРЫТИЯ МОДАЛЬНОГО ОКНА ★★★
@@ -1028,6 +1046,8 @@ class CheckersGame {
   }
 
   handleServerMessage(message) {
+    console.log("📨 Received message type:", message.type, "Data:", message);
+
     switch (message.type) {
       // ★★★ ДОБАВЛЕНО: Обработка готовности игры ★★★
       case "gameReady":
@@ -1211,15 +1231,20 @@ class CheckersGame {
   handlePlayersInfo(players) {
     console.log("Players info:", players);
 
-    // ★★★ УПРОЩЕННАЯ ЛОГИКА: только обновляем информацию об игроках ★★★
+    // ★★★ УЛУЧШЕННАЯ ЛОГИКА СОХРАНЕНИЯ НИКА ПРОТИВНИКА ★★★
     const opponent = players.find((p) => p.username !== this.username);
     if (opponent) {
       this.opponentName = opponent.username;
       console.log(`Playing against: ${this.opponentName} (${opponent.color})`);
+    } else if (players.length === 1) {
+      // Если только один игрок (мы сами), сбрасываем opponentName
+      this.opponentName = "";
     }
 
-    // ★★★ НЕ УСТАНАВЛИВАЕМ gameReady здесь - ждем gameReady от сервера ★★★
+    // ★★★ ОБНОВЛЯЕМ ИНФОРМАЦИЮ ОБ ИГРОКАХ ДЛЯ ВСЕХ СЛУЧАЕВ ★★★
     this.updatePlayersInfo();
+
+    console.log("Current opponent name:", this.opponentName);
   }
 
   updateGameState(gameState) {
@@ -1276,7 +1301,7 @@ class CheckersGame {
       winnerText = "🤝 Ничья!";
       gameOverMessage = "🤝 Ничья!";
     } else if (result.winner) {
-      // ★★★ ОБРАБОТКА СДАЧИ ★★★
+      // ★★★ ИСПРАВЛЕННАЯ ЛОГИКА ОТОБРАЖЕНИЯ ПОБЕДИТЕЛЯ ★★★
       if (result.surrender) {
         const winnerName =
           result.winner === this.playerColor
@@ -1287,18 +1312,22 @@ class CheckersGame {
           surrenderedPlayer === this.playerColor
             ? this.username
             : this.opponentName;
-        // ★★★ УБРАН colorText ИЗ СООБЩЕНИЯ ★★★
-        winnerText = `🏆 ${winnerName} Победитель!`;
-        gameOverMessage = `🏆 ${winnerName} Победитель! ${loserName} сдался`;
+
+        winnerText = `🏆 ${winnerName} победил!`;
+        gameOverMessage = `🏆 ${winnerName} победил!\n${loserName} сдался`;
       } else {
         // Обычная победа
         const winnerName =
           result.winner === this.playerColor
             ? this.username
             : this.opponentName;
-        // ★★★ УБРАН colorText ИЗ СООБЩЕНИЯ ★★★
-        winnerText = `🏆 Победитель ${winnerName}`;
-        gameOverMessage = `🏆 Победитель ${winnerName}`;
+        const loserName =
+          result.winner === this.playerColor
+            ? this.opponentName
+            : this.username;
+
+        winnerText = `🏆 ${winnerName} победил!`;
+        gameOverMessage = `🏆 ${winnerName} победил!\nпротив ${loserName}`;
       }
     } else {
       winnerText = "🤝 Ничья!";
@@ -1310,18 +1339,20 @@ class CheckersGame {
     // Удаляем стрелку при окончании игры
     this.removeMoveArrow();
 
-    // ★★★ СКРЫВАЕМ КНОПКИ УПРАВЛЕНИЯ ПРИ ОКОНЧАНИИ ИГРЫ ★★★
+    // Скрываем кнопки управления при окончании игры
     if (this.gameControls) {
       this.gameControls.style.display = "none";
     }
 
-    // ★★★ ПОКАЗЫВАЕМ МОДАЛЬНОЕ ОКНО ОКОНЧАНИЯ ИГРЫ ★★★
+    // ★★★ ВАЖНО: ИСПОЛЬЗУЕМ gameOverModal ДЛЯ ОКОНЧАНИЯ ИГРЫ ★★★
     const modal = document.getElementById("gameOverModal");
     const messageElement = document.getElementById("gameOverMessage");
     if (modal && messageElement) {
       messageElement.textContent = gameOverMessage;
       modal.style.display = "flex";
     }
+
+    console.log("🎮 Game over modal shown:", gameOverMessage);
   }
 
   showRestartContainer() {
@@ -1385,6 +1416,7 @@ class CheckersGame {
 // ★★★ ИСПРАВЛЕННАЯ ГЛОБАЛЬНАЯ ФУНКЦИЯ ★★★
 function startNewGame() {
   console.log("🔄 startNewGame called globally");
+
   if (
     window.checkersGame &&
     typeof window.checkersGame.showNewGameModal === "function"
