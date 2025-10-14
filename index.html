@@ -45,24 +45,6 @@
       </div>
     </div>
 
-    <!-- Модальное окно подтверждения перезапуска -->
-    <div id="restartModal" class="modal" style="display: none">
-      <div class="modal-content">
-        <h3>Новая игра</h3>
-        <p id="restartMessage">
-          Противник предлагает начать новую игру. Согласны?
-        </p>
-        <div class="modal-buttons">
-          <button onclick="confirmRestart()" class="modal-btn confirm-btn">
-            Да
-          </button>
-          <button onclick="declineRestart()" class="modal-btn cancel-btn">
-            Нет
-          </button>
-        </div>
-      </div>
-    </div>
-
     <!-- Модальное окно завершения игры -->
     <div id="gameOverModal" class="modal" style="display: none">
       <div class="modal-content">
@@ -77,11 +59,7 @@
           />
         </div>
         <div class="modal-buttons">
-          <button
-            onclick="startNewGame()"
-            class="modal-btn confirm-btn"
-            style="background-color: #2196f3"
-          >
+          <button onclick="startNewGame()" class="modal-btn confirm-btn">
             Новая игра
           </button>
         </div>
@@ -116,7 +94,7 @@
         <div class="board" id="board"></div>
 
         <!-- Кнопки управления игрой -->
-        <div class="game-controls">
+        <div class="game-controls" id="gameControls">
           <button id="newGameButton" class="control-button new-game-btn">
             Новая Игра
           </button>
@@ -128,11 +106,13 @@
           </button>
         </div>
 
-        <!-- Модальное окно для новой игры -->
+        <!-- Модальное окно для новой игры (ИСПОЛЬЗУЕМ ДЛЯ ОЖИДАНИЯ ОТВЕТА) -->
         <div id="newGameModal" class="modal" style="display: none">
           <div class="modal-content">
-            <h2>Новая Игра</h2>
-            <p>Вы уверены, что хотите начать Новую Игру?</p>
+            <h2 id="newGameModalTitle">Новая Игра</h2>
+            <p id="newGameModalMessage">
+              Вы уверены, что хотите начать Новую Игру?
+            </p>
             <div class="modal-buttons">
               <button id="confirmNewGame" class="modal-btn confirm-btn">
                 Да
@@ -358,32 +338,60 @@
           });
         }
 
-        // Обработчики для кнопки новой игры
+        // ★★★ ОБРАБОТЧИКИ ДЛЯ КНОПКИ НОВОЙ ИГРЫ (УПРОЩЕННЫЕ) ★★★
         const newGameBtn = document.getElementById("newGameButton");
         const confirmNewGameBtn = document.getElementById("confirmNewGame");
         const cancelNewGameBtn = document.getElementById("cancelNewGame");
 
         if (newGameBtn) {
           newGameBtn.addEventListener("click", function () {
-            const modal = document.getElementById("newGameModal");
-            if (modal) modal.style.display = "block";
+            // Используем CheckersGame для показа модального окна
+            if (window.checkersGame && window.checkersGame.showNewGameModal) {
+              window.checkersGame.showNewGameModal();
+            }
           });
         }
 
         if (confirmNewGameBtn) {
           confirmNewGameBtn.addEventListener("click", function () {
-            const modal = document.getElementById("newGameModal");
-            if (modal) modal.style.display = "none";
-
-            // Показываем окно для ввода никнейма и начинаем новую игру
-            showNicknameModal();
+            // Используем CheckersGame для подтверждения новой игры
+            if (
+              window.checkersGame &&
+              window.checkersGame.confirmNewGameAction
+            ) {
+              window.checkersGame.confirmNewGameAction();
+            }
           });
         }
 
         if (cancelNewGameBtn) {
           cancelNewGameBtn.addEventListener("click", function () {
-            const modal = document.getElementById("newGameModal");
-            if (modal) modal.style.display = "none";
+            // Используем CheckersGame для отмены новой игры
+            if (window.checkersGame && window.checkersGame.hideNewGameModal) {
+              window.checkersGame.hideNewGameModal();
+            }
+          });
+        }
+
+        // ★★★ ОБРАБОТЧИКИ ДЛЯ МОДАЛЬНОГО ОКНА ПЕРЕЗАПУСКА ★★★
+        const confirmRestartBtn = document.getElementById("confirmRestart");
+        const declineRestartBtn = document.getElementById("declineRestart");
+
+        if (confirmRestartBtn) {
+          confirmRestartBtn.addEventListener("click", function () {
+            // Используем CheckersGame для принятия новой игры
+            if (window.checkersGame && window.checkersGame.acceptNewGame) {
+              window.checkersGame.acceptNewGame();
+            }
+          });
+        }
+
+        if (declineRestartBtn) {
+          declineRestartBtn.addEventListener("click", function () {
+            // Используем CheckersGame для отклонения новой игры
+            if (window.checkersGame && window.checkersGame.rejectNewGame) {
+              window.checkersGame.rejectNewGame();
+            }
           });
         }
 
@@ -576,5 +584,19 @@
       });
     </script>
     <script src="script.js"></script>
+
+    <!-- Модальное окно подтверждения перезапуска (ИСПОЛЬЗУЕМ ДЛЯ ЗАПРОСА НОВОЙ ИГРЫ) -->
+    <div id="restartModal" class="modal" style="display: none">
+      <div class="modal-content">
+        <h3>Новая игра</h3>
+        <p id="restartMessage">
+          Противник предлагает начать новую игру. Согласны?
+        </p>
+        <div class="modal-buttons">
+          <button id="confirmRestart" class="modal-btn confirm-btn">Да</button>
+          <button id="declineRestart" class="modal-btn cancel-btn">Нет</button>
+        </div>
+      </div>
+    </div>
   </body>
 </html>
