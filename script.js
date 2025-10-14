@@ -1233,8 +1233,8 @@ class CheckersGame {
             ? this.username
             : this.opponentName;
         // ★★★ УБРАН colorText ИЗ СООБЩЕНИЯ ★★★
-        winnerText = `🏆 ${winnerName} победил!`;
-        gameOverMessage = `${winnerName} победил! ${loserName} сдался`;
+        winnerText = `🏆 ${winnerName} Победитель!`;
+        gameOverMessage = `🏆 ${winnerName} Победитель! ${loserName} сдался`;
       } else {
         // Обычная победа
         const winnerName =
@@ -1242,8 +1242,8 @@ class CheckersGame {
             ? this.username
             : this.opponentName;
         // ★★★ УБРАН colorText ИЗ СООБЩЕНИЯ ★★★
-        winnerText = `🏆 Победил ${winnerName}`;
-        gameOverMessage = `Победил ${winnerName}`;
+        winnerText = `🏆 Победитель ${winnerName}`;
+        gameOverMessage = `🏆 Победитель ${winnerName}`;
       }
     } else {
       winnerText = "🤝 Ничья!";
