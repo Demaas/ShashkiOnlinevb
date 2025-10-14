@@ -1067,7 +1067,7 @@ class CheckersGame {
               surrenderedByColor === "white" ? "белые" : "чёрные";
 
             this.updateStatus(
-              `🏆 ${winnerName} победитель! ${loserName} (${colorText}) сдался`
+              `🏆 ${winnerName} Победитель! ${loserName} (${colorText}) сдался`
             );
 
             this.handleGameOver({
@@ -1075,7 +1075,7 @@ class CheckersGame {
               result: "win",
               surrender: true,
               surrenderedPlayer: surrenderedByColor,
-              message: `${winnerName} победитель! ${loserName} (${colorText}) сдался`,
+              message: `🏆 ${winnerName} Победитель! ${loserName} (${colorText}) сдался`,
             });
           } else {
             this.handleGameOver(message);
@@ -1219,7 +1219,7 @@ class CheckersGame {
 
     if (result.result === "draw") {
       winnerText = "🤝 Ничья!";
-      gameOverMessage = "Ничья!";
+      gameOverMessage = "🤝 Ничья!";
     } else if (result.winner) {
       // ★★★ ОБРАБОТКА СДАЧИ ★★★
       if (result.surrender) {
@@ -1247,7 +1247,7 @@ class CheckersGame {
       }
     } else {
       winnerText = "🤝 Ничья!";
-      gameOverMessage = "Ничья!";
+      gameOverMessage = "🤝 Ничья!";
     }
 
     this.updateStatus(`Игра окончена! ${winnerText}`);
