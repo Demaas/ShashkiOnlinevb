@@ -1,4 +1,4 @@
-// script.js - ОБНОВЛЕННАЯ ВЕРСИЯ с исправлениями для кнопок новой игры
+// script.js - ОБНОВЛЕННАЯ ВЕРСИЯ с функционалом кнопки "Сдаться"
 class CheckersGame {
   constructor() {
     this.board = document.getElementById("board");
@@ -12,13 +12,23 @@ class CheckersGame {
     // Добавляем новые свойства для кнопок
     this.newGameButton = document.getElementById("newGameButton");
     this.drawOfferButton = document.getElementById("drawOfferButton");
+    this.surrenderButton = document.getElementById("surrenderButton"); // ★★★ ДОБАВЛЕНО ★★★
     this.newGameModal = document.getElementById("newGameModal");
     this.drawOfferModal = document.getElementById("drawOfferModal");
+    this.surrenderFirstModal = document.getElementById("surrenderFirstModal"); // ★★★ ДОБАВЛЕНО ★★★
+    this.surrenderSecondModal = document.getElementById("surrenderSecondModal"); // ★★★ ДОБАВЛЕНО ★★★
     this.confirmNewGame = document.getElementById("confirmNewGame");
     this.cancelNewGame = document.getElementById("cancelNewGame");
     this.acceptDraw = document.getElementById("acceptDraw");
     this.rejectDraw = document.getElementById("rejectDraw");
     this.drawOfferText = document.getElementById("drawOfferText");
+    this.surrenderFirstConfirm = document.getElementById(
+      "surrenderFirstConfirm"
+    ); // ★★★ ДОБАВЛЕНО ★★★
+    this.surrenderFinalConfirm = document.getElementById(
+      "surrenderFinalConfirm"
+    ); // ★★★ ДОБАВЛЕНО ★★★
+    this.surrenderCancel = document.getElementById("surrenderCancel"); // ★★★ ДОБАВЛЕНО ★★★
 
     // Добавляем модальное окно для подтверждения перезапуска
     this.restartModal = document.getElementById("restartModal");
@@ -39,8 +49,14 @@ class CheckersGame {
     this.username = "";
     this.opponentName = "";
 
+    // ★★★ ДОБАВЛЕНА ПЕРЕМЕННАЯ ДЛЯ ОТСЛЕЖИВАНИЯ СОСТОЯНИЯ ИГРЫ ★★★
+    this.gameReady = false; // false - игра не готова, true - можно ходить
+
     // ★★★ ДОБАВЛЕНЫ НОВЫЕ ПЕРЕМЕННЫЕ ДЛЯ ИНФОРМАЦИИ ОБ ИГРОКАХ ★★★
     this.continueCapturePiece = null; // Для множественного взятия
+
+    // ★★★ ДОБАВЛЕНА ПЕРЕМЕННАЯ ДЛЯ ОТСЛЕЖИВАНИЯ СДАЧИ ★★★
+    this.surrenderAttempts = 0; // 0 - первое нажатие, 1+ - последующие
 
     this.setupLogin();
     this.initializeGame();
@@ -178,6 +194,12 @@ class CheckersGame {
   resetGame() {
     console.log("Resetting game to initial state...");
 
+    // ★★★ СБРАСЫВАЕМ СОСТОЯНИЕ ГОТОВНОСТИ ★★★
+    this.gameReady = false;
+
+    // ★★★ СБРАСЫВАЕМ СЧЕТЧИК СДАЧИ ★★★
+    this.surrenderAttempts = 0;
+
     // Сбрасываем игровые переменные
     this.currentPlayer = "white";
     this.selectedPiece = null;
@@ -189,6 +211,7 @@ class CheckersGame {
     this.removeMoveArrow();
 
     // Очищаем доску и пересоздаём с начальной расстановкой
+    this.clearBoard();
     this.createBoard();
 
     // Обновляем информацию об игроках
@@ -197,13 +220,14 @@ class CheckersGame {
     // Обновляем статус
     this.updateStatus("Новая игра началась! Ожидание подключения...");
 
-    // Если WebSocket активен, отправляем запрос на новую игру
+    // ★★★ Отправляем запрос на новую игру на сервер ★★★
     if (this.ws && this.ws.readyState === WebSocket.OPEN) {
       this.ws.send(
         JSON.stringify({
           type: "newGame",
         })
       );
+      console.log("New game request sent to server from resetGame");
     }
 
     // Скрываем модальное окно новой игры
@@ -302,6 +326,23 @@ class CheckersGame {
       this.rejectDrawOffer();
     });
 
+    // ★★★ ДОБАВЛЕНЫ ОБРАБОТЧИКИ ДЛЯ КНОПКИ "СДАТЬСЯ" ★★★
+    this.surrenderButton.addEventListener("click", () => {
+      this.offerSurrender();
+    });
+
+    this.surrenderFirstConfirm.addEventListener("click", () => {
+      this.confirmFirstSurrender();
+    });
+
+    this.surrenderFinalConfirm.addEventListener("click", () => {
+      this.confirmFinalSurrender();
+    });
+
+    this.surrenderCancel.addEventListener("click", () => {
+      this.cancelSurrender();
+    });
+
     // Закрытие модальных окон при клике вне их
     this.newGameModal.addEventListener("click", (e) => {
       if (e.target === this.newGameModal) {
@@ -312,6 +353,19 @@ class CheckersGame {
     this.drawOfferModal.addEventListener("click", (e) => {
       if (e.target === this.drawOfferModal) {
         // Не закрываем модальное окно ничьи при клике вне - выбор обязателен
+      }
+    });
+
+    // ★★★ ДОБАВЛЕНЫ ОБРАБОТЧИКИ ДЛЯ МОДАЛЬНЫХ ОКОН СДАЧИ ★★★
+    this.surrenderFirstModal.addEventListener("click", (e) => {
+      if (e.target === this.surrenderFirstModal) {
+        this.hideSurrenderFirstModal();
+      }
+    });
+
+    this.surrenderSecondModal.addEventListener("click", (e) => {
+      if (e.target === this.surrenderSecondModal) {
+        this.hideSurrenderSecondModal();
       }
     });
   }
@@ -335,6 +389,111 @@ class CheckersGame {
     }
   }
 
+  // ★★★ ОБНОВЛЕННЫЕ МЕТОДЫ ДЛЯ КНОПКИ "СДАТЬСЯ" ★★★
+  offerSurrender() {
+    console.log(
+      "Surrender button clicked. Attempt:",
+      this.surrenderAttempts + 1
+    );
+
+    // Проверяем соединение
+    if (!this.ws || this.ws.readyState !== WebSocket.OPEN) {
+      this.updateStatus("Нет соединения с сервером");
+      return;
+    }
+
+    // Проверяем, что игра идет
+    if (!this.gameReady) {
+      this.updateStatus("Игра еще не началась");
+      return;
+    }
+
+    // ★★★ ИСПРАВЛЕННАЯ ЛОГИКА ★★★
+    if (this.surrenderAttempts === 0) {
+      // Первое нажатие - показываем только первое окно
+      console.log("First surrender attempt - showing first modal");
+      this.showSurrenderFirstModal();
+      // НЕ увеличиваем счетчик здесь - увеличим только после подтверждения в первом окне
+    } else if (this.surrenderAttempts === 1) {
+      // Второе нажатие - показываем второе окно
+      console.log("Second surrender attempt - showing second modal");
+      this.showSurrenderSecondModal();
+    } else {
+      // Третье и последующие нажатия - тоже показываем второе окно
+      console.log("Subsequent surrender attempt - showing second modal");
+      this.showSurrenderSecondModal();
+    }
+  }
+
+  showSurrenderFirstModal() {
+    if (this.surrenderFirstModal) {
+      this.surrenderFirstModal.style.display = "flex";
+      // Блокируем игровое поле пока не будет выбран ответ
+      this.board.style.pointerEvents = "none";
+    }
+  }
+
+  hideSurrenderFirstModal() {
+    if (this.surrenderFirstModal) {
+      this.surrenderFirstModal.style.display = "none";
+      this.board.style.pointerEvents = "auto";
+    }
+  }
+
+  showSurrenderSecondModal() {
+    if (this.surrenderSecondModal) {
+      this.surrenderSecondModal.style.display = "flex";
+      // Блокируем игровое поле пока не будет выбран ответ
+      this.board.style.pointerEvents = "none";
+    }
+  }
+
+  hideSurrenderSecondModal() {
+    if (this.surrenderSecondModal) {
+      this.surrenderSecondModal.style.display = "none";
+      this.board.style.pointerEvents = "auto";
+    }
+  }
+
+  confirmFirstSurrender() {
+    console.log(
+      "First surrender confirmed, increasing counter and closing modal"
+    );
+
+    // ★★★ ИСПРАВЛЕННАЯ ЛОГИКА ★★★
+    // Увеличиваем счетчик ТОЛЬКО после подтверждения в первом окне
+    this.surrenderAttempts = 1;
+
+    // Закрываем первое окно
+    this.hideSurrenderFirstModal();
+
+    // ★★★ ВАЖНО: УБЕДИТЕСЬ ЧТО ВТОРОЕ ОКНО СКРЫТО ★★★
+    this.hideSurrenderSecondModal();
+
+    this.updateStatus("Русские не сдаются! 💪");
+  }
+
+  confirmFinalSurrender() {
+    console.log("Final surrender confirmed, sending surrender to server");
+
+    if (this.ws && this.ws.readyState === WebSocket.OPEN) {
+      this.ws.send(
+        JSON.stringify({
+          type: "surrender",
+        })
+      );
+      this.updateStatus("Вы сдались. Ожидание подтверждения...");
+    }
+
+    this.hideSurrenderSecondModal();
+  }
+
+  cancelSurrender() {
+    console.log("Final surrender cancelled");
+    this.hideSurrenderSecondModal();
+    this.updateStatus("Продолжаем бой! 💪");
+  }
+
   showNewGameModal() {
     this.newGameModal.style.display = "flex";
   }
@@ -346,17 +505,8 @@ class CheckersGame {
   confirmNewGameAction() {
     console.log("Confirming new game...");
 
-    // Отправляем запрос на новую игру на сервер
-    if (this.ws && this.ws.readyState === WebSocket.OPEN) {
-      this.ws.send(
-        JSON.stringify({
-          type: "newGame",
-        })
-      );
-      this.updateStatus("Запрос на новую игру отправлен противнику...");
-    } else {
-      this.updateStatus("Нет соединения с сервером");
-    }
+    // ★★★ ИСПРАВЛЕННАЯ ЛОГИКА: вызываем startNewGame вместо отправки newGame ★★★
+    this.startNewGame();
 
     this.hideNewGameModal();
   }
@@ -399,6 +549,12 @@ class CheckersGame {
   startNewGame() {
     console.log("🔄 Starting new game properly...");
 
+    // ★★★ СБРАСЫВАЕМ СОСТОЯНИЕ ГОТОВНОСТИ ★★★
+    this.gameReady = false;
+
+    // ★★★ СБРАСЫВАЕМ СЧЕТЧИК СДАЧИ ★★★
+    this.surrenderAttempts = 0;
+
     // Скрываем модальное окно окончания игры
     this.hideGameOverModal();
 
@@ -427,7 +583,7 @@ class CheckersGame {
     // Удаляем стрелку
     this.removeMoveArrow();
 
-    // Очищаем и пересоздаем доску
+    // Очищаем доску и пересоздаем с начальной расстановкой
     this.clearBoard();
     this.createBoard();
 
@@ -437,15 +593,17 @@ class CheckersGame {
     // Обновляем статус
     this.updateStatus("Новая игра! Ожидание подключения...");
 
-    // ★★★ ВАЖНО: Переподключаем WebSocket ★★★
-    if (this.ws) {
-      this.ws.close(); // Закрываем старое соединение
+    // ★★★ ВАЖНО: Отправляем запрос на новую игру на сервер ★★★
+    if (this.ws && this.ws.readyState === WebSocket.OPEN) {
+      this.ws.send(
+        JSON.stringify({
+          type: "newGame",
+        })
+      );
+      console.log("New game request sent to server");
+    } else {
+      console.warn("WebSocket not connected, cannot send new game request");
     }
-
-    // Даем время на закрытие соединения и переподключаемся
-    setTimeout(() => {
-      this.setupWebSocket();
-    }, 1000);
   }
 
   // ★★★ ДОБАВЛЕН МЕТОД ДЛЯ СКРЫТИЯ МОДАЛЬНОГО ОКНА ★★★
@@ -556,9 +714,15 @@ class CheckersGame {
     this.setupWebSocket();
   }
 
-  // ★★★ ОБНОВЛЕННЫЙ МЕТОД ОБРАБОТКИ КЛИКОВ С УЧЕТОМ МНОЖЕСТВЕННОГО ВЗЯТИЯ ★★★
+  // ★★★ ОБНОВЛЕННЫЙ МЕТОД ОБРАБОТКИ КЛИКОВ С ПРОВЕРКОЙ ГОТОВНОСТИ ИГРЫ ★★★
   handleCellClick(row, col) {
-    console.log("Cell clicked:", row, col);
+    console.log("Cell clicked:", row, col, "Game ready:", this.gameReady);
+
+    // ★★★ ПЕРВАЯ ПРОВЕРКА: ИГРА ДОЛЖНА БЫТЬ ГОТОВА ★★★
+    if (!this.gameReady) {
+      this.updateStatus("⏳ Ожидание подключения второго игрока...");
+      return;
+    }
 
     if (!this.playerColor) {
       this.updateStatus("Ожидание подключения...");
@@ -681,8 +845,12 @@ class CheckersGame {
     });
   }
 
+  // ★★★ ИСПРАВЛЕННЫЙ МЕТОД restartGame ★★★
   restartGame() {
-    console.log(startNewGame());
+    console.log("Restarting game via restart button");
+
+    // ★★★ ПРОСТО ВЫЗЫВАЕМ startNewGame ★★★
+    this.startNewGame();
 
     // Удаляем стрелку и очищаем таймер
     this.removeMoveArrow();
@@ -694,28 +862,7 @@ class CheckersGame {
     this.board.style.display = "grid";
     this.status.style.display = "block";
 
-    // Сбрасываем состояние игры
-    this.selectedPiece = null;
-    this.possibleMoves = [];
-    this.playerColor = null;
-    this.currentPlayer = "white";
-    this.continueCapturePiece = null; // Сбрасываем множественное взятие
-
-    // Обновляем статус
-    this.updateStatus("Перезапуск игры...");
-
-    // Очищаем доску
-    this.clearBoard();
-
-    // Переподключаемся к серверу
-    if (this.ws) {
-      this.ws.close();
-    }
-
-    // Перезагружаем игру через небольшой таймаут
-    setTimeout(() => {
-      this.setupWebSocket();
-    }, 1000);
+    // ★★★ ОСТАЛЬНОЕ СДЕЛАЕТ startNewGame() ★★★
   }
 
   createMoveArrow(fromRow, fromCol, toRow, toCol) {
@@ -857,10 +1004,10 @@ class CheckersGame {
           this.updateGameState(message.gameState);
 
           // ★★★ ОБРАБОТКА МНОЖЕСТВЕННОГО ВЗЯТИЯ ★★★
-          if (message.canContinueCapture) {
+          if (message.canContinue) {
             this.continueCapturePiece = {
-              row: message.continueFromRow,
-              col: message.continueFromCol,
+              row: message.gameState.continueCapture?.position?.row,
+              col: message.gameState.continueCapture?.position?.col,
             };
             this.updateStatus(
               "Можете продолжить взятие! Выберите следующую шашку для взятия."
@@ -871,6 +1018,17 @@ class CheckersGame {
         } else {
           this.updateStatus(`❌ ${message.message}`);
         }
+        break;
+
+      // ★★★ ДОБАВЛЕН ОБРАБОТЧИК ДЛЯ ПРОДОЛЖЕНИЯ ВЗЯТИЯ ★★★
+      case "canContinueCapture":
+        this.continueCapturePiece = {
+          row: message.position.row,
+          col: message.position.col,
+        };
+        this.updateStatus(
+          "Можете продолжить взятие! Выберите следующую шашку для взятия."
+        );
         break;
 
       case "moveMade":
@@ -893,7 +1051,35 @@ class CheckersGame {
         if (message.result === "draw") {
           this.handleGameOver({ winner: null, result: "draw" });
         } else {
-          this.handleGameOver(message);
+          // ★★★ ИСПРАВЛЕННАЯ ОБРАБОТКА СДАЧИ ★★★
+          if (message.result === "surrender") {
+            const winner = message.winner;
+            const surrenderedBy = message.surrenderedBy;
+            const surrenderedByColor = message.surrenderedByColor;
+
+            const winnerName =
+              winner === this.playerColor ? this.username : this.opponentName;
+            const loserName =
+              surrenderedByColor === this.playerColor
+                ? this.username
+                : this.opponentName;
+            const colorText =
+              surrenderedByColor === "white" ? "белые" : "чёрные";
+
+            this.updateStatus(
+              `🏆 ${winnerName} победитель! ${loserName} (${colorText}) сдался`
+            );
+
+            this.handleGameOver({
+              winner: winner,
+              result: "win",
+              surrender: true,
+              surrenderedPlayer: surrenderedByColor,
+              message: `${winnerName} победитель! ${loserName} (${colorText}) сдался`,
+            });
+          } else {
+            this.handleGameOver(message);
+          }
         }
         break;
 
@@ -944,8 +1130,11 @@ class CheckersGame {
     this.updateTurnStatus();
   }
 
+  // ★★★ ОБНОВЛЕННЫЙ МЕТОД ДЛЯ УЧЕТА МНОЖЕСТВЕННОГО ВЗЯТИЯ ★★★
   updateTurnStatus() {
-    if (this.currentPlayer === this.playerColor) {
+    if (this.continueCapturePiece) {
+      this.updateStatus("Продолжайте взятие! Выберите следующую шашку.");
+    } else if (this.currentPlayer === this.playerColor) {
       this.updateStatus("✅ Ваш ход!");
     } else {
       this.updateStatus("⏳ Ход противника...");
@@ -954,7 +1143,8 @@ class CheckersGame {
 
   handlePlayersInfo(players) {
     console.log("Players info:", players);
-    // Сохраняем имя противника
+
+    // ★★★ ПРОВЕРЯЕМ, ЧТО ОБА ИГРОКА ПОДКЛЮЧЕНЫ ★★★
     if (players.length === 2) {
       const opponent = players.find((p) => p.username !== this.username);
       if (opponent) {
@@ -962,9 +1152,18 @@ class CheckersGame {
         console.log(
           `Playing against: ${this.opponentName} (${opponent.color})`
         );
-        // ★★★ ОБНОВЛЯЕМ ИНФОРМАЦИЮ ОБ ИГРОКАХ ★★★
+
+        // ★★★ ИГРА ГОТОВА - МОЖНО ХОДИТЬ ★★★
+        this.gameReady = true;
+        this.updateStatus("✅ Оба игрока подключены! Ваш ход!");
+
+        // ★★★ ОБНОВЛЯЕМ ИНФОРМАЦИЮ ОБ ИГРОКАх ★★★
         this.updatePlayersInfo();
       }
+    } else {
+      // ★★★ ЕСЛИ ИГРОКОВ МЕНЬШЕ 2 - ИГРА НЕ ГОТОВА ★★★
+      this.gameReady = false;
+      this.updateStatus("⏳ Ожидание подключения второго игрока...");
     }
   }
 
@@ -1022,12 +1221,30 @@ class CheckersGame {
       winnerText = "🤝 Ничья!";
       gameOverMessage = "Ничья!";
     } else if (result.winner) {
-      // ★★★ ДОБАВЛЕНО: ОПРЕДЕЛЯЕМ НИК ПОБЕДИТЕЛЯ ★★★
-      const winnerName =
-        result.winner === this.playerColor ? this.username : this.opponentName;
-      const colorText = result.winner === "white" ? "белые" : "чёрные";
-      winnerText = `🏆 Победил ${winnerName} (${colorText})`;
-      gameOverMessage = `Победил ${winnerName} (${colorText})`;
+      // ★★★ ОБРАБОТКА СДАЧИ ★★★
+      if (result.surrender) {
+        const winnerName =
+          result.winner === this.playerColor
+            ? this.username
+            : this.opponentName;
+        const surrenderedPlayer = result.surrenderedPlayer;
+        const loserName =
+          surrenderedPlayer === this.playerColor
+            ? this.username
+            : this.opponentName;
+        // ★★★ УБРАН colorText ИЗ СООБЩЕНИЯ ★★★
+        winnerText = `🏆 ${winnerName} победил!`;
+        gameOverMessage = `${winnerName} победил! ${loserName} сдался`;
+      } else {
+        // Обычная победа
+        const winnerName =
+          result.winner === this.playerColor
+            ? this.username
+            : this.opponentName;
+        // ★★★ УБРАН colorText ИЗ СООБЩЕНИЯ ★★★
+        winnerText = `🏆 Победил ${winnerName}`;
+        gameOverMessage = `Победил ${winnerName}`;
+      }
     } else {
       winnerText = "🤝 Ничья!";
       gameOverMessage = "Ничья!";
@@ -1047,7 +1264,7 @@ class CheckersGame {
     const modal = document.getElementById("gameOverModal");
     const messageElement = document.getElementById("gameOverMessage");
     if (modal && messageElement) {
-      messageElement.textContent = winnerText;
+      messageElement.textContent = gameOverMessage;
       modal.style.display = "flex";
     }
   }
@@ -1071,6 +1288,7 @@ class CheckersGame {
         message.includes("⏳") ||
         message.includes("❌") ||
         message.includes("⚠️") ||
+        message.includes("🎯") ||
         message.includes("Подключено") ||
         message.includes("Ожидание") ||
         message.includes("Добро пожаловать") ||
@@ -1086,7 +1304,10 @@ class CheckersGame {
         message.includes("Запрос на новую игру") ||
         message.includes("Согласие на новую игру") ||
         message.includes("отклонил предложение новой игры") ||
-        message.includes("Можете продолжить взятие");
+        message.includes("Можете продолжить взятие") ||
+        message.includes("Вы сдались") ||
+        message.includes("Продолжаем бой") ||
+        message.includes("Русские не сдаются");
 
       if (this.username && this.playerColor && !isSystemMessage) {
         const colorText = this.playerColor === "white" ? "белые" : "чёрные";
@@ -1123,7 +1344,7 @@ function startNewGame() {
 // Запускаем игру когда страница полностью загружена
 document.addEventListener("DOMContentLoaded", () => {
   console.log("🚀 Starting Checkers Game...");
-  new CheckersGame();
+  window.checkersGame = new CheckersGame(); // ★★★ СОХРАНЯЕМ В ГЛОБАЛЬНУЮ ПЕРЕМЕННУЮ ★★★
 });
 
 // Добавляем обработчик для переподключения при видимости страницы
