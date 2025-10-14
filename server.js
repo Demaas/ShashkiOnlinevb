@@ -205,6 +205,35 @@ class CheckersGameServer {
     this.broadcastGameState();
   }
 
+  // ★★★ ДОБАВЛЕН МЕТОД ДЛЯ ОБРАБОТКИ СДАЧИ ★★★
+  handleSurrender(ws) {
+    const player = this.players.find((p) => p.ws === ws);
+    if (!player || this.gameState !== "playing") return;
+
+    console.log(`Player ${player.username} (${player.color}) surrendered`);
+
+    // Определяем победителя (противник)
+    const winner = player.color === "white" ? "black" : "white";
+
+    // Завершаем игру с победой противника
+    this.gameState = "finished";
+    this.winner = winner;
+    this.continueCapture = null;
+
+    // Отправляем уведомление обоим игрокам
+    this.broadcast(
+      JSON.stringify({
+        type: "gameOver",
+        winner: winner,
+        result: "surrender",
+        surrenderedBy: player.username,
+        surrenderedByColor: player.color,
+      })
+    );
+
+    console.log(`Game over by surrender! Winner: ${winner}`);
+  }
+
   handleMove(moveData, ws) {
     const player = this.players.find((p) => p.ws === ws);
     if (!player) {
@@ -550,6 +579,7 @@ class CheckersGameServer {
 
     directions.forEach(({ rowDir, colDir }) => {
       if (piece.isKing) {
+        // Логика для дамки (оставить как есть)
         let foundOpponent = false;
         let captureRow, captureCol;
 
@@ -596,43 +626,35 @@ class CheckersGameServer {
           }
         }
       } else {
-        // ★★★ УЛУЧШЕННАЯ ЛОГИКА ДЛЯ ПРОСТЫХ ШАШЕК - 4 НАПРАВЛЕНИЯ ★★★
-        const directions = [
-          { rowDir: -1, colDir: -1 }, // вверх-влево
-          { rowDir: -1, colDir: 1 }, // вверх-вправо
-          { rowDir: 1, colDir: -1 }, // вниз-влево
-          { rowDir: 1, colDir: 1 }, // вниз-вправо
-        ];
+        // ★★★ ИСПРАВЛЕННАЯ ЛОГИКА ДЛЯ ПРОСТЫХ ШАШЕК ★★★
+        // УБИРАЕМ ВТОРОЙ ЦИКЛ И ДУБЛИРОВАНИЕ directions
+        const captureRow = piece.row + rowDir;
+        const captureCol = piece.col + colDir;
+        const landRow = piece.row + 2 * rowDir; // ТОЛЬКО +2 клетки
+        const landCol = piece.col + 2 * colDir;
 
-        directions.forEach(({ rowDir, colDir }) => {
-          const captureRow = piece.row + rowDir;
-          const captureCol = piece.col + colDir;
-          const landRow = piece.row + 2 * rowDir;
-          const landCol = piece.col + 2 * colDir;
+        if (
+          this.isValidPosition(captureRow, captureCol) &&
+          this.isValidPosition(landRow, landCol)
+        ) {
+          const capturedPiece = this.getPiece(captureRow, captureCol);
+          const landingCell = this.getPiece(landRow, landCol);
 
           if (
-            this.isValidPosition(captureRow, captureCol) &&
-            this.isValidPosition(landRow, landCol)
+            capturedPiece &&
+            capturedPiece.color !== piece.color &&
+            !landingCell
           ) {
-            const capturedPiece = this.getPiece(captureRow, captureCol);
-            const landingCell = this.getPiece(landRow, landCol);
-
-            if (
-              capturedPiece &&
-              capturedPiece.color !== piece.color &&
-              !landingCell
-            ) {
-              captures.push({
-                fromRow: piece.row,
-                fromCol: piece.col,
-                toRow: landRow,
-                toCol: landCol,
-                captureRow: captureRow,
-                captureCol: captureCol,
-              });
-            }
+            captures.push({
+              fromRow: piece.row,
+              fromCol: piece.col,
+              toRow: landRow,
+              toCol: landCol,
+              captureRow: captureRow,
+              captureCol: captureCol,
+            });
           }
-        });
+        }
       }
     });
 
@@ -899,6 +921,12 @@ wss.on("connection", (ws, req) => {
 
         case "drawResponse":
           game.handleDrawResponse(ws, data.accepted);
+          break;
+
+        // ★★★ ДОБАВЛЕНА ОБРАБОТКА СДАЧИ ★★★
+        case "surrender":
+          console.log("Received surrender request");
+          game.handleSurrender(ws);
           break;
 
         case "ping":
