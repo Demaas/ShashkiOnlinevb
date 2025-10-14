@@ -123,6 +123,9 @@
           <button id="drawOfferButton" class="control-button draw-offer-btn">
             Ничья?
           </button>
+          <button id="surrenderButton" class="control-button surrender-btn">
+            Сдаться
+          </button>
         </div>
 
         <!-- Модальное окно для новой игры -->
@@ -149,6 +152,35 @@
             <div class="modal-buttons">
               <button id="acceptDraw" class="modal-btn confirm-btn">Да</button>
               <button id="rejectDraw" class="modal-btn cancel-btn">Нет</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- ★★★ МОДАЛЬНОЕ ОКНО ДЛЯ ПЕРВОГО ПОДТВЕРЖДЕНИЯ СДАЧИ ★★★ -->
+        <div id="surrenderFirstModal" class="modal" style="display: none">
+          <div class="modal-content">
+            <h2>Серьёзно?</h2>
+            <p>Русские не сдаются!</p>
+            <div class="modal-buttons">
+              <button id="surrenderFirstConfirm" class="modal-btn confirm-btn">
+                Да!
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- ★★★ МОДАЛЬНОЕ ОКНО ДЛЯ ВТОРОГО ПОДТВЕРЖДЕНИЯ СДАЧИ ★★★ -->
+        <div id="surrenderSecondModal" class="modal" style="display: none">
+          <div class="modal-content">
+            <h2>Вы уверены, что хотите сдаться?</h2>
+            <p></p>
+            <div class="modal-buttons">
+              <button id="surrenderFinalConfirm" class="modal-btn confirm-btn">
+                Да
+              </button>
+              <button id="surrenderCancel" class="modal-btn cancel-btn">
+                Нет
+              </button>
             </div>
           </div>
         </div>
@@ -400,6 +432,88 @@
                   accept: false,
                 })
               );
+            }
+          });
+        }
+
+        // ★★★ ОБРАБОТЧИКИ ДЛЯ КНОПКИ СДАЧИ ★★★
+        const surrenderBtn = document.getElementById("surrenderButton");
+        const surrenderFirstConfirm = document.getElementById(
+          "surrenderFirstConfirm"
+        );
+        const surrenderFinalConfirm = document.getElementById(
+          "surrenderFinalConfirm"
+        );
+        const surrenderCancel = document.getElementById("surrenderCancel");
+
+        if (surrenderBtn) {
+          surrenderBtn.addEventListener("click", function () {
+            if (window.ws && window.ws.readyState === WebSocket.OPEN) {
+              // Используем метод из CheckersGame
+              if (window.checkersGame && window.checkersGame.offerSurrender) {
+                window.checkersGame.offerSurrender();
+              }
+            }
+          });
+        }
+
+        if (surrenderFirstConfirm) {
+          surrenderFirstConfirm.addEventListener("click", function () {
+            const modal = document.getElementById("surrenderFirstModal");
+            if (modal) modal.style.display = "none";
+
+            // Показываем второе модальное окно
+            const secondModal = document.getElementById("surrenderSecondModal");
+            if (secondModal) secondModal.style.display = "block";
+          });
+        }
+
+        if (surrenderFinalConfirm) {
+          surrenderFinalConfirm.addEventListener("click", function () {
+            const modal = document.getElementById("surrenderSecondModal");
+            if (modal) modal.style.display = "none";
+
+            if (window.ws && window.ws.readyState === WebSocket.OPEN) {
+              window.ws.send(
+                JSON.stringify({
+                  type: "surrender",
+                })
+              );
+            }
+          });
+        }
+
+        if (surrenderCancel) {
+          surrenderCancel.addEventListener("click", function () {
+            const modal = document.getElementById("surrenderSecondModal");
+            if (modal) modal.style.display = "none";
+
+            if (window.checkersGame && window.checkersGame.updateStatus) {
+              window.checkersGame.updateStatus("Продолжаем бой! 💪");
+            }
+          });
+        }
+
+        // Закрытие модальных окон сдачи при клике вне
+        const surrenderFirstModal = document.getElementById(
+          "surrenderFirstModal"
+        );
+        const surrenderSecondModal = document.getElementById(
+          "surrenderSecondModal"
+        );
+
+        if (surrenderFirstModal) {
+          surrenderFirstModal.addEventListener("click", function (e) {
+            if (e.target === surrenderFirstModal) {
+              surrenderFirstModal.style.display = "none";
+            }
+          });
+        }
+
+        if (surrenderSecondModal) {
+          surrenderSecondModal.addEventListener("click", function (e) {
+            if (e.target === surrenderSecondModal) {
+              surrenderSecondModal.style.display = "none";
             }
           });
         }
