@@ -30,6 +30,7 @@ class CheckersGameServer {
     this.drawOffer = null;
     this.pendingRestart = null;
     this.continueCapture = null; // ★★★ ДОБАВЛЕНО ДЛЯ МНОЖЕСТВЕННОГО ВЗЯТИЯ ★★★
+    this.pendingNewGame = null; // ★★★ ДОБАВЛЕНО ДЛЯ НОВОЙ ЛОГИКИ ИГРЫ ★★★
   }
 
   initializePieces() {
@@ -90,8 +91,18 @@ class CheckersGameServer {
     this.currentPlayer = "white";
     this.drawOffer = null;
     this.pendingRestart = null;
-    this.continueCapture = null; // ★★★ СБРОС МНОЖЕСТВЕННОГО ВЗЯТИЯ ★★★
+    this.pendingNewGame = null;
+    this.continueCapture = null;
     console.log("Game started! White moves first.");
+
+    // ★★★ ДОБАВЛЕНО: Отправляем сообщение о готовности игры ★★★
+    this.broadcast(
+      JSON.stringify({
+        type: "gameReady",
+        message: "Оба игрока подключены, игра начинается!",
+      })
+    );
+
     this.broadcastGameState();
   }
 
@@ -105,6 +116,16 @@ class CheckersGameServer {
         `Player ${playerName} (${playerColor}) disconnected. Remaining players: ${this.players.length}`
       );
 
+      // ★★★ УВЕДОМЛЯЕМ ОСТАВШЕГОСЯ ИГРОКА ОБ ОТКЛЮЧЕНИИ ★★★
+      if (this.players.length > 0) {
+        this.players[0].ws.send(
+          JSON.stringify({
+            type: "playerDisconnected",
+            message: "Противник отключился. Ожидание переподключения...",
+          })
+        );
+      }
+
       if (this.gameState === "playing") {
         this.gameState = "finished";
         this.winner = this.players[0] ? this.players[0].color : null;
@@ -113,11 +134,83 @@ class CheckersGameServer {
     }
   }
 
-  handleNewGame(ws) {
+  // ★★★ ОБНОВЛЕННЫЙ МЕТОД ДЛЯ НОВОЙ ИГРЫ ★★★
+  handleNewGameRequest(ws, fromUsername) {
     const player = this.players.find((p) => p.ws === ws);
     if (!player) return;
 
     console.log(`New game requested by ${player.username} (${player.color})`);
+
+    // Если игрок только один, просто перезапускаем игру
+    if (this.players.length === 1) {
+      this.resetGame();
+      return;
+    }
+
+    // Отправляем предложение второму игроку
+    const opponent = this.players.find((p) => p.ws !== ws);
+    if (opponent) {
+      opponent.ws.send(
+        JSON.stringify({
+          type: "newGameRequest",
+          from: fromUsername,
+        })
+      );
+    }
+
+    // Сохраняем информацию о запросе новой игры
+    this.pendingNewGame = {
+      requestedBy: player.color,
+      requestedByUsername: fromUsername,
+    };
+
+    console.log(
+      `New game request sent to other player. Waiting for response...`
+    );
+  }
+
+  // ★★★ НОВЫЙ МЕТОД ДЛЯ ОБРАБОТКИ ОТВЕТА НА ЗАПРОС НОВОЙ ИГРЫ ★★★
+  handleNewGameResponse(ws, accepted) {
+    const player = this.players.find((p) => p.ws === ws);
+    if (!player || !this.pendingNewGame) return;
+
+    console.log(
+      `New game response from ${player.username} (${player.color}): ${
+        accepted ? "accepted" : "rejected"
+      }`
+    );
+
+    // Отправляем ответ инициатору
+    const initiator = this.players.find(
+      (p) => p.color === this.pendingNewGame.requestedBy
+    );
+    if (initiator) {
+      initiator.ws.send(
+        JSON.stringify({
+          type: accepted ? "newGameAccepted" : "newGameRejected",
+        })
+      );
+    }
+
+    if (accepted) {
+      // Оба игрока согласились - начинаем новую игру
+      console.log("Both players agreed to new game. Starting...");
+      this.restartGame();
+    } else {
+      // Игрок отклонил предложение
+      console.log("New game request was rejected");
+      this.pendingNewGame = null;
+    }
+  }
+
+  // ★★★ СТАРЫЙ МЕТОД (ОСТАВЛЯЕМ ДЛЯ СОВМЕСТИМОСТИ) ★★★
+  handleNewGame(ws) {
+    const player = this.players.find((p) => p.ws === ws);
+    if (!player) return;
+
+    console.log(
+      `Legacy new game requested by ${player.username} (${player.color})`
+    );
 
     // Если игрок только один, просто перезапускаем игру
     if (this.players.length === 1) {
@@ -175,9 +268,19 @@ class CheckersGameServer {
     this.winner = null;
     this.drawOffer = null;
     this.pendingRestart = null;
-    this.continueCapture = null; // ★★★ СБРОС МНОЖЕСТВЕННОГО ВЗЯТИЯ ★★★
+    this.pendingNewGame = null;
+    this.continueCapture = null;
 
     this.broadcastGameState();
+    this.broadcastPlayersInfo();
+
+    // ★★★ ВАЖНО: Отправляем gameReady при перезапуске ★★★
+    this.broadcast(
+      JSON.stringify({
+        type: "gameReady",
+        message: "Новая игра началась!",
+      })
+    );
 
     this.broadcast(
       JSON.stringify({
@@ -199,6 +302,7 @@ class CheckersGameServer {
     this.winner = null;
     this.drawOffer = null;
     this.pendingRestart = null;
+    this.pendingNewGame = null; // ★★★ СБРОС ЗАПРОСА НОВОЙ ИГРЫ ★★★
     this.continueCapture = null; // ★★★ СБРОС МНОЖЕСТВЕННОГО ВЗЯТИЯ ★★★
 
     console.log("Game reset successfully");
@@ -905,8 +1009,20 @@ wss.on("connection", (ws, req) => {
           game.handleMove(data.data, ws);
           break;
 
-        case "newGame":
+        // ★★★ НОВЫЕ ОБРАБОТЧИКИ ДЛЯ НОВОЙ ЛОГИКИ ИГРЫ ★★★
+        case "newGameRequest":
           console.log("Received new game request");
+          game.handleNewGameRequest(ws, data.from);
+          break;
+
+        case "newGameResponse":
+          console.log("Received new game response:", data.accepted);
+          game.handleNewGameResponse(ws, data.accepted);
+          break;
+
+        // ★★★ СТАРЫЕ ОБРАБОТЧИКИ (ДЛЯ СОВМЕСТИМОСТИ) ★★★
+        case "newGame":
+          console.log("Received legacy new game request");
           game.handleNewGame(ws);
           break;
 
