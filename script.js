@@ -1,4 +1,4 @@
-// script.js - ОБНОВЛЕННАЯ ВЕРСИЯ с новой логикой кнопки "Новая Игра"
+// script.js - ОБНОВЛЕННАЯ ВЕРСИЯ с чатом и смайликами
 class CheckersGame {
   constructor() {
     this.board = document.getElementById("board");
@@ -43,6 +43,31 @@ class CheckersGame {
     this.newGameModalTitle = document.getElementById("newGameModalTitle");
     this.newGameModalMessage = document.getElementById("newGameModalMessage");
 
+    // ★★★ ДОБАВЛЕНЫ ЭЛЕМЕНТЫ ДЛЯ ЧАТА И СМАЙЛИКОВ ★★★
+    this.chatHistory = document.getElementById("chatHistory");
+    this.chatInput = document.getElementById("chatInput");
+    this.sendMessageBtn = document.getElementById("sendMessageBtn");
+    this.smileyBtns = document.querySelectorAll(".smiley-btn");
+
+    console.log("💬 Chat elements state:", {
+      chatHistory: this.chatHistory ? "found" : "not found",
+      chatInput: this.chatInput
+        ? `found (value: "${this.chatInput.value}")`
+        : "not found",
+      sendMessageBtn: this.sendMessageBtn ? "found" : "not found",
+      smileyBtns: `found ${this.smileyBtns.length} buttons`,
+    });
+
+    // Звуки для смайликов
+    this.sounds = {
+      laugh: document.getElementById("laughSound"),
+      sad: document.getElementById("sadSound"),
+      cool: document.getElementById("coolSound"),
+      suck: document.getElementById("suckSound"),
+      think: document.getElementById("thinkSound"),
+      smirk: document.getElementById("smirkSound"),
+    };
+
     this.currentPlayer = "white";
     this.selectedPiece = null;
     this.possibleMoves = [];
@@ -59,7 +84,7 @@ class CheckersGame {
     // ★★★ ДОБАВЛЕНЫ НОВЫЕ ПЕРЕМЕННЫЕ ДЛЯ ИНФОРМАЦИИ ОБ ИГРОКАХ ★★★
     this.continueCapturePiece = null; // Для множественного взятия
 
-    // ★★★ ДОБАВЛЕНА ПЕРЕМЕННАЯ ДЛЯ ОТСЛЕЖИВАНИА СДАЧИ ★★★
+    // ★★★ ДОБАВЛЕНА ПЕРЕМЕННАЯ ДЛЯ ОТСЛЕЖИВАНИЯ СДАЧИ ★★★
     this.surrenderAttempts = 0; // 0 - первое нажатие, 1+ - последующие
 
     this.setupLogin();
@@ -67,9 +92,207 @@ class CheckersGame {
     this.setupRestartButton();
     this.setupGameControls();
     this.setupRestartModal();
+    this.setupChatAndSmileys(); // ★★★ ДОБАВЛЕН ВЫЗОВ ★★★
 
     // ★★★ ДОБАВЛЕН ВЫЗОВ ФУНКЦИИ ДЛЯ ОБНОВЛЕНИЯ ИНФОРМАЦИИ ОБ ИГРОКАХ ★★★
     this.updatePlayersInfo();
+  }
+
+  // ★★★ МЕТОДЫ ДЛЯ ЧАТА И СМАЙЛИКОВ ★★★
+  setupChatAndSmileys() {
+    console.log("💬 Setting up chat and smileys...");
+
+    // Обработчики для отправки сообщений
+    if (this.sendMessageBtn && this.chatInput) {
+      this.sendMessageBtn.addEventListener("click", () => {
+        console.log("🖱️ Send button clicked");
+        const message = this.chatInput.value.trim();
+        console.log("📝 Message to send:", message);
+        this.sendChatMessage(message, false);
+      });
+
+      this.chatInput.addEventListener("keypress", (e) => {
+        if (e.key === "Enter") {
+          console.log("⌨️ Enter key pressed");
+          const message = this.chatInput.value.trim();
+          console.log("📝 Message to send:", message);
+          this.sendChatMessage(message, false);
+        }
+      });
+
+      console.log("✅ Chat event listeners set up");
+    } else {
+      console.log("❌ Chat elements not found:", {
+        sendMessageBtn: !!this.sendMessageBtn,
+        chatInput: !!this.chatInput,
+      });
+    }
+
+    // Обработчики для смайликов
+    if (this.smileyBtns && this.smileyBtns.length > 0) {
+      this.smileyBtns.forEach((btn) => {
+        btn.addEventListener("click", () => {
+          const smiley = btn.getAttribute("data-smiley");
+          const soundType = btn.getAttribute("data-sound");
+          console.log("😊 Smiley clicked:", smiley, soundType);
+          this.sendSmiley(smiley, soundType);
+        });
+      });
+      console.log("✅ Smiley event listeners set up");
+    } else {
+      console.log("❌ Smiley buttons not found");
+    }
+  }
+
+  // Отправка обычного сообщения
+  sendChatMessage(message, isSmiley = false) {
+    console.log("📤 sendChatMessage called with:", { message, isSmiley });
+
+    if (!message) {
+      console.log("❌ Message is null or undefined");
+      return;
+    }
+
+    const trimmedMessage = message.trim();
+    if (!trimmedMessage) {
+      console.log("❌ Empty message after trimming, not sending");
+      // Можно добавить визуальную обратную связь
+      this.chatInput.placeholder = "Введите сообщение...";
+      this.chatInput.focus();
+      return;
+    }
+
+    // Проверяем соединение
+    if (!this.ws || this.ws.readyState !== WebSocket.OPEN) {
+      console.log("❌ WebSocket not connected");
+      this.updateStatus("Нет соединения с сервером");
+      return;
+    }
+
+    console.log("📤 Sending chat message to server:", {
+      message: trimmedMessage,
+      isSmiley,
+      username: this.username,
+    });
+
+    // Отправка на сервер
+    this.ws.send(
+      JSON.stringify({
+        type: "chatMessage",
+        message: trimmedMessage,
+        isSmiley: isSmiley,
+        player: this.username,
+      })
+    );
+
+    this.chatInput.value = "";
+    console.log("✅ Chat message sent successfully, input cleared");
+  }
+
+  // Отправка смайлика
+  sendSmiley(smiley, soundType) {
+    console.log(`Sending smiley: ${smiley} with sound: ${soundType}`);
+
+    // Воспроизведение звука (заглушка - добавим позже файлы)
+    this.playSmileySound(soundType);
+
+    // Отправляем смайлик как сообщение
+    this.sendChatMessage(smiley, true);
+  }
+
+  // Воспроизведение звука смайлика
+  playSmileySound(soundType) {
+    try {
+      const sound = this.sounds[soundType];
+      if (sound) {
+        sound.currentTime = 0;
+        sound.play().catch((e) => {
+          console.log("Audio play error (normal for missing files):", e);
+        });
+      }
+    } catch (error) {
+      console.log("Sound play error:", error);
+    }
+  }
+
+  // Отображение сообщения в чате
+  displayChatMessage(playerName, message, isSmiley = false, isSystem = false) {
+    console.log("🎯 displayChatMessage called with:", {
+      playerName,
+      message,
+      isSmiley,
+      isSystem,
+    });
+
+    console.log("💬 Displaying chat message:", {
+      playerName,
+      message,
+      isSmiley,
+      isSystem,
+    });
+
+    const messageDiv = document.createElement("div");
+
+    if (isSystem || playerName === "system") {
+      messageDiv.className = "chat-message system";
+      messageDiv.textContent = message;
+      console.log("🔧 System message created");
+    } else {
+      // Определяем класс для стилизации сообщения
+      const messageClass = playerName === this.username ? "player1" : "player2";
+      messageDiv.className = `chat-message ${messageClass}`;
+
+      if (isSmiley) {
+        messageDiv.innerHTML = `<strong>${playerName}:</strong> ${message}`;
+        console.log("😊 Smiley message created");
+      } else {
+        messageDiv.textContent = `${playerName}: ${message}`;
+        console.log("📝 Regular message created");
+      }
+    }
+
+    this.chatHistory.appendChild(messageDiv);
+    console.log("✅ Message added to chat history");
+
+    // Прокручиваем к последнему сообщению
+    this.chatHistory.scrollTop = this.chatHistory.scrollHeight;
+    console.log("📜 Scrolled to bottom");
+
+    // Ограничиваем количество сообщений (последние 20)
+    this.limitChatMessages();
+  }
+
+  // Ограничение количества сообщений в чате
+  limitChatMessages() {
+    if (!this.chatHistory) return;
+
+    const messages = this.chatHistory.querySelectorAll(".chat-message");
+    if (messages.length > 20) {
+      messages[0].remove();
+    }
+  }
+
+  // Очистка истории чата
+  clearChatHistory() {
+    if (this.chatHistory) {
+      this.chatHistory.innerHTML = "";
+      // Добавляем системное сообщение
+      this.displayChatMessage("", "Чат очищен", false, true);
+    }
+  }
+
+  // Определение типа звука по смайлику
+  getSoundTypeBySmiley(smiley) {
+    const smileyMap = {
+      "😂": "laugh",
+      "😢": "sad",
+      "👍": "cool",
+      "👎": "suck",
+      "🤔": "think",
+      "😏": "smirk",
+    };
+
+    return smileyMap[smiley] || null;
   }
 
   initializeGame() {
@@ -221,7 +444,7 @@ class CheckersGame {
     this.clearBoard();
     this.createBoard();
 
-    // Обновляем информацию об игроках
+    // Обновляем информацию об игрокай
     this.updatePlayersInfo();
 
     // Обновляем статус
@@ -645,6 +868,9 @@ class CheckersGame {
     this.clearBoard();
     this.createBoard();
 
+    // ★★★ ОЧИЩАЕМ ЧАТ ПРИ НОВОЙ ИГРЕ ★★★
+    this.clearChatHistory();
+
     // ★★★ ВАЖНО: ПОКАЗЫВАЕМ КНОПКИ УПРАВЛЕНИЯ ★★★
     if (this.gameControls) {
       this.gameControls.style.display = "flex";
@@ -903,6 +1129,223 @@ class CheckersGame {
     }
   }
 
+  handleServerMessage(message) {
+    console.log("📨 Received message type:", message.type, "Data:", message);
+
+    switch (message.type) {
+      // ★★★ ДОБАВЛЕНО: Обработка готовности игры ★★★
+      case "gameReady":
+        console.log("✅ Game is ready to play!");
+        this.gameReady = true;
+        this.updateStatus("✅ Оба игрока подключены! Ваш ход!");
+
+        // ★★★ ДОБАВЛЯЕМ СООБЩЕНИЕ В ЧАТ ★★★
+        this.displayChatMessage("", "Игра началась! Удачи!", false, true);
+        break;
+
+      case "playerDisconnected":
+        this.gameReady = false;
+        this.updateStatus(message.message);
+        break;
+
+      case "playerAssigned":
+        this.playerColor = message.color;
+        const colorText = this.playerColor === "white" ? "белые" : "чёрные";
+        this.updateStatus(
+          `Вы играете за ${colorText}. Ожидание второго игрока...`
+        );
+        this.updatePlayersInfo();
+        break;
+
+      case "gameState":
+        this.updateGameState(message.data);
+        break;
+
+      case "moveResult":
+        if (message.valid) {
+          this.updateGameState(message.gameState);
+
+          // ★★★ ОБРАБОТКА МНОЖЕСТВЕННОГО ВЗЯТИЯ ★★★
+          if (message.canContinue) {
+            this.continueCapturePiece = {
+              row: message.gameState.continueCapture?.position?.row,
+              col: message.gameState.continueCapture?.position?.col,
+            };
+            this.updateStatus(
+              "Можете продолжить взятие! Выберите следующую шашку для взятия."
+            );
+          } else {
+            this.continueCapturePiece = null; // Сбрасываем множественное взятие
+          }
+        } else {
+          this.updateStatus(`❌ ${message.message}`);
+        }
+        break;
+
+      // ★★★ ДОБАВЛЕН ОБРАБОТЧИК ДЛЯ ПРОДОЛЖЕНИЯ ВЗЯТИЯ ★★★
+      case "canContinueCapture":
+        this.continueCapturePiece = {
+          row: message.position.row,
+          col: message.position.col,
+        };
+        this.updateStatus(
+          "Можете продолжить взятие! Выберите следующую шашку для взятия."
+        );
+        break;
+
+      case "moveMade":
+        this.handleMoveMade(message.data);
+        break;
+
+      case "playersInfo":
+        this.handlePlayersInfo(message.data);
+        break;
+
+      case "drawOfferReceived":
+        this.showDrawOfferModal(message.from);
+        break;
+
+      case "drawRejected":
+        this.updateStatus(`${message.by} отклонил предложение ничьи`);
+        break;
+
+      // ★★★ ИСПРАВЛЕННЫЙ КОД - ЗАМЕНИТЕ СТАРЫЙ БЛОК ★★★
+      case "chatMessage":
+        console.log("💬 Received chat message:", message);
+        this.displayChatMessage(
+          message.player,
+          message.message,
+          message.isSmiley,
+          message.player === "system"
+        );
+
+        // Воспроизводим звук если это смайлик от другого игрока
+        if (message.isSmiley && message.player !== this.username) {
+          const soundType = this.getSoundTypeBySmiley(message.message);
+          if (soundType) {
+            console.log("🔊 Playing smiley sound:", soundType);
+            this.playSmileySound(soundType);
+          }
+        }
+        break; // ★★★ ВАЖНО: break ДОЛЖЕН БЫТЬ ЗДЕСЬ ★★★
+
+      case "chatHistory":
+        if (message.messages && Array.isArray(message.messages)) {
+          if (this.chatHistory) {
+            this.chatHistory.innerHTML = "";
+          }
+          message.messages.forEach((msg) => {
+            this.displayChatMessage(
+              msg.player,
+              msg.message,
+              msg.isSmiley,
+              msg.player === "system"
+            );
+          });
+        }
+        break;
+
+      // ★★★ ОБРАБОТКА НОВЫХ СООБЩЕНИЙ ДЛЯ НОВОЙ ИГРЫ ★★★
+      case "newGameRequest":
+        this.showNewGameRequestModal(message.from);
+        break;
+
+      case "newGameAccepted":
+        this.hideNewGameModal();
+        this.updateStatus("Противник принял предложение новой игры");
+        break;
+
+      case "newGameRejected":
+        this.hideNewGameModal();
+        this.updateStatus("Противник отклонил предложение новой игры");
+        break;
+
+      case "gameOver":
+        if (message.result === "draw") {
+          this.handleGameOver({ winner: null, result: "draw" });
+        } else {
+          // ★★★ ИСПРАВЛЕННАЯ ОБРАБОТКА СДАЧИ ★★★
+          if (message.result === "surrender") {
+            const winner = message.winner;
+            const surrenderedBy = message.surrenderedBy;
+            const surrenderedByColor = message.surrenderedByColor;
+
+            const winnerName =
+              winner === this.playerColor ? this.username : this.opponentName;
+            const loserName =
+              surrenderedByColor === this.playerColor
+                ? this.username
+                : this.opponentName;
+            const colorText =
+              surrenderedByColor === "white" ? "белые" : "чёрные";
+
+            this.updateStatus(
+              `🏆 ${winnerName} Победитель! ${loserName} (${colorText}) сдался`
+            );
+
+            this.handleGameOver({
+              winner: winner,
+              result: "win",
+              surrender: true,
+              surrenderedPlayer: surrenderedByColor,
+              message: `🏆 ${winnerName} Победитель! ${loserName} (${colorText}) сдался`,
+            });
+          } else {
+            this.handleGameOver(message);
+          }
+        }
+        break;
+
+      case "gameRestarted":
+        console.log("🔄 Game restarted message received");
+        this.startFreshGame();
+        this.updateStatus("Новая игра началась!");
+        break;
+
+      case "restartRejected":
+        this.updateStatus("Противник отклонил предложение новой игры");
+        break;
+
+      case "error":
+        this.updateStatus(`⚠️ ${message.message}`);
+        break;
+
+      default:
+        console.log("Unknown message type:", message.type);
+    }
+  }
+
+  handlePlayersInfo(players) {
+    console.log("Players info:", players);
+
+    // ★★★ УЛУЧШЕННАЯ ЛОГИКА СОХРАНЕНИЯ НИКА ПРОТИВНИКА ★★★
+    const opponent = players.find((p) => p.username !== this.username);
+    if (opponent) {
+      const oldOpponentName = this.opponentName;
+      this.opponentName = opponent.username;
+
+      // ★★★ ДОБАВЛЯЕМ СООБЩЕНИЕ В ЧАТ ПРИ ПОДКЛЮЧЕНИИ ПРОТИВНИКА ★★★
+      if (!oldOpponentName && this.opponentName) {
+        this.displayChatMessage(
+          "",
+          `Игрок ${this.opponentName} присоединился к игре`,
+          false,
+          true
+        );
+      }
+
+      console.log(`Playing against: ${this.opponentName} (${opponent.color})`);
+    } else if (players.length === 1) {
+      // Если только один игрок (мы сами), сбрасываем opponentName
+      this.opponentName = "";
+    }
+
+    // ★★★ ОБНОВЛЯЕМ ИНФОРМАЦИЮ ОБ ИГРОКАХ ДЛЯ ВСЕХ СЛУЧАЕВ ★★★
+    this.updatePlayersInfo();
+
+    console.log("Current opponent name:", this.opponentName);
+  }
+
   setupRestartButton() {
     this.restartButton.addEventListener("click", () => {
       this.restartGame();
@@ -1045,153 +1488,6 @@ class CheckersGame {
     }
   }
 
-  handleServerMessage(message) {
-    console.log("📨 Received message type:", message.type, "Data:", message);
-
-    switch (message.type) {
-      // ★★★ ДОБАВЛЕНО: Обработка готовности игры ★★★
-      case "gameReady":
-        console.log("✅ Game is ready to play!");
-        this.gameReady = true;
-        this.updateStatus("✅ Оба игрока подключены! Ваш ход!");
-        break;
-
-      case "playerDisconnected":
-        this.gameReady = false;
-        this.updateStatus(message.message);
-        break;
-
-      case "playerAssigned":
-        this.playerColor = message.color;
-        const colorText = this.playerColor === "white" ? "белые" : "чёрные";
-        this.updateStatus(
-          `Вы играете за ${colorText}. Ожидание второго игрока...`
-        );
-        this.updatePlayersInfo();
-        break;
-
-      case "gameState":
-        this.updateGameState(message.data);
-        break;
-
-      case "moveResult":
-        if (message.valid) {
-          this.updateGameState(message.gameState);
-
-          // ★★★ ОБРАБОТКА МНОЖЕСТВЕННОГО ВЗЯТИЯ ★★★
-          if (message.canContinue) {
-            this.continueCapturePiece = {
-              row: message.gameState.continueCapture?.position?.row,
-              col: message.gameState.continueCapture?.position?.col,
-            };
-            this.updateStatus(
-              "Можете продолжить взятие! Выберите следующую шашку для взятия."
-            );
-          } else {
-            this.continueCapturePiece = null; // Сбрасываем множественное взятие
-          }
-        } else {
-          this.updateStatus(`❌ ${message.message}`);
-        }
-        break;
-
-      // ★★★ ДОБАВЛЕН ОБРАБОТЧИК ДЛЯ ПРОДОЛЖЕНИЯ ВЗЯТИЯ ★★★
-      case "canContinueCapture":
-        this.continueCapturePiece = {
-          row: message.position.row,
-          col: message.position.col,
-        };
-        this.updateStatus(
-          "Можете продолжить взятие! Выберите следующую шашку для взятия."
-        );
-        break;
-
-      case "moveMade":
-        this.handleMoveMade(message.data);
-        break;
-
-      case "playersInfo":
-        this.handlePlayersInfo(message.data);
-        break;
-
-      case "drawOfferReceived":
-        this.showDrawOfferModal(message.from);
-        break;
-
-      case "drawRejected":
-        this.updateStatus(`${message.by} отклонил предложение ничьи`);
-        break;
-
-      // ★★★ ОБРАБОТКА НОВЫХ СООБЩЕНИЙ ДЛЯ НОВОЙ ИГРЫ ★★★
-      case "newGameRequest":
-        this.showNewGameRequestModal(message.from);
-        break;
-
-      case "newGameAccepted":
-        this.hideNewGameModal();
-        this.updateStatus("Противник принял предложение новой игры");
-        break;
-
-      case "newGameRejected":
-        this.hideNewGameModal();
-        this.updateStatus("Противник отклонил предложение новой игры");
-        break;
-
-      case "gameOver":
-        if (message.result === "draw") {
-          this.handleGameOver({ winner: null, result: "draw" });
-        } else {
-          // ★★★ ИСПРАВЛЕННАЯ ОБРАБОТКА СДАЧИ ★★★
-          if (message.result === "surrender") {
-            const winner = message.winner;
-            const surrenderedBy = message.surrenderedBy;
-            const surrenderedByColor = message.surrenderedByColor;
-
-            const winnerName =
-              winner === this.playerColor ? this.username : this.opponentName;
-            const loserName =
-              surrenderedByColor === this.playerColor
-                ? this.username
-                : this.opponentName;
-            const colorText =
-              surrenderedByColor === "white" ? "белые" : "чёрные";
-
-            this.updateStatus(
-              `🏆 ${winnerName} Победитель! ${loserName} (${colorText}) сдался`
-            );
-
-            this.handleGameOver({
-              winner: winner,
-              result: "win",
-              surrender: true,
-              surrenderedPlayer: surrenderedByColor,
-              message: `🏆 ${winnerName} Победитель! ${loserName} (${colorText}) сдался`,
-            });
-          } else {
-            this.handleGameOver(message);
-          }
-        }
-        break;
-
-      case "gameRestarted":
-        console.log("🔄 Game restarted message received");
-        this.startFreshGame();
-        this.updateStatus("Новая игра началась!");
-        break;
-
-      case "restartRejected":
-        this.updateStatus("Противник отклонил предложение новой игры");
-        break;
-
-      case "error":
-        this.updateStatus(`⚠️ ${message.message}`);
-        break;
-
-      default:
-        console.log("Unknown message type:", message.type);
-    }
-  }
-
   handleMoveMade(moveData) {
     console.log("Move made by:", moveData.player, moveData);
 
@@ -1226,25 +1522,6 @@ class CheckersGame {
     } else {
       this.updateStatus("⏳ Ход противника...");
     }
-  }
-
-  handlePlayersInfo(players) {
-    console.log("Players info:", players);
-
-    // ★★★ УЛУЧШЕННАЯ ЛОГИКА СОХРАНЕНИЯ НИКА ПРОТИВНИКА ★★★
-    const opponent = players.find((p) => p.username !== this.username);
-    if (opponent) {
-      this.opponentName = opponent.username;
-      console.log(`Playing against: ${this.opponentName} (${opponent.color})`);
-    } else if (players.length === 1) {
-      // Если только один игрок (мы сами), сбрасываем opponentName
-      this.opponentName = "";
-    }
-
-    // ★★★ ОБНОВЛЯЕМ ИНФОРМАЦИЮ ОБ ИГРОКАХ ДЛЯ ВСЕХ СЛУЧАЕВ ★★★
-    this.updatePlayersInfo();
-
-    console.log("Current opponent name:", this.opponentName);
   }
 
   updateGameState(gameState) {
