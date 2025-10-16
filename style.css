@@ -19,6 +19,170 @@ body {
   color: white;
 }
 
+/* ★★★ СТИЛИ ДЛЯ СМАЙЛИКОВ ★★★ */
+.smileys-container {
+  width: 480px; /* Такая же ширина как у игровой доски (8*60px) */
+  margin: 10px auto;
+  padding: 12px;
+  background-color: rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(10px);
+  border-radius: 12px;
+  text-align: center;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+}
+
+.smileys-row {
+  display: flex;
+  justify-content: space-around;
+  align-items: center;
+}
+
+.smiley-btn {
+  font-size: 28px;
+  background: rgba(255, 255, 255, 0.15);
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  cursor: pointer;
+  padding: 8px 12px;
+  border-radius: 8px;
+  transition: all 0.3s ease;
+  width: 50px;
+  height: 50px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.smiley-btn:hover {
+  background-color: rgba(255, 255, 255, 0.25);
+  transform: scale(1.15);
+  border-color: rgba(255, 255, 255, 0.5);
+  box-shadow: 0 4px 12px rgba(255, 255, 255, 0.2);
+}
+
+.smiley-btn:active {
+  transform: scale(1.05);
+}
+
+/* ★★★ СТИЛИ ДЛЯ ЧАТА ★★★ */
+.chat-container {
+  width: 480px; /* Такая же ширина как у игровой доски */
+  margin: 10px auto;
+  background-color: rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+}
+
+.chat-history {
+  height: 90px; /* 3 строки примерно */
+  overflow-y: auto;
+  padding: 10px;
+  background-color: rgba(0, 0, 0, 0.3);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+  font-size: 13px;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 255, 255, 0.3) transparent;
+}
+
+/* Стили для скроллбара в Chrome */
+.chat-history::-webkit-scrollbar {
+  width: 6px;
+}
+
+.chat-history::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.chat-history::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.3);
+  border-radius: 3px;
+}
+
+.chat-history::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.5);
+}
+
+.chat-message {
+  margin: 3px 0;
+  padding: 4px 8px;
+  border-radius: 6px;
+  word-wrap: break-word;
+  line-height: 1.3;
+}
+
+.chat-message.system {
+  color: #b0b0b0;
+  font-style: italic;
+  font-size: 12px;
+  text-align: center;
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.chat-message.player1 {
+  background-color: rgba(33, 150, 243, 0.3);
+  border-left: 3px solid #2196f3;
+}
+
+.chat-message.player2 {
+  background-color: rgba(156, 39, 176, 0.3);
+  border-left: 3px solid #9c27b0;
+}
+
+.chat-input-container {
+  display: flex;
+  padding: 10px;
+  gap: 8px;
+  background: rgba(0, 0, 0, 0.2);
+}
+
+#chatInput {
+  flex-grow: 1;
+  padding: 8px 12px;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.9);
+  color: #333;
+  font-size: 14px;
+  transition: all 0.3s ease;
+}
+
+#chatInput:focus {
+  outline: none;
+  border-color: #4caf50;
+  box-shadow: 0 0 8px rgba(76, 175, 80, 0.3);
+  background: rgba(255, 255, 255, 0.95);
+}
+
+#chatInput::placeholder {
+  color: #888;
+}
+
+#sendMessageBtn {
+  padding: 8px 16px;
+  background: linear-gradient(45deg, #4caf50, #45a049);
+  color: white;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: bold;
+  transition: all 0.3s ease;
+  white-space: nowrap;
+}
+
+#sendMessageBtn:hover {
+  background: linear-gradient(45deg, #45a049, #4caf50);
+  transform: translateY(-1px);
+  box-shadow: 0 3px 8px rgba(0, 0, 0, 0.3);
+}
+
+#sendMessageBtn:active {
+  transform: translateY(0);
+}
+
 /* Стили для модальных окон */
 .modal {
   display: none;
@@ -302,7 +466,7 @@ body {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 20px;
+  gap: 15px;
   width: 100%;
 }
 
@@ -530,7 +694,7 @@ h1 {
 .game-controls {
   display: flex;
   gap: 15px;
-  margin-top: 20px;
+  margin-top: 15px;
   justify-content: center;
   flex-wrap: wrap;
 }
@@ -669,6 +833,42 @@ h1 {
     margin: 10px;
   }
 
+  /* ★★★ АДАПТИВНОСТЬ ДЛЯ СМАЙЛИКОВ И ЧАТА ★★★ */
+  .smileys-container {
+    width: 360px; /* Для мобильных (8*45px) */
+    padding: 10px;
+  }
+
+  .smiley-btn {
+    font-size: 24px;
+    width: 40px;
+    height: 40px;
+    padding: 6px 8px;
+  }
+
+  .chat-container {
+    width: 360px;
+  }
+
+  .chat-history {
+    height: 75px;
+    font-size: 12px;
+  }
+
+  .chat-input-container {
+    padding: 8px;
+  }
+
+  #chatInput {
+    padding: 6px 10px;
+    font-size: 13px;
+  }
+
+  #sendMessageBtn {
+    padding: 6px 12px;
+    font-size: 13px;
+  }
+
   .modal-content {
     padding: 30px;
     max-width: 350px;
@@ -725,7 +925,7 @@ h1 {
   }
 
   .game-container {
-    gap: 15px;
+    gap: 12px;
   }
 
   .board {
@@ -759,7 +959,7 @@ h1 {
 
   .game-controls {
     gap: 10px;
-    margin-top: 15px;
+    margin-top: 12px;
   }
 
   .control-button {
@@ -792,6 +992,48 @@ h1 {
 }
 
 @media (max-width: 480px) {
+  /* ★★★ АДАПТИВНОСТЬ ДЛЯ СМАЙЛИКОВ И ЧАТА ★★★ */
+  .smileys-container {
+    width: 280px; /* Для маленьких экранов (8*35px) */
+    padding: 8px;
+  }
+
+  .smileys-row {
+    gap: 5px;
+  }
+
+  .smiley-btn {
+    font-size: 20px;
+    width: 35px;
+    height: 35px;
+    padding: 4px 6px;
+  }
+
+  .chat-container {
+    width: 280px;
+  }
+
+  .chat-history {
+    height: 65px;
+    font-size: 11px;
+    padding: 8px;
+  }
+
+  .chat-input-container {
+    padding: 6px;
+    gap: 6px;
+  }
+
+  #chatInput {
+    padding: 5px 8px;
+    font-size: 12px;
+  }
+
+  #sendMessageBtn {
+    padding: 5px 10px;
+    font-size: 12px;
+  }
+
   .modal-content {
     padding: 20px;
     max-width: 300px;
