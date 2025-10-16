@@ -31,6 +31,9 @@ class CheckersGameServer {
     this.pendingRestart = null;
     this.continueCapture = null; // ★★★ ДОБАВЛЕНО ДЛЯ МНОЖЕСТВЕННОГО ВЗЯТИЯ ★★★
     this.pendingNewGame = null; // ★★★ ДОБАВЛЕНО ДЛЯ НОВОЙ ЛОГИКИ ИГРЫ ★★★
+
+    // ★★★ ДОБАВЛЕНА ПЕРЕМЕННАЯ ДЛЯ ИСТОРИИ ЧАТА ★★★
+    this.chatHistory = [];
   }
 
   initializePieces() {
@@ -74,8 +77,21 @@ class CheckersGameServer {
         `Player ${username} joined as ${color}. Total players: ${this.players.length}`
       );
 
+      // ★★★ ОТПРАВЛЯЕМ ИСТОРИЮ ЧАТА НОВОМУ ИГРОКУ ★★★
+      this.sendChatHistory(ws);
+
       // Отправляем информацию об игроках
       this.broadcastPlayersInfo();
+
+      // ★★★ ДОБАВЛЯЕМ ПРИВЕТСТВЕННОЕ СООБЩЕНИЕ В ЧАТ ★★★
+      this.broadcast(
+        JSON.stringify({
+          type: "chatMessage",
+          player: "system",
+          message: `👋 Игрок ${username} присоединился к игре`,
+          isSmiley: false,
+        })
+      );
 
       if (this.players.length === 2) {
         this.startGame();
@@ -103,6 +119,16 @@ class CheckersGameServer {
       })
     );
 
+    // ★★★ ДОБАВЛЯЕМ СООБЩЕНИЕ В ЧАТ ★★★
+    this.broadcast(
+      JSON.stringify({
+        type: "chatMessage",
+        player: "system",
+        message: "🎮 Игра началась! Удачи!",
+        isSmiley: false,
+      })
+    );
+
     this.broadcastGameState();
   }
 
@@ -124,6 +150,16 @@ class CheckersGameServer {
             message: "Противник отключился. Ожидание переподключения...",
           })
         );
+
+        // ★★★ ДОБАВЛЯЕМ СООБЩЕНИЕ В ЧАТ ★★★
+        this.broadcast(
+          JSON.stringify({
+            type: "chatMessage",
+            player: "system",
+            message: `🚪 Игрок ${playerName} покинул игру`,
+            isSmiley: false,
+          })
+        );
       }
 
       if (this.gameState === "playing") {
@@ -131,6 +167,60 @@ class CheckersGameServer {
         this.winner = this.players[0] ? this.players[0].color : null;
         this.broadcastGameOver();
       }
+    }
+  }
+
+  // ★★★ ДОБАВЛЕН МЕТОД ДЛЯ ОБРАБОТКИ СООБЩЕНИЙ ЧАТА ★★★
+  handleChatMessage(ws, messageData) {
+    console.log("🔍 handleChatMessage called with:", messageData);
+
+    const player = this.players.find((p) => p.ws === ws);
+    if (!player) {
+      console.log("❌ Player not found for chat message");
+      return;
+    }
+
+    // ★★★ ДОБАВЬТЕ ЭТУ ПРОВЕРКУ ★★★
+    if (!messageData.message || messageData.message.trim() === "") {
+      console.log("❌ Empty message received");
+      return;
+    }
+
+    // Сохраняем сообщение в истории (ограничиваем размер)
+    this.chatHistory.push({
+      player: player.username,
+      message: messageData.message,
+      isSmiley: messageData.isSmiley || false,
+      timestamp: new Date().toISOString(),
+    });
+
+    // Ограничиваем историю последними 50 сообщениями
+    if (this.chatHistory.length > 50) {
+      this.chatHistory = this.chatHistory.slice(-50);
+    }
+
+    // Рассылаем сообщение всем игрокам
+    const chatMessage = {
+      type: "chatMessage",
+      player: player.username,
+      message: messageData.message,
+      isSmiley: messageData.isSmiley || false,
+    };
+
+    console.log("📤 Broadcasting chat message:", chatMessage);
+    this.broadcast(JSON.stringify(chatMessage));
+    console.log("✅ Chat message broadcasted to all players");
+  }
+
+  // ★★★ ДОБАВЛЕН МЕТОД ДЛЯ ОТПРАВКИ ИСТОРИИ ЧАТА НОВОМУ ИГРОКУ ★★★
+  sendChatHistory(ws) {
+    if (this.chatHistory.length > 0) {
+      ws.send(
+        JSON.stringify({
+          type: "chatHistory",
+          messages: this.chatHistory.slice(-20), // Последние 20 сообщений
+        })
+      );
     }
   }
 
@@ -271,6 +361,9 @@ class CheckersGameServer {
     this.pendingNewGame = null;
     this.continueCapture = null;
 
+    // ★★★ НЕ ОЧИЩАЕМ ИСТОРИЮ ЧАТА ПРИ ПЕРЕЗАПУСКЕ ★★★
+    // this.chatHistory = [];
+
     this.broadcastGameState();
     this.broadcastPlayersInfo();
 
@@ -286,6 +379,16 @@ class CheckersGameServer {
       JSON.stringify({
         type: "gameRestarted",
         message: "Новая игра началась!",
+      })
+    );
+
+    // ★★★ ДОБАВЛЯЕМ СИСТЕМНОЕ СООБЩЕНИЕ В ЧАТ ★★★
+    this.broadcast(
+      JSON.stringify({
+        type: "chatMessage",
+        player: "system",
+        message: "🎮 Новая игра началась! Удачи!",
+        isSmiley: false,
       })
     );
 
@@ -1043,6 +1146,12 @@ wss.on("connection", (ws, req) => {
         case "surrender":
           console.log("Received surrender request");
           game.handleSurrender(ws);
+          break;
+
+        // ★★★ ДОБАВЛЕНА ОБРАБОТКА СООБЩЕНИЙ ЧАТА ★★★
+        case "chatMessage":
+          console.log("Received chat message");
+          game.handleChatMessage(ws, data);
           break;
 
         case "ping":
