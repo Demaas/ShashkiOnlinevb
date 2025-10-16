@@ -93,6 +93,47 @@
         <div id="status">Загрузка...</div>
         <div class="board" id="board"></div>
 
+        <!-- ★★★ СТРОКА СМАЙЛИКОВ ★★★ -->
+        <div class="smileys-container">
+          <div class="smileys-row">
+            <button class="smiley-btn" data-smiley="😂" data-sound="laugh">
+              😂
+            </button>
+            <button class="smiley-btn" data-smiley="😢" data-sound="sad">
+              😢
+            </button>
+            <button class="smiley-btn" data-smiley="👍" data-sound="cool">
+              👍
+            </button>
+            <button class="smiley-btn" data-smiley="👎" data-sound="suck">
+              👎
+            </button>
+            <button class="smiley-btn" data-smiley="🤔" data-sound="think">
+              🤔
+            </button>
+            <button class="smiley-btn" data-smiley="😏" data-sound="smirk">
+              😏
+            </button>
+          </div>
+        </div>
+
+        <!-- ★★★ ЧАТ ★★★ -->
+        <div class="chat-container">
+          <div class="chat-history" id="chatHistory">
+            <!-- Сообщения будут здесь -->
+            <div class="chat-message system">Добро пожаловать в игру!</div>
+          </div>
+          <div class="chat-input-container">
+            <input
+              type="text"
+              id="chatInput"
+              placeholder="Введите сообщение..."
+              maxlength="100"
+            />
+            <button type="button" id="sendMessageBtn">Отправить</button>
+          </div>
+        </div>
+
         <!-- Кнопки управления игрой -->
         <div class="game-controls" id="gameControls">
           <button id="newGameButton" class="control-button new-game-btn">
@@ -191,6 +232,26 @@
         </div>
       </div>
     </div>
+
+    <!-- ★★★ АУДИО ЭЛЕМЕНТЫ ДЛЯ ЗВУКОВ СМАЙЛИКОВ ★★★ -->
+    <audio id="laughSound" preload="auto">
+      <source src="laught.wav" type="audio/mpeg" />
+    </audio>
+    <audio id="sadSound" preload="auto">
+      <source src="kurwa.flac" type="audio/mpeg" />
+    </audio>
+    <audio id="coolSound" preload="auto">
+      <source src="probitie1.mp3" type="audio/mpeg" />
+    </audio>
+    <audio id="suckSound" preload="auto">
+      <source src="ne-probil.mp3" type="audio/mpeg" />
+    </audio>
+    <audio id="thinkSound" preload="auto">
+      <source src="bro.mp3" type="audio/mpeg" />
+    </audio>
+    <audio id="smirkSound" preload="auto">
+      <source src="waaa.mp3" type="audio/mpeg" />
+    </audio>
 
     <script>
       // Функции для модального окна перезапуска
