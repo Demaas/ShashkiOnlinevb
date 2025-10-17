@@ -202,18 +202,19 @@ class CheckersGame {
 
   // Воспроизведение звука смайлика
   playSmileySound(soundType) {
-    try {
-      const sound = this.sounds[soundType];
-      if (sound) {
-        sound.currentTime = 0;
-        sound.play().catch((e) => {
-          console.log("Audio play error (normal for missing files):", e);
-        });
-      }
-    } catch (error) {
-      console.log("Sound play error:", error);
+  try {
+    const sound = this.sounds[soundType];
+    if (sound) {
+      sound.volume = 0.5; // ★★★ ГРОМКОСТЬ 30% ★★★
+      sound.currentTime = 0;
+      sound.play().catch((e) => {
+        console.log("Audio play error:", e);
+      });
     }
+  } catch (error) {
+    console.log("Sound play error:", error);
   }
+}
 
   // Отображение сообщения в чате
   displayChatMessage(playerName, message, isSmiley = false, isSystem = false) {
@@ -1721,3 +1722,4 @@ document.addEventListener("visibilitychange", () => {
     console.log("Page became visible, checking connection...");
   }
 });
+
