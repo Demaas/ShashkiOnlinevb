@@ -205,7 +205,7 @@ class CheckersGame {
   try {
     const sound = this.sounds[soundType];
     if (sound) {
-      sound.volume = 0.2; // ★★★ ГРОМКОСТЬ 30% ★★★
+      sound.volume = 0.15; // ★★★ ГРОМКОСТЬ 30% ★★★
       sound.currentTime = 0;
       sound.play().catch((e) => {
         console.log("Audio play error:", e);
@@ -1722,5 +1722,6 @@ document.addEventListener("visibilitychange", () => {
     console.log("Page became visible, checking connection...");
   }
 });
+
 
 
