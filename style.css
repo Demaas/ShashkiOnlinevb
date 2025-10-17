@@ -19,31 +19,62 @@ body {
   color: white;
 }
 
-/* ★★★ СТИЛИ ДЛЯ СМАЙЛИКОВ ★★★ */
+/* ★★★ НОВАЯ СТРУКТУРА МАКЕТА ★★★ */
+.game-layout {
+  display: flex;
+  gap: 25px;
+  align-items: flex-start;
+  margin-bottom: 5px;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
+/* Левая колонка с доской */
+.board-column {
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 15px;
+}
+
+/* Правая колонка с чатом и смайликами */
+.sidebar {
+  flex: 0 0 350px;
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+  min-height: 500px;
+}
+
+/* ★★★ ОБНОВЛЕННЫЕ СТИЛИ СМАЙЛИКОВ ДЛЯ САЙДБАРА ★★★ */
 .smileys-container {
-  width: 480px; /* Такая же ширина как у игровой доски (8*60px) */
-  margin: 10px auto;
-  padding: 12px;
+  width: 100%;
+  padding: 15px;
   background-color: rgba(255, 255, 255, 0.1);
   backdrop-filter: blur(10px);
   border-radius: 12px;
   text-align: center;
   border: 1px solid rgba(255, 255, 255, 0.2);
   box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
 }
 
 .smileys-row {
   display: flex;
   justify-content: space-around;
   align-items: center;
+  gap: 8px;
 }
 
 .smiley-btn {
-  font-size: 28px;
+  font-size: 24px;
   background: rgba(255, 255, 255, 0.15);
   border: 2px solid rgba(255, 255, 255, 0.3);
   cursor: pointer;
-  padding: 8px 12px;
+  padding: 10px;
   border-radius: 8px;
   transition: all 0.3s ease;
   width: 50px;
@@ -51,6 +82,7 @@ body {
   display: flex;
   align-items: center;
   justify-content: center;
+  flex: 0 0 auto;
 }
 
 .smiley-btn:hover {
@@ -64,27 +96,31 @@ body {
   transform: scale(1.05);
 }
 
-/* ★★★ СТИЛИ ДЛЯ ЧАТА ★★★ */
+/* ★★★ ОБНОВЛЕННЫЕ СТИЛИ ЧАТА ДЛЯ САЙДБАРА ★★★ */
 .chat-container {
-  width: 480px; /* Такая же ширина как у игровой доски */
-  margin: 10px auto;
+  width: 100%;
+  height: 333px;
   background-color: rgba(255, 255, 255, 0.1);
   backdrop-filter: blur(10px);
   border: 1px solid rgba(255, 255, 255, 0.2);
   border-radius: 12px;
   overflow: hidden;
   box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+  display: flex;
+  flex-direction: column;
 }
 
 .chat-history {
-  height: 90px; /* 3 строки примерно */
+  flex: 1;
+  min-height: 250px;
   overflow-y: auto;
-  padding: 10px;
+  padding: 15px;
   background-color: rgba(0, 0, 0, 0.3);
   border-bottom: 1px solid rgba(255, 255, 255, 0.2);
-  font-size: 13px;
+  font-size: 14px;
   scrollbar-width: thin;
   scrollbar-color: rgba(255, 255, 255, 0.3) transparent;
+  font-size: 16px; /* Увеличиваем базовый размер всего чата */
 }
 
 /* Стили для скроллбара в Chrome */
@@ -106,17 +142,18 @@ body {
 }
 
 .chat-message {
-  margin: 3px 0;
-  padding: 4px 8px;
-  border-radius: 6px;
+  margin: 8px 0;
+  padding: 8px 12px;
+  border-radius: 8px;
   word-wrap: break-word;
-  line-height: 1.3;
+  font-size: 16px; /* Увеличиваем сообщения */
+  line-height: 1.5;
 }
 
 .chat-message.system {
   color: #b0b0b0;
   font-style: italic;
-  font-size: 12px;
+  font-size: 13px;
   text-align: center;
   background: rgba(255, 255, 255, 0.05);
 }
@@ -133,16 +170,17 @@ body {
 
 .chat-input-container {
   display: flex;
-  padding: 10px;
-  gap: 8px;
+  padding: 15px;
+  gap: 10px;
   background: rgba(0, 0, 0, 0.2);
+  border-top: 1px solid rgba(255, 255, 255, 0.2);
 }
 
 #chatInput {
   flex-grow: 1;
-  padding: 8px 12px;
+  padding: 10px 15px;
   border: 1px solid rgba(255, 255, 255, 0.3);
-  border-radius: 6px;
+  border-radius: 8px;
   background: rgba(255, 255, 255, 0.9);
   color: #333;
   font-size: 14px;
@@ -161,16 +199,17 @@ body {
 }
 
 #sendMessageBtn {
-  padding: 8px 16px;
+  padding: 10px 20px;
   background: linear-gradient(45deg, #4caf50, #45a049);
   color: white;
   border: none;
-  border-radius: 6px;
+  border-radius: 8px;
   cursor: pointer;
   font-size: 14px;
   font-weight: bold;
   transition: all 0.3s ease;
   white-space: nowrap;
+  min-width: 80px;
 }
 
 #sendMessageBtn:hover {
@@ -456,7 +495,7 @@ body {
   border-radius: 20px;
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
   border: 1px solid rgba(255, 255, 255, 0.2);
-  max-width: 90%;
+  max-width: 95%;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -466,7 +505,7 @@ body {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 15px;
+  gap: 0px;
   width: 100%;
 }
 
@@ -693,7 +732,7 @@ h1 {
 /* Стили для кнопок управления игрой */
 .game-controls {
   display: flex;
-  gap: 15px;
+  gap: 5px;
   margin-top: 15px;
   justify-content: center;
   flex-wrap: wrap;
@@ -826,8 +865,25 @@ h1 {
   }
 }
 
-/* Адаптивность для мобильных устройств */
+/* ★★★ АДАПТИВНОСТЬ ДЛЯ МОБИЛЬНЫХ УСТРОЙСТВ ★★★ */
 @media (max-width: 768px) {
+  .game-layout {
+    flex-direction: column;
+    gap: 15px;
+  }
+
+  .sidebar {
+    flex: 0 0 auto;
+    width: 100%;
+    max-width: 480px;
+    min-height: auto;
+    order: -1; /* Смайлики и чат будут сверху на мобильных */
+  }
+
+  .board-column {
+    width: 100%;
+  }
+
   .container {
     padding: 15px;
     margin: 10px;
@@ -835,37 +891,38 @@ h1 {
 
   /* ★★★ АДАПТИВНОСТЬ ДЛЯ СМАЙЛИКОВ И ЧАТА ★★★ */
   .smileys-container {
-    width: 360px; /* Для мобильных (8*45px) */
-    padding: 10px;
+    padding: 12px;
+    gap: 8px;
   }
 
   .smiley-btn {
-    font-size: 24px;
-    width: 40px;
-    height: 40px;
-    padding: 6px 8px;
-  }
-
-  .chat-container {
-    width: 360px;
-  }
-
-  .chat-history {
-    height: 75px;
-    font-size: 12px;
-  }
-
-  .chat-input-container {
+    font-size: 22px;
+    width: 45px;
+    height: 45px;
     padding: 8px;
   }
 
+  .chat-container {
+    height: 300px;
+  }
+
+  .chat-history {
+    min-height: 200px;
+    font-size: 13px;
+    padding: 12px;
+  }
+
+  .chat-input-container {
+    padding: 12px;
+  }
+
   #chatInput {
-    padding: 6px 10px;
+    padding: 8px 12px;
     font-size: 13px;
   }
 
   #sendMessageBtn {
-    padding: 6px 12px;
+    padding: 8px 16px;
     font-size: 13px;
   }
 
@@ -994,44 +1051,45 @@ h1 {
 @media (max-width: 480px) {
   /* ★★★ АДАПТИВНОСТЬ ДЛЯ СМАЙЛИКОВ И ЧАТА ★★★ */
   .smileys-container {
-    width: 280px; /* Для маленьких экранов (8*35px) */
-    padding: 8px;
+    padding: 10px;
+    gap: 6px;
   }
 
   .smileys-row {
-    gap: 5px;
+    gap: 6px;
   }
 
   .smiley-btn {
     font-size: 20px;
-    width: 35px;
-    height: 35px;
-    padding: 4px 6px;
+    width: 40px;
+    height: 40px;
+    padding: 6px;
   }
 
   .chat-container {
-    width: 280px;
+    height: 250px;
   }
 
   .chat-history {
-    height: 65px;
-    font-size: 11px;
-    padding: 8px;
+    min-height: 160px;
+    font-size: 12px;
+    padding: 10px;
   }
 
   .chat-input-container {
-    padding: 6px;
-    gap: 6px;
+    padding: 10px;
+    gap: 8px;
   }
 
   #chatInput {
-    padding: 5px 8px;
+    padding: 6px 10px;
     font-size: 12px;
   }
 
   #sendMessageBtn {
-    padding: 5px 10px;
+    padding: 6px 12px;
     font-size: 12px;
+    min-width: 70px;
   }
 
   .modal-content {
