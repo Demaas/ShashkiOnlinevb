@@ -66,6 +66,10 @@ class CheckersGame {
       suck: document.getElementById("suckSound"),
       think: document.getElementById("thinkSound"),
       smirk: document.getElementById("smirkSound"),
+      clown: document.getElementById("clownSound"),
+      mute: document.getElementById("muteSound"),
+      pig: document.getElementById("pigSound"),
+      duck: document.getElementById("duckSound"),
     };
 
     this.currentPlayer = "white";
@@ -156,7 +160,6 @@ class CheckersGame {
     const trimmedMessage = message.trim();
     if (!trimmedMessage) {
       console.log("❌ Empty message after trimming, not sending");
-      // Можно добавить визуальную обратную связь
       this.chatInput.placeholder = "Введите сообщение...";
       this.chatInput.focus();
       return;
@@ -175,13 +178,17 @@ class CheckersGame {
       username: this.username,
     });
 
+    // ★★★ ВОСПРОИЗВЕДЕНИЕ ЗВУКА ТОЛЬКО ДЛЯ ОБЫЧНЫХ СООБЩЕНИЙ ★★★
+    if (!isSmiley) {
+      this.playMessageSound();
+    }
+
     // Отправка на сервер
     this.ws.send(
       JSON.stringify({
         type: "chatMessage",
         message: trimmedMessage,
         isSmiley: isSmiley,
-        player: this.username,
       })
     );
 
@@ -200,21 +207,104 @@ class CheckersGame {
     this.sendChatMessage(smiley, true);
   }
 
+  // ★★★ МЕТОД ДЛЯ ВОСПРОИЗВЕДЕНИЯ ФИНАЛЬНОГО ЗВУКА ★★★
+  playFinalSound(gameResult) {
+    try {
+      let soundId;
+      let volume = 1.0;
+
+      // ★★★ ВЫБИРАЕМ ЗВУК В ЗАВИСИМОСТИ ОТ РЕЗУЛЬТАТА ИГРЫ ★★★
+      if (gameResult === "draw") {
+        // Звук для ничьи
+        soundId = "drawSound";
+        volume = 0.02; // Громкость для ничьи
+        console.log("🎵 Playing draw sound");
+      } else {
+        // Случайный звук для победы
+        const soundNumber = Math.random() < 0.5 ? 1 : 2;
+        soundId = `finalSound${soundNumber}`;
+
+        // ★★★ НАСТРОЙКА ГРОМКОСТИ ДЛЯ КАЖДОГО ЗВУКА ПОБЕДЫ ★★★
+        const volumeSettings = {
+          1: 0.05, // Первый звук - 30% громкости
+          2: 0.005, // Второй звук - 100% громкости
+        };
+        volume = volumeSettings[soundNumber] || 1.0;
+        console.log(
+          `🎉 Playing victory sound: ${soundId} at ${volume * 100}% volume`
+        );
+      }
+
+      const sound = document.getElementById(soundId);
+
+      if (sound) {
+        sound.volume = volume;
+        sound.currentTime = 0;
+        sound.play().catch((e) => {
+          console.log("Final sound play error (normal if files missing):", e);
+        });
+      } else {
+        console.log(`❌ Sound not found: ${soundId}`);
+      }
+    } catch (error) {
+      console.log("Error playing final sound:", error);
+    }
+  }
+
+  // ★★★ МЕТОД ДЛЯ ВОСПРОИЗВЕДЕНИЯ ЗВУКА ОТПРАВКИ СООБЩЕНИЯ ★★★
+  playMessageSound() {
+    try {
+      const sound = document.getElementById("messageSound");
+      if (sound) {
+        console.log("🔊 Playing message sound");
+        sound.volume = 0.5; // Можно настроить громкость (0.5 = 50%)
+        sound.currentTime = 0;
+        sound.play().catch((e) => {
+          console.log("Message sound play error (normal if file missing):", e);
+        });
+      } else {
+        console.log("❌ Message sound not found");
+      }
+    } catch (error) {
+      console.log("Error playing message sound:", error);
+    }
+  }
+
   // Воспроизведение звука смайлика
   playSmileySound(soundType) {
-  try {
-    const sound = this.sounds[soundType];
-    if (sound) {
-      sound.volume = 0.15; // ★★★ ГРОМКОСТЬ 30% ★★★
-      sound.currentTime = 0;
-      sound.play().catch((e) => {
-        console.log("Audio play error:", e);
-      });
+    try {
+      const sound = this.sounds[soundType];
+      if (sound) {
+        // ★★★ РАЗНАЯ ГРОМКОСТЬ ДЛЯ КАЖДОГО СМАЙЛИКА ★★★
+        const volumeLevels = {
+          laugh: 0.3, // 30% громкости
+          sad: 0.08, // 40% громкости
+          cool: 0.1, // 50% громкости
+          suck: 0.2, // 60% громкости
+          think: 0.05, // 30% громкости
+          smirk: 0.1, // 40% громкости
+          clown: 0.1, // 70% громкости
+          mute: 0.1, // 20% громкости (иронично 😄)
+          pig: 0.1, // 80% громкости
+          duck: 0.5, // 50% громкости
+        };
+
+        const volume = volumeLevels[soundType] || 0.5; // по умолчанию 50%
+
+        sound.volume = volume;
+        sound.currentTime = 0;
+        sound.play().catch((e) => {
+          console.log("Audio play error (normal for missing files):", e);
+        });
+
+        console.log(
+          `🔊 Playing ${soundType} at ${Math.round(volume * 100)}% volume`
+        );
+      }
+    } catch (error) {
+      console.log("Sound play error:", error);
     }
-  } catch (error) {
-    console.log("Sound play error:", error);
   }
-}
 
   // Отображение сообщения в чате
   displayChatMessage(playerName, message, isSmiley = false, isSystem = false) {
@@ -286,11 +376,15 @@ class CheckersGame {
   getSoundTypeBySmiley(smiley) {
     const smileyMap = {
       "😂": "laugh",
-      "😢": "sad",
+      "😡": "sad",
       "👍": "cool",
       "👎": "suck",
-      "🤔": "think",
-      "😏": "smirk",
+      "😤": "think",
+      "😮": "smirk",
+      "😫": "clown",
+      "🔇": "mute",
+      "🤷": "pig",
+      "🦆": "duck",
     };
 
     return smileyMap[smiley] || null;
@@ -1578,6 +1672,9 @@ class CheckersGame {
     if (result.result === "draw") {
       winnerText = "🤝 Ничья!";
       gameOverMessage = "🤝 Ничья!";
+
+      // ★★★ ВОСПРОИЗВЕДЕНИЕ ЗВУКА ДЛЯ НИЧЬЕЙ ★★★
+      this.playFinalSound("draw");
     } else if (result.winner) {
       // ★★★ ИСПРАВЛЕННАЯ ЛОГИКА ОТОБРАЖЕНИЯ ПОБЕДИТЕЛЯ ★★★
       if (result.surrender) {
@@ -1607,9 +1704,15 @@ class CheckersGame {
         winnerText = `🏆 ${winnerName} победил!`;
         gameOverMessage = `🏆 ${winnerName} победил!\nпротив ${loserName}`;
       }
+
+      // ★★★ ВОСПРОИЗВЕДЕНИЕ СЛУЧАЙНОГО ЗВУКА ПОБЕДЫ ★★★
+      this.playFinalSound("victory");
     } else {
       winnerText = "🤝 Ничья!";
       gameOverMessage = "🤝 Ничья!";
+
+      // ★★★ ВОСПРОИЗВЕДЕНИЕ ЗВУКА ДЛЯ НИЧЬЕЙ ★★★
+      this.playFinalSound("draw");
     }
 
     this.updateStatus(`Игра окончена! ${winnerText}`);
@@ -1722,6 +1825,3 @@ document.addEventListener("visibilitychange", () => {
     console.log("Page became visible, checking connection...");
   }
 });
-
-
-
