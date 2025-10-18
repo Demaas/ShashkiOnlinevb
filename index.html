@@ -89,14 +89,24 @@
         </div>
       </div>
 
-      <div class="game-container">
-        <div id="status">Загрузка...</div>
-
-        <div class="game-layout">
-          <!-- Левая колонка - доска -->
-          <div class="board-column">
-            <div class="board" id="board"></div>
+      <div class="game-layout">
+        <!-- ★★★ КОЛОНКИ ВЫБИТЫХ ШАШЕК (СЛЕВА) ★★★ -->
+        <div class="captured-pieces-container">
+          <div class="captured-header">Выбитые<br>шашки:</div>
+          <div class="captured-columns">
+            <div class="captured-pieces white-captured" id="whiteCaptured">
+              <!-- Белые выбитые шашки будут здесь -->
+            </div>
+            <div class="captured-pieces black-captured" id="blackCaptured">
+              <!-- Черные выбитые шашки будут здесь -->
+            </div>
           </div>
+        </div>
+      
+        <!-- Левая колонка с доской -->
+        <div class="board-column">
+          <div class="board" id="board"></div>
+        </div>
 
           <!-- Правая колонка - смайлики и чат -->
           <div class="sidebar">
