@@ -270,6 +270,64 @@ class CheckersGame {
     }
   }
 
+  // ★★★ МЕТОДЫ ДЛЯ ВЫБИТЫХ ШАШЕК ★★★
+  addCapturedPiece(color, isKing = false) {
+    const containerId = color === "white" ? "whiteCaptured" : "blackCaptured";
+    const container = document.getElementById(containerId);
+
+    if (!container) {
+      console.log(`❌ Captured pieces container not found: ${containerId}`);
+      return;
+    }
+
+    const pieceDiv = document.createElement("div");
+    pieceDiv.className = `captured-piece ${isKing ? "king" : ""} new`;
+
+    const img = document.createElement("img");
+    let imageSrc;
+
+    if (color === "white") {
+      imageSrc = isKing ? "shabedam.png" : "shabe.png";
+    } else {
+      imageSrc = isKing ? "shachdam.png" : "shach.png";
+    }
+
+    img.src = imageSrc;
+    img.alt = isKing ? `${color} дамка` : `${color} шашка`;
+
+    img.onerror = () => {
+      console.error(`Failed to load captured piece image: ${imageSrc}`);
+      pieceDiv.style.backgroundColor = color;
+      pieceDiv.style.border = "2px solid #000";
+      pieceDiv.style.borderRadius = "50%";
+      pieceDiv.style.display = "flex";
+      pieceDiv.style.alignItems = "center";
+      pieceDiv.style.justifyContent = "center";
+      if (isKing) {
+        pieceDiv.innerHTML = "♔";
+        pieceDiv.style.color = "gold";
+        pieceDiv.style.fontWeight = "bold";
+      }
+    };
+
+    pieceDiv.appendChild(img);
+    container.appendChild(pieceDiv);
+
+    container.scrollTop = container.scrollHeight;
+
+    console.log(`✅ Added captured ${color} ${isKing ? "king" : "piece"}`);
+  }
+
+  clearCapturedPieces() {
+    const whiteContainer = document.getElementById("whiteCaptured");
+    const blackContainer = document.getElementById("blackCaptured");
+
+    if (whiteContainer) whiteContainer.innerHTML = "";
+    if (blackContainer) blackContainer.innerHTML = "";
+
+    console.log("🧹 Cleared all captured pieces");
+  }
+
   // Воспроизведение звука смайлика
   playSmileySound(soundType) {
     try {
@@ -945,6 +1003,8 @@ class CheckersGame {
   startFreshGame() {
     console.log("🔄 Starting fresh game...");
 
+    // ★★★ ОЧИЩАЕМ ВЫБИТЫЕ ШАШКИ ★★★
+    this.clearCapturedPieces();
     // ★★★ ПОЛНЫЙ СБРОС ИГРЫ ★★★
     this.surrenderAttempts = 0;
     this.currentPlayer = "white";
@@ -1403,6 +1463,15 @@ class CheckersGame {
 
       case "error":
         this.updateStatus(`⚠️ ${message.message}`);
+        break;
+
+      case "pieceCaptured":
+        console.log(
+          `🎯 Piece captured: ${message.color} ${
+            message.isKing ? "king" : "piece"
+          }`
+        );
+        this.addCapturedPiece(message.color, message.isKing);
         break;
 
       default:
