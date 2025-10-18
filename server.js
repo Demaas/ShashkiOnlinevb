@@ -738,6 +738,22 @@ class CheckersGameServer {
 
     // Удаление взятой шашки
     if (validation.capturedPiece) {
+      const capturedPiece = this.getPiece(
+        validation.capturedPiece.row,
+        validation.capturedPiece.col
+      );
+
+      // ★★★ ОТПРАВЛЯЕМ ИНФОРМАЦИЮ О ВЗЯТИИ ★★★
+      if (capturedPiece) {
+        this.broadcast(
+          JSON.stringify({
+            type: "pieceCaptured",
+            color: capturedPiece.color,
+            isKing: capturedPiece.isKing,
+          })
+        );
+      }
+
       this.removePiece(
         validation.capturedPiece.row,
         validation.capturedPiece.col
