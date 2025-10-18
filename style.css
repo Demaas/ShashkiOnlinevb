@@ -545,6 +545,7 @@ h1 {
   justify-content: center;
   text-align: center;
   min-width: 300px;
+  display: block !important; /* ★★★ ВАЖНО: УБЕДИТЕСЬ ЧТО ОТОБРАЖАЕТСЯ ★★★ */
 }
 
 /* Стили для информации об игроках */
