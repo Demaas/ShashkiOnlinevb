@@ -491,7 +491,7 @@ body {
   text-align: center;
   background: rgba(255, 255, 255, 0.1);
   backdrop-filter: blur(15px);
-  padding: 25px;
+  padding: 40px 25px; /* ★★★ УВЕЛИЧИЛИ ВЕРТИКАЛЬНЫЙ PADDING ★★★ */
   border-radius: 20px;
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
   border: 1px solid rgba(255, 255, 255, 0.2);
@@ -499,6 +499,7 @@ body {
   display: flex;
   flex-direction: column;
   align-items: center;
+  gap: 25px; /* ★★★ ДОБАВИЛИ РАССТОЯНИЕ МЕЖДУ ЭЛЕМЕНТАМИ ★★★ */
 }
 
 .game-container {
@@ -511,7 +512,7 @@ body {
 
 h1 {
   color: white;
-  margin-bottom: 20px;
+  margin-bottom: 1px; /* ★★★ УВЕЛИЧИЛИ ОТСТУП СНИЗУ ★★★ */
   text-shadow: 2px 2px 8px rgba(0, 0, 0, 0.8);
   font-size: 2.5em;
   font-weight: bold;
@@ -641,6 +642,157 @@ h1 {
   z-index: 1;
   border: 2px solid white;
   animation: pulse 1.5s infinite;
+}
+
+/* ★★★ СТИЛИ ДЛЯ КОЛОНОК ВЫБИТЫХ ШАШЕК ★★★ */
+.captured-pieces-container {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 130px;
+  max-width: 130px;
+  background: rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(10px);
+  border-radius: 12px;
+  padding: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+  height: 488px; /* ★★★ УВЕЛИЧИЛИ ВЫСОТУ ОКНА ★★★ */
+}
+
+.captured-header {
+  color: white;
+  font-weight: bold;
+  font-size: 13px;
+  text-align: center;
+  text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.7);
+  line-height: 1.2;
+  margin-bottom: 5px;
+}
+
+.captured-columns {
+  display: flex;
+  gap: 12px;
+  justify-content: space-between;
+  height: 420px; /* ★★★ УВЕЛИЧИЛИ ВЫСОТУ КОЛОНОК ★★★ */
+}
+
+.captured-pieces {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  align-items: center;
+  min-height: 420px; /* ★★★ УВЕЛИЧИЛИ МИНИМАЛЬНУЮ ВЫСОТУ ★★★ */
+  max-height: 500px; /* ★★★ УВЕЛИЧИЛИ МАКСИМАЛЬНУЮ ВЫСОТУ ★★★ */
+  overflow-y: auto;
+  padding: 6px;
+  border-radius: 8px;
+  width: 50px; /* ★★★ НЕМНОГО УМЕНЬШИЛИ ШИРИНУ ★★★ */
+}
+
+.white-captured {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+}
+
+.black-captured {
+  background: rgba(0, 0, 0, 0.3);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.captured-piece {
+  width: 30px; /* ★★★ НЕМНОГО УМЕНЬШИЛИ РАЗМЕР ШАШЕК ★★★ */
+  height: 30px;
+  border-radius: 50%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  position: relative;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.4);
+  transition: all 0.3s ease;
+  flex-shrink: 0; /* ★★★ ЗАПРЕТИЛИ СЖИМАНИЕ ★★★ */
+}
+
+.captured-piece img {
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 2px solid rgba(0, 0, 0, 0.3);
+}
+
+.captured-piece.king::after {
+  content: "♔";
+  position: absolute;
+  font-size: 12px; /* ★★★ УМЕНЬШИЛИ РАЗМЕР КОРОНЫ ★★★ */
+  color: gold;
+  text-shadow: 1px 1px 3px rgba(0, 0, 0, 0.8);
+  font-weight: bold;
+  z-index: 2;
+}
+
+@keyframes capturedAppear {
+  0% {
+    opacity: 0;
+    transform: scale(0.5) translateY(-10px);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+.captured-piece.new {
+  animation: capturedAppear 0.5s ease-out;
+}
+
+.captured-pieces::-webkit-scrollbar {
+  width: 3px;
+}
+
+.captured-pieces::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.captured-pieces::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.3);
+  border-radius: 2px;
+}
+
+.captured-pieces::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.5);
+}
+
+@keyframes capturedAppear {
+  0% {
+    opacity: 0;
+    transform: scale(0.5) translateY(-10px);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+.captured-piece.new {
+  animation: capturedAppear 0.5s ease-out;
+}
+
+.captured-pieces::-webkit-scrollbar {
+  width: 4px;
+}
+
+.captured-pieces::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.captured-pieces::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.3);
+  border-radius: 2px;
+}
+
+.captured-pieces::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.5);
 }
 
 @keyframes pulse {
