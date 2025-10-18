@@ -72,36 +72,40 @@
       </h1>
 
       <!-- Обновленная информация об игроках с фото и индикатором хода -->
-      <div class="players-info">
-        <div class="player-info" id="whitePlayer">
-          <img src="shabe.png" alt="Белые" class="player-icon" />
-          <span class="player-nickname" id="whiteNickname"
-            >Ожидание игрока...</span
-          >
-          <span class="turn-indicator">⬅️ Ход</span>
-        </div>
-        <div class="player-info" id="blackPlayer">
-          <img src="shach.png" alt="Черные" class="player-icon" />
-          <span class="player-nickname" id="blackNickname"
-            >Ожидание игрока...</span
-          >
-          <span class="turn-indicator">⬅️ Ход</span>
-        </div>
-      </div>
+<div class="players-info">
+  <div class="player-info" id="whitePlayer">
+    <img src="shabe.png" alt="Белые" class="player-icon" />
+    <span class="player-nickname" id="whiteNickname"
+      >Ожидание игрока...</span
+    >
+    <span class="turn-indicator">⬅️ Ход</span>
+  </div>
+  
+  <div class="player-info" id="blackPlayer">
+    <img src="shach.png" alt="Черные" class="player-icon" />
+    <span class="player-nickname" id="blackNickname"
+      >Ожидание игрока...</span
+    >
+    <span class="turn-indicator">⬅️ Ход</span>
+  </div>
+</div>
 
-      <div class="game-layout">
-        <!-- ★★★ КОЛОНКИ ВЫБИТЫХ ШАШЕК (СЛЕВА) ★★★ -->
-        <div class="captured-pieces-container">
-          <div class="captured-header">Выбитые<br>шашки:</div>
-          <div class="captured-columns">
-            <div class="captured-pieces white-captured" id="whiteCaptured">
-              <!-- Белые выбитые шашки будут здесь -->
-            </div>
-            <div class="captured-pieces black-captured" id="blackCaptured">
-              <!-- Черные выбитые шашки будут здесь -->
-            </div>
-          </div>
-        </div>
+<!-- ★★★ ОКНО СТАТУСА ИГРЫ ★★★ -->
+<div id="status">Загрузка...</div>
+
+<div class="game-layout">
+  <!-- ★★★ КОЛОНКИ ВЫБИТЫХ ШАШЕК (СЛЕВА) ★★★ -->
+  <div class="captured-pieces-container">
+    <div class="captured-header">Выбитые<br>шашки:</div>
+    <div class="captured-columns">
+      <div class="captured-pieces white-captured" id="whiteCaptured">
+        <!-- Белые выбитые шашки будут здесь -->
+      </div>
+      <div class="captured-pieces black-captured" id="blackCaptured">
+        <!-- Черные выбитые шашки будут здесь -->
+      </div>
+    </div>
+  </div>
       
         <!-- Левая колонка с доской -->
         <div class="board-column">
