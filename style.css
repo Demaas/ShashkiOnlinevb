@@ -38,15 +38,6 @@ body {
   gap: 15px;
 }
 
-/* Правая колонка с чатом и смайликами */
-.sidebar {
-  flex: 0 0 350px;
-  display: flex;
-  flex-direction: column;
-  gap: 15px;
-  min-height: 500px;
-}
-
 /* ★★★ ОБНОВЛЕННЫЕ СТИЛИ СМАЙЛИКОВ ДЛЯ САЙДБАРА ★★★ */
 .smileys-container {
   width: 100%;
@@ -552,7 +543,7 @@ h1 {
 .players-info {
   display: flex;
   justify-content: space-between;
-  margin-top: 20px;
+  margin-top: 1px;
   width: 100%;
   max-width: 480px;
 }
@@ -1015,6 +1006,254 @@ h1 {
   to {
     opacity: 1;
     transform: translateY(0);
+  }
+}
+
+/* ★★★ АНИМАЦИЯ ПЕРЕВОРОТА ДОСКИ ★★★ */
+.board {
+  transition: transform 0.5s ease;
+}
+
+.piece {
+  transition: transform 0.5s ease;
+}
+
+/* ★★★ СТИЛИ ДЛЯ ПЕРЕВЕРНУТОЙ ДОСКИ ★★★ */
+.board.flipped {
+  transform: rotate(180deg);
+}
+
+.board.flipped .cell {
+  transform: rotate(180deg);
+}
+
+.board.flipped .piece {
+  transform: rotate(180deg);
+}
+
+/* НОВЫЕ СТИЛИ ДЛЯ СТРЕЛКИ */
+.move-arrow {
+  position: absolute;
+  pointer-events: none;
+  z-index: 10;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+}
+
+.arrow-line {
+  stroke: #ff4444;
+  stroke-width: 3;
+  stroke-linecap: round;
+  filter: drop-shadow(0 0 2px rgba(255, 0, 0, 0.7));
+}
+
+.arrow-head {
+  fill: #ff4444;
+  filter: drop-shadow(0 0 2px rgba(255, 0, 0, 0.7));
+}
+
+.arrow-animation {
+  animation: arrowDraw 0.5s ease-out;
+}
+
+/* ★★★ СТИЛИ ДЛЯ КНОПКИ ПЕРЕВОРОТА ДОСКИ ★★★ */
+.flip-board-btn {
+  background: rgba(0, 0, 0, 0.3) !important;
+  color: white;
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  backdrop-filter: blur(10px);
+
+  /* ★★★ РАЗМЕР КНОПКИ ★★★ */
+  width: 60px; /* Ширина кнопки */
+  height: 60px; /* Высота кнопки */
+  font-size: 24px; /* Размер иконки */
+  padding: 0; /* Убираем отступы */
+  display: flex; /* Центрируем иконку */
+  align-items: center;
+  justify-content: center;
+  border-radius: 12px; /* Закругление углов */
+}
+
+.flip-board-btn:hover {
+  background: rgba(0, 0, 0, 0.5) !important;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+  border-color: rgba(255, 255, 255, 0.5);
+}
+
+.flip-board-btn:active {
+  transform: translateY(0);
+}
+
+.flip-board-btn:disabled {
+  background: rgba(204, 204, 204, 0.3) !important;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+  border-color: rgba(255, 255, 255, 0.2);
+}
+
+/* ★★★ СТИЛИ ДЛЯ СЧЁТЧИКА ХОДОВ ★★★ */
+.moves-counter {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  background: rgba(255, 255, 255, 0.1);
+  padding: 8px 15px;
+  border-radius: 10px;
+  backdrop-filter: blur(10px);
+  border: 2px solid rgba(255, 255, 255, 0.2);
+  min-width: 120px;
+}
+
+.moves-counter-title {
+  color: #e0e0e0;
+  font-size: 12px;
+  font-weight: bold;
+  margin-bottom: 4px;
+  text-align: center;
+  text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.7);
+}
+
+.moves-counter-value {
+  color: #ffeb3b;
+  font-size: 18px;
+  font-weight: bold;
+  text-shadow: 1px 1px 3px rgba(0, 0, 0, 0.8);
+  font-family: "Arial", sans-serif;
+}
+
+/* ★★★ ОБНОВЛЕННЫЕ СТИЛИ ДЛЯ КНОПКИ СВОРАЧИВАНИЯ ★★★ */
+.collapse-button-container {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 10px;
+  height: 488px; /* Такая же высота как у captured-pieces-container */
+}
+
+.collapse-btn {
+  background: rgba(255, 255, 255, 0.1);
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  border-radius: 12px;
+  color: white;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  transition: all 0.3s ease;
+  backdrop-filter: blur(10px);
+  width: 130px; /* Такая же ширина как у captured-pieces-container */
+  height: 488px; /* Такая же высота как у captured-pieces-container */
+  padding: 15px;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+}
+
+.collapse-btn:hover {
+  background: rgba(255, 255, 255, 0.2);
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.4);
+  border-color: rgba(255, 255, 255, 0.5);
+}
+
+.collapse-icon {
+  font-size: 32px;
+  font-weight: bold;
+  transition: transform 0.3s ease;
+}
+
+.collapse-text {
+  font-size: 16px;
+  font-weight: bold;
+  text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.7);
+  writing-mode: vertical-rl;
+  text-orientation: mixed;
+  transform: rotate(180deg);
+}
+
+/* ★★★ ЧАТ ДОЛЖЕН ОТКРЫВАТЬСЯ СПРАВА ОТ КНОПКИ ★★★ */
+.sidebar {
+  position: relative;
+  transition: all 0.3s ease;
+  display: flex;
+  flex-direction: row;
+  gap: 15px;
+  align-items: flex-start;
+  flex: 0 0 130px; /* Только ширина кнопки по умолчанию */
+}
+
+.sidebar-content {
+  transition: all 0.3s ease;
+  overflow: hidden;
+  width: 350px; /* Фиксированная ширина контента */
+}
+
+.sidebar.collapsed .sidebar-content {
+  width: 0;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.sidebar:not(.collapsed) {
+  flex: 0 0 495px; /* 130px (кнопка) + 350px (контент) + 15px (gap) */
+}
+
+/* ★★★ АДАПТИВНОСТЬ ДЛЯ СЧЁТЧИКА ★★★ */
+@media (max-width: 768px) {
+  .moves-counter {
+    padding: 8px 12px;
+    min-width: 100px;
+    order: -1; /* Счётчик будет сверху на мобильных */
+    margin-bottom: 10px;
+  }
+
+  .moves-counter-title {
+    font-size: 11px;
+  }
+
+  .moves-counter-value {
+    font-size: 16px;
+  }
+
+  .players-info {
+    flex-direction: column;
+    gap: 10px;
+    align-items: center;
+  }
+}
+
+@media (max-width: 480px) {
+  .moves-counter {
+    padding: 6px 10px;
+    min-width: 80px;
+  }
+
+  .moves-counter-title {
+    font-size: 10px;
+  }
+
+  .moves-counter-value {
+    font-size: 14px;
+  }
+
+  .player-info {
+    padding: 8px 12px;
+    max-width: 250px;
+  }
+}
+
+@keyframes arrowDraw {
+  from {
+    stroke-dasharray: 1000;
+    stroke-dashoffset: 1000;
+  }
+  to {
+    stroke-dasharray: 1000;
+    stroke-dashoffset: 0;
   }
 }
 
