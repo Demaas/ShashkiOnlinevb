@@ -29,6 +29,8 @@ class CheckersGame {
       "surrenderFinalConfirm"
     );
     this.surrenderCancel = document.getElementById("surrenderCancel");
+    // ★★★ ДОБАВЬТЕ ЭТО СВОЙСТВО ★★★
+    this.flipBoardButton = document.getElementById("flipBoardButton");
 
     // Добавляем модальное окно для подтверждения перезапуска
     this.restartModal = document.getElementById("restartModal");
@@ -48,6 +50,19 @@ class CheckersGame {
     this.chatInput = document.getElementById("chatInput");
     this.sendMessageBtn = document.getElementById("sendMessageBtn");
     this.smileyBtns = document.querySelectorAll(".smiley-btn");
+
+    // ★★★ ДОБАВЛЕНЫ СЧЁТЧИКИ ХОДОВ ★★★
+    this.whiteMoves = 0;
+    this.blackMoves = 0;
+    this.movesCounter = document.getElementById("movesCounter");
+
+    // ★★★ ДОБАВЛЕНЫ СВОЙСТВА ДЛЯ СВОРАЧИВАНИЯ ★★★
+    this.sidebar = document.querySelector(".sidebar");
+    this.collapseSidebarButton = document.getElementById(
+      "collapseSidebarButton"
+    );
+    this.sidebarContent = document.getElementById("sidebarContent");
+    this.isSidebarCollapsed = true; // По умолчанию свёрнут
 
     console.log("💬 Chat elements state:", {
       chatHistory: this.chatHistory ? "found" : "not found",
@@ -100,9 +115,184 @@ class CheckersGame {
 
     // ★★★ ДОБАВЛЕН ВЫЗОВ ФУНКЦИИ ДЛЯ ОБНОВЛЕНИЯ ИНФОРМАЦИИ ОБ ИГРОКАХ ★★★
     this.updatePlayersInfo();
+    // ★★★ ДОБАВЬТЕ ВЫЗОВ МЕТОДА ДЛЯ НАСТРОЙКИ КНОПКИ ★★★
+    this.setupFlipBoardButton();
   }
 
-  // ★★★ МЕТОДЫ ДЛЯ ЧАТА И СМАЙЛИКОВ ★★★
+  // ★★★ МЕТОД ДЛЯ НАСТРОЙКИ КНОПКИ ПЕРЕВОРОТА ДОСКИ ★★★
+  setupFlipBoardButton() {
+    if (this.flipBoardButton) {
+      this.flipBoardButton.addEventListener("click", () => {
+        this.flipBoard();
+      });
+      console.log("✅ Flip board button setup complete");
+    } else {
+      console.log("❌ Flip board button not found");
+    }
+  }
+
+  // ★★★ ОБНОВЛЕННЫЙ МЕТОД ДЛЯ ПЕРЕВОРОТА ДОСКИ ★★★
+  flipBoard() {
+    const board = document.getElementById("board");
+    if (!board) return;
+
+    // Переключаем состояние переворота
+    this.playsFromBottom = !this.playsFromBottom;
+
+    // Применяем или убираем переворот
+    if (!this.playsFromBottom) {
+      // Переворачиваем доску
+      board.style.transform = "rotate(180deg)";
+
+      // Переворачиваем все клетки
+      const cells = document.querySelectorAll(".cell");
+      cells.forEach((cell) => {
+        cell.style.transform = "rotate(180deg)";
+      });
+
+      // Переворачиваем все шашки
+      const pieces = document.querySelectorAll(".piece");
+      pieces.forEach((piece) => {
+        piece.style.transform = "rotate(180deg)";
+      });
+
+      console.log("🔄 Board flipped - player now plays from top");
+      this.updateStatus("Доска перевернута! Вы играете сверху");
+    } else {
+      // Возвращаем в нормальное положение
+      board.style.transform = "rotate(0deg)";
+
+      const cells = document.querySelectorAll(".cell");
+      cells.forEach((cell) => {
+        cell.style.transform = "rotate(0deg)";
+      });
+
+      const pieces = document.querySelectorAll(".piece");
+      pieces.forEach((piece) => {
+        piece.style.transform = "rotate(0deg)";
+      });
+
+      console.log("✅ Board normal - player now plays from bottom");
+      this.updateStatus("Доска в нормальном положении! Вы играете снизу");
+    }
+
+    // ★★★ ОБНОВЛЯЕМ СТРЕЛКИ ИНДИКАТОРА ХОДА ★★★
+    this.updateTurnIndicators();
+
+    // ★★★ ОБНОВЛЯЕМ ТЕКСТ КНОПКИ ★★★
+    this.updateFlipButtonText();
+  }
+
+  // ★★★ МЕТОД ДЛЯ ОБНОВЛЕНИЯ СТРЕЛОК ИНДИКАТОРА ХОДА ★★★
+  updateTurnIndicators() {
+    const whiteIndicator = document.getElementById("whiteTurnIndicator");
+    const blackIndicator = document.getElementById("blackTurnIndicator");
+
+    if (!whiteIndicator || !blackIndicator) return;
+
+    // ★★★ ОПРЕДЕЛЯЕМ НАПРАВЛЕНИЕ СТРЕЛОК В ЗАВИСИМОСТИ ОТ ПЕРЕВОРОТА ДОСКИ ★★★
+    if (!this.playsFromBottom) {
+      // Доска перевернута - меняем направление стрелок
+      whiteIndicator.innerHTML = "⬅️ Ход";
+      blackIndicator.innerHTML = "⬅️ Ход";
+    } else {
+      // Доска в нормальном положении - стандартные стрелки
+      whiteIndicator.innerHTML = "⬅️ Ход";
+      blackIndicator.innerHTML = "⬅️ Ход";
+    }
+
+    console.log(
+      "🔄 Turn indicators updated, board flipped:",
+      !this.playsFromBottom
+    );
+  }
+
+  // ★★★ МЕТОД ДЛЯ СВОРАЧИВАНИЯ/РАЗВОРАЧИВАНИЯ ПРАВОГО БЛОКА ★★★
+  toggleSidebar() {
+    // Проверяем, что элементы существуют
+    if (!this.sidebar || !this.collapseSidebarButton || !this.sidebarContent) {
+      console.log("❌ Sidebar elements not found");
+      return;
+    }
+
+    // Переключаем состояние
+    this.isSidebarCollapsed = !this.isSidebarCollapsed;
+
+    if (this.isSidebarCollapsed) {
+      // Сворачиваем сайдбар
+      this.sidebar.classList.add("collapsed");
+
+      // Обновляем текст кнопки и статус
+      const collapseText =
+        this.collapseSidebarButton.querySelector(".collapse-text");
+      if (collapseText) {
+        collapseText.textContent = "Чат";
+      }
+
+      // ★★★ ИКОНКА ">" КОГДА ЧАТ СВЁРНУТ ★★★
+      const collapseIcon =
+        this.collapseSidebarButton.querySelector(".collapse-icon");
+      if (collapseIcon) {
+        collapseIcon.textContent = ">";
+      }
+
+      this.updateStatus("💬 Чат свёрнут - больше места для игры!");
+      console.log("🔽 Sidebar collapsed");
+    } else {
+      // Разворачиваем сайдбар
+      this.sidebar.classList.remove("collapsed");
+
+      // Обновляем текст кнопки
+      const collapseText =
+        this.collapseSidebarButton.querySelector(".collapse-text");
+      if (collapseText) {
+        collapseText.textContent = "Чат";
+      }
+
+      // ★★★ ИКОНКА "<" КОГДА ЧАТ РАЗВЁРНУТ ★★★
+      const collapseIcon =
+        this.collapseSidebarButton.querySelector(".collapse-icon");
+      if (collapseIcon) {
+        collapseIcon.textContent = "<";
+      }
+
+      this.updateStatus("💬 Чат развёрнут - общайтесь с противником!");
+      console.log("🔼 Sidebar expanded");
+    }
+
+    // ★★★ ОБНОВЛЯЕМ ЛAYOUT ★★★
+    setTimeout(() => {
+      if (typeof window.dispatchEvent === "function") {
+        window.dispatchEvent(new Event("resize"));
+      }
+    }, 300);
+  }
+
+  // ★★★ МЕТОД ДЛЯ ОБНОВЛЕНИЯ СЧЁТЧИКА ХОДОВ ★★★
+  updateMovesCounter() {
+    const movesCounter = document.getElementById("movesCounter");
+    if (movesCounter) {
+      movesCounter.textContent = `${this.whiteMoves} Х ${this.blackMoves}`;
+      console.log(
+        `🔄 Moves counter updated: ${this.whiteMoves} Х ${this.blackMoves}`
+      );
+    }
+  }
+
+  // ★★★ МЕТОД ДЛЯ ОБНОВЛЕНИЯ ТЕКСТА КНОПКИ ★★★
+  updateFlipButtonText() {
+    if (this.flipBoardButton) {
+      if (!this.playsFromBottom) {
+        this.flipBoardButton.innerHTML = "🔄";
+        this.flipBoardButton.title = "Вернуть доску в нормальное положение";
+      } else {
+        this.flipBoardButton.innerHTML = "🔄";
+        this.flipBoardButton.title = "Перевернуть доску";
+      }
+    }
+  }
+
+  // ★★★ МЕТОДЫ ДЛА ЧАТА И СМАЙЛИКОВ ★★★
   setupChatAndSmileys() {
     console.log("💬 Setting up chat and smileys...");
 
@@ -267,6 +457,46 @@ class CheckersGame {
       }
     } catch (error) {
       console.log("Error playing message sound:", error);
+    }
+  }
+
+  // ★★★ МЕТОД ДЛЯ ПЕРЕВОРОТА ДОСКИ ★★★
+  flipBoardIfNeeded() {
+    const board = document.getElementById("board");
+    if (!board) return;
+
+    if (!this.playsFromBottom) {
+      // Переворачиваем доску и все элементы
+      board.style.transform = "rotate(180deg)";
+
+      // Переворачиваем все клетки
+      const cells = document.querySelectorAll(".cell");
+      cells.forEach((cell) => {
+        cell.style.transform = "rotate(180deg)";
+      });
+
+      // Переворачиваем все шашки
+      const pieces = document.querySelectorAll(".piece");
+      pieces.forEach((piece) => {
+        piece.style.transform = "rotate(180deg)";
+      });
+
+      console.log("🔄 Board flipped - player plays from top");
+    } else {
+      // Возвращаем в нормальное положение
+      board.style.transform = "rotate(0deg)";
+
+      const cells = document.querySelectorAll(".cell");
+      cells.forEach((cell) => {
+        cell.style.transform = "rotate(0deg)";
+      });
+
+      const pieces = document.querySelectorAll(".piece");
+      pieces.forEach((piece) => {
+        piece.style.transform = "rotate(0deg)";
+      });
+
+      console.log("✅ Board normal - player plays from bottom");
     }
   }
 
@@ -490,13 +720,24 @@ class CheckersGame {
     // Сначала очищаем все существующие шашки
     this.clearBoard();
 
-    // ★★★ ПРАВИЛЬНАЯ РАССТАНОВКА - ТОЛЬКО НА ЧЕРНЫХ КЛЕТКАХ ★★★
+    // ★★★ РАССТАНОВКА В ЗАВИСИМОСТИ ОТ ПОЗИЦИИ ИГРОКА ★★★
+    if (this.playsFromBottom) {
+      // Игрок снизу - стандартная расстановка
+      this.placeStandardPieces();
+    } else {
+      // Игрок сверху - перевернутая расстановка
+      this.placeFlippedPieces();
+    }
 
+    console.log("Pieces initialized successfully");
+  }
+
+  // ★★★ СТАНДАРТНАЯ РАССТАНОВКА ★★★
+  placeStandardPieces() {
     // Чёрные шашки (верхние 3 ряда)
     for (let row = 0; row < 3; row++) {
       for (let col = 0; col < 8; col++) {
         if ((row + col) % 2 === 1) {
-          // Только черные клетки
           this.placePiece(row, col, "black");
         }
       }
@@ -506,13 +747,31 @@ class CheckersGame {
     for (let row = 5; row < 8; row++) {
       for (let col = 0; col < 8; col++) {
         if ((row + col) % 2 === 1) {
-          // Только черные клетки
+          this.placePiece(row, col, "white");
+        }
+      }
+    }
+  }
+
+  // ★★★ ПЕРЕВЕРНУТАЯ РАССТАНОВКА ★★★
+  placeFlippedPieces() {
+    // Белые шашки (верхние 3 ряда)
+    for (let row = 0; row < 3; row++) {
+      for (let col = 0; col < 8; col++) {
+        if ((row + col) % 2 === 1) {
           this.placePiece(row, col, "white");
         }
       }
     }
 
-    console.log("Pieces initialized successfully");
+    // Чёрные шашки (нижние 3 ряда)
+    for (let row = 5; row < 8; row++) {
+      for (let col = 0; col < 8; col++) {
+        if ((row + col) % 2 === 1) {
+          this.placePiece(row, col, "black");
+        }
+      }
+    }
   }
 
   placePiece(row, col, color, isKing = false) {
@@ -573,6 +832,18 @@ class CheckersGame {
   // ★★★ ОБНОВЛЕННЫЙ МЕТОД СБРОСА ИГРЫ ★★★
   resetGame() {
     console.log("Resetting game to initial state...");
+
+    // ★★★ СБРАСЫВАЕМ СЧЁТЧИК ХОДОВ ★★★
+    this.whiteMoves = 0;
+    this.blackMoves = 0;
+    this.totalMoves = 0;
+    this.updateMovesCounter();
+
+    // ★★★ СБРАСЫВАЕМ СОСТОЯНИЕ ПЕРЕВОРОТА ★★★
+    this.playsFromBottom = true;
+
+    // ★★★ ОБНОВЛЯЕМ СТРЕЛКИ ИНДИКАТОРА ХОДА ★★★
+    this.updateTurnIndicators();
 
     // ★★★ СБРАСЫВАЕМ СОСТОЯНИЕ ГОТОВНОСТИ ★★★
     this.gameReady = false;
@@ -652,6 +923,9 @@ class CheckersGame {
       blackPlayer.classList.add("active");
     }
 
+    // ★★★ ОБНОВЛЯЕМ СТРЕЛКИ ИНДИКАТОРА ХОДА ★★★
+    this.updateTurnIndicators();
+
     // ★★★ ДОБАВИМ ОТЛАДОЧНЫЙ ВЫВОД ★★★
     console.log("🔄 Updated players info:", {
       playerColor: this.playerColor,
@@ -707,6 +981,28 @@ class CheckersGame {
     this.rejectDraw.addEventListener("click", () => {
       this.rejectDrawOffer();
     });
+
+    // ★★★ ОБРАБОТЧИК ДЛЯ КНОПКИ СВОРАЧИВАНИЯ САЙДБАРА ★★★
+    if (this.collapseSidebarButton) {
+      this.collapseSidebarButton.addEventListener("click", () => {
+        console.log("🔄 Collapse sidebar button clicked");
+        this.toggleSidebar();
+      });
+
+      // ★★★ ТАКЖЕ ДОБАВИМ ОБРАБОТЧИК КЛАВИАТУРЫ ДЛЯ БЫСТРОГО ДОСТУПА ★★★
+      document.addEventListener("keydown", (e) => {
+        // Ctrl+H или Cmd+H для сворачивания/разворачивания
+        if ((e.ctrlKey || e.metaKey) && e.key === "h") {
+          e.preventDefault();
+          console.log("⌨️ Keyboard shortcut detected: Ctrl+H");
+          this.toggleSidebar();
+        }
+      });
+
+      console.log("✅ Sidebar collapse button setup complete");
+    } else {
+      console.log("❌ Collapse sidebar button not found");
+    }
 
     // ★★★ ДОБАВЛЕНЫ ОБРАБОТЧИКИ ДЛЯ КНОПКИ "СДАТЬСЯ" ★★★
     this.surrenderButton.addEventListener("click", () => {
@@ -1003,6 +1299,21 @@ class CheckersGame {
   startFreshGame() {
     console.log("🔄 Starting fresh game...");
 
+    // ★★★ СБРАСЫВАЕМ СЧЁТЧИК ХОДОВ ★★★
+    this.whiteMoves = 0;
+    this.blackMoves = 0;
+    this.totalMoves = 0;
+    this.updateMovesCounter();
+
+    // ★★★ СБРАСЫВАЕМ ПЕРЕМЕННУЮ ПЕРЕВОРОТА ★★★
+    this.playsFromBottom = true; // По умолчанию играем снизу
+
+    // ★★★ ОБНОВЛЯЕМ ТЕКСТ КНОПКИ ★★★
+    this.updateFlipButtonText();
+
+    // ★★★ ОБНОВЛЯЕМ СТРЕЛКИ ИНДИКАТОРА ХОДА ★★★
+    this.updateTurnIndicators();
+
     // ★★★ ОЧИЩАЕМ ВЫБИТЫЕ ШАШКИ ★★★
     this.clearCapturedPieces();
     // ★★★ ПОЛНЫЙ СБРОС ИГРЫ ★★★
@@ -1158,6 +1469,12 @@ class CheckersGame {
   handleCellClick(row, col) {
     console.log("Cell clicked:", row, col, "Game ready:", this.gameReady);
 
+    // ★★★ УЧИТЫВАЕМ ПЕРЕВОРОТ ДОСКИ ★★★
+    const board = document.getElementById("board");
+    const isFlipped = board.classList.contains("flipped");
+    const actualRow = isFlipped ? 7 - row : row;
+    const actualCol = isFlipped ? 7 - col : col;
+
     // ★★★ ПЕРВАЯ ПРОВЕРКА: ИГРА ДОЛЖНА БЫТЬ ГОТОВА ★★★
     if (!this.gameReady) {
       this.updateStatus("⏳ Ожидание подключения второго игрока...");
@@ -1292,7 +1609,7 @@ class CheckersGame {
       case "gameReady":
         console.log("✅ Game is ready to play!");
         this.gameReady = true;
-        this.updateStatus("✅ Оба игрока подключены! Ваш ход!");
+        this.updateStatus("✅ Оба игроки подключены! Ваш ход!");
 
         // ★★★ ДОБАВЛЯЕМ СООБЩЕНИЕ В ЧАТ ★★★
         this.displayChatMessage("", "Игра началась! Удачи!", false, true);
@@ -1306,8 +1623,23 @@ class CheckersGame {
       case "playerAssigned":
         this.playerColor = message.color;
         const colorText = this.playerColor === "white" ? "белые" : "чёрные";
+
+        // ★★★ АВТОМАТИЧЕСКИЙ ПЕРЕВОРОТ ДЛЯ ЧЕРНЫХ ИГРОКОВ ★★★
+        this.playsFromBottom = message.playsFromBottom !== false; // Используем значение с сервера
+
+        // ★★★ ЕСЛИ ИГРОК ЧЕРНЫЙ - АВТОМАТИЧЕСКИ ПЕРЕВОРАЧИВАЕМ ДОСКУ ★★★
+        if (this.playerColor === "black" && this.playsFromBottom === false) {
+          console.log("🔄 Auto-flipping board for black player");
+          this.flipBoard(); // Автоматически переворачиваем доску для черных
+        } else {
+          // Для белых игроков обновляем индикаторы без переворота
+          this.updateTurnIndicators();
+        }
+
         this.updateStatus(
-          `Вы играете за ${colorText}. Ожидание второго игрока...`
+          `Вы играете за ${colorText}. ${
+            this.playsFromBottom ? "Ваши шашки снизу" : "Ваши шашки сверху"
+          }. Ожидание второго игрока...`
         );
         this.updatePlayersInfo();
         break;
@@ -1349,7 +1681,38 @@ class CheckersGame {
         break;
 
       case "moveMade":
-        this.handleMoveMade(message.data);
+        console.log("Move made data:", message.data);
+
+        // ★★★ ОБНОВЛЯЕМ СЧЁТЧИК ХОДОВ ★★★
+        if (message.data.player === "white") {
+          this.whiteMoves++;
+        } else if (message.data.player === "black") {
+          this.blackMoves++;
+        }
+        this.totalMoves = this.whiteMoves + this.blackMoves;
+        this.updateMovesCounter();
+
+        setTimeout(() => {
+          // ★★★ ИСПОЛЬЗУЕМ КОРРЕКТНЫЕ КООРДИНАТЫ ДЛЯ ДАННОГО ИГРОКА ★★★
+          this.createMoveArrow(
+            message.data.viewerFromRow || message.data.fromRow,
+            message.data.viewerFromCol || message.data.fromCol,
+            message.data.viewerToRow || message.data.toRow,
+            message.data.viewerToCol || message.data.toCol,
+            message.data.isViewerFlipped || false
+          );
+        }, 100);
+
+        // ОБНОВЛЯЕМ ТЕКУЩЕГО ИГРОКА на основе данных от сервера
+        if (message.data.currentPlayer) {
+          this.currentPlayer = message.data.currentPlayer;
+        }
+
+        // ★★★ ОБНОВЛЯЕМ ИНФОРМАЦИЮ ОБ ИГРОКАХ ★★★
+        this.updatePlayersInfo();
+
+        // Обновляем статус для ВСЕХ игроков
+        this.updateTurnStatus();
         break;
 
       case "playersInfo":
@@ -1507,6 +1870,9 @@ class CheckersGame {
     // ★★★ ОБНОВЛЯЕМ ИНФОРМАЦИЮ ОБ ИГРОКАХ ДЛЯ ВСЕХ СЛУЧАЕВ ★★★
     this.updatePlayersInfo();
 
+    // ★★★ ОБНОВЛЯЕМ СТРЕЛКИ ИНДИКАТОРА ХОДА ★★★
+    this.updateTurnIndicators();
+
     console.log("Current opponent name:", this.opponentName);
   }
 
@@ -1534,108 +1900,183 @@ class CheckersGame {
     this.status.style.display = "block";
   }
 
-  createMoveArrow(fromRow, fromCol, toRow, toCol) {
-    // Удаляем предыдущую стрелку, если есть
+  createMoveArrow(fromRow, fromCol, toRow, toCol, isFlipped = false) {
+    // ★★★ УДАЛЯЕМ СТАРУЮ СТРЕЛКУ ★★★
     this.removeMoveArrow();
 
-    const fromCell = this.getCell(fromRow, fromCol);
-    const toCell = this.getCell(toRow, toCol);
+    setTimeout(() => {
+      // ★★★ ПРОВЕРКА КООРДИНАТ ★★★
+      if (
+        fromRow < 0 ||
+        fromRow > 7 ||
+        toRow < 0 ||
+        toRow > 7 ||
+        fromCol < 0 ||
+        fromCol > 7 ||
+        toCol < 0 ||
+        toCol > 7
+      ) {
+        console.log(
+          `❌ Invalid arrow coordinates: from (${fromRow},${fromCol}) to (${toRow},${toCol})`
+        );
+        return;
+      }
 
-    if (!fromCell || !toCell) return;
+      const board = document.getElementById("board");
+      if (!board) {
+        console.log("❌ Board not found");
+        return;
+      }
 
-    // Получаем координаты центров клеток
-    const fromRect = fromCell.getBoundingClientRect();
-    const toRect = toCell.getBoundingClientRect();
-    const boardRect = this.board.getBoundingClientRect();
+      // ★★★ ПОЛУЧАЕМ КЛЕТКИ С УЧЕТОМ ПЕРЕВОРОТА ★★★
+      const actualFromRow = isFlipped ? 7 - fromRow : fromRow;
+      const actualFromCol = isFlipped ? 7 - fromCol : fromCol;
+      const actualToRow = isFlipped ? 7 - toRow : toRow;
+      const actualToCol = isFlipped ? 7 - toCol : toCol;
 
-    // Вычисляем координаты относительно доски
-    const fromX = fromRect.left + fromRect.width / 2 - boardRect.left;
-    const fromY = fromRect.top + fromRect.height / 2 - boardRect.top;
-    const toX = toRect.left + toRect.width / 2 - boardRect.left;
-    const toY = toRect.top + toRect.height / 2 - boardRect.top;
+      const fromCell = document.querySelector(
+        `.cell[data-row="${actualFromRow}"][data-col="${actualFromCol}"]`
+      );
+      const toCell = document.querySelector(
+        `.cell[data-row="${actualToRow}"][data-col="${actualToCol}"]`
+      );
 
-    // Создаем SVG элемент для стрелки
-    const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
-    svg.classList.add("move-arrow");
-    svg.setAttribute("width", "100%");
-    svg.setAttribute("height", "100%");
-    svg.style.position = "absolute";
-    svg.style.top = "0";
-    svg.style.left = "0";
-    svg.style.pointerEvents = "none";
+      if (!fromCell || !toCell) {
+        console.log(
+          `❌ Cells not found for arrow: from (${actualFromRow},${actualFromCol}) to (${actualToRow},${actualToCol})`
+        );
+        return;
+      }
 
-    // Вычисляем длину и угол стрелки
-    const dx = toX - fromX;
-    const dy = toY - fromY;
-    const length = Math.sqrt(dx * dx + dy * dy);
-    const angle = (Math.atan2(dy, dx) * 180) / Math.PI;
+      // ★★★ ДОЖИДАЕМСЯ ОБНОВЛЕНИЯ DOM ★★★
+      requestAnimationFrame(() => {
+        this.drawArrow(fromCell, toCell, board, isFlipped);
+      });
+    }, 50);
+  }
 
-    // Укорачиваем стрелку, чтобы она не заходила на шашки
-    const shortenBy = 25;
-    const shortenedLength = length - shortenBy * 2;
-    const shortenX = (dx / length) * shortenBy;
-    const shortenY = (dy / length) * shortenBy;
+  // ★★★ ВЫНЕСЕМ ЛОГИКУ РИСОВАНИЯ В ОТДЕЛЬНЫЙ МЕТОД ★★★
+  drawArrow(fromCell, toCell, board, isFlipped) {
+    try {
+      // Получаем актуальные координаты
+      const fromRect = fromCell.getBoundingClientRect();
+      const toRect = toCell.getBoundingClientRect();
+      const boardRect = board.getBoundingClientRect();
 
-    const adjustedFromX = fromX + shortenX;
-    const adjustedFromY = fromY + shortenY;
-    const adjustedToX = toX - shortenX;
-    const adjustedToY = toY - shortenY;
+      // Вычисляем координаты относительно доски
+      let fromX = fromRect.left + fromRect.width / 2 - boardRect.left;
+      let fromY = fromRect.top + fromRect.height / 2 - boardRect.top;
+      let toX = toRect.left + toRect.width / 2 - boardRect.left;
+      let toY = toRect.top + toRect.height / 2 - boardRect.top;
 
-    // Создаем линию стрелки
-    const line = document.createElementNS("http://www.w3.org/2000/svg", "line");
-    line.classList.add("arrow-line", "arrow-animation");
-    line.setAttribute("x1", adjustedFromX);
-    line.setAttribute("y1", adjustedFromY);
-    line.setAttribute("x2", adjustedToX);
-    line.setAttribute("y2", adjustedToY);
+      // ★★★ ВАЖНО: НЕ ИНВЕРТИРУЕМ КООРДИНАТЫ ДЛЯ ПЕРЕВЕРНУТОЙ ДОСКИ ★★★
+      // Координаты уже правильные, потому что мы использовали actualFromRow/actualToRow
 
-    // Создаем наконечник стрелки
-    const headLength = 15;
-    const headAngle = 30;
+      // ★★★ ПРОВЕРКА РАССТОЯНИЯ ★★★
+      const distance = Math.sqrt(
+        Math.pow(toX - fromX, 2) + Math.pow(toY - fromY, 2)
+      );
+      const maxExpectedDistance = boardRect.width * 1.5;
 
-    const head = document.createElementNS(
-      "http://www.w3.org/2000/svg",
-      "polygon"
-    );
-    head.classList.add("arrow-head");
+      if (distance > maxExpectedDistance) {
+        console.log(`❌ Suspicious arrow distance: ${distance}px`);
+        return;
+      }
 
-    const angleRad = (angle * Math.PI) / 180;
-    const x1 =
-      adjustedToX -
-      headLength * Math.cos(angleRad - (headAngle * Math.PI) / 180);
-    const y1 =
-      adjustedToY -
-      headLength * Math.sin(angleRad - (headAngle * Math.PI) / 180);
-    const x2 =
-      adjustedToX -
-      headLength * Math.cos(angleRad + (headAngle * Math.PI) / 180);
-    const y2 =
-      adjustedToY -
-      headLength * Math.sin(angleRad + (headAngle * Math.PI) / 180);
+      // Создаем SVG элемент для стрелки
+      const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+      svg.classList.add("move-arrow");
+      svg.setAttribute("width", "100%");
+      svg.setAttribute("height", "100%");
+      svg.style.position = "absolute";
+      svg.style.top = "0";
+      svg.style.left = "0";
+      svg.style.pointerEvents = "none";
+      svg.style.zIndex = "1000";
 
-    head.setAttribute(
-      "points",
-      `${adjustedToX},${adjustedToY} ${x1},${y1} ${x2},${y2}`
-    );
+      // ★★★ ЕСЛИ ДОСКА ПЕРЕВЕРНУТА - ПОВОРАЧИВАЕМ ВСЮ СТРЕЛКУ ★★★
+      if (isFlipped) {
+        svg.style.transform = "rotate(180deg)";
+      }
 
-    svg.appendChild(line);
-    svg.appendChild(head);
+      // Вычисляем длину и угол стрелки
+      const dx = toX - fromX;
+      const dy = toY - fromY;
+      const length = Math.sqrt(dx * dx + dy * dy);
 
-    // Сохраняем ссылку на стрелку
-    this.currentArrow = svg;
+      // Укорачиваем стрелку
+      const shortenBy = Math.min(25, length * 0.3);
+      const shortenX = (dx / length) * shortenBy;
+      const shortenY = (dy / length) * shortenBy;
 
-    // Добавляем стрелку на доску
-    this.board.appendChild(svg);
+      const adjustedFromX = fromX + shortenX;
+      const adjustedFromY = fromY + shortenY;
+      const adjustedToX = toX - shortenX;
+      const adjustedToY = toY - shortenY;
 
-    // Очищаем предыдущий таймер
-    if (this.arrowTimeout) {
-      clearTimeout(this.arrowTimeout);
+      // Создаем линию стрелки
+      const line = document.createElementNS(
+        "http://www.w3.org/2000/svg",
+        "line"
+      );
+      line.classList.add("arrow-line", "arrow-animation");
+      line.setAttribute("x1", adjustedFromX);
+      line.setAttribute("y1", adjustedFromY);
+      line.setAttribute("x2", adjustedToX);
+      line.setAttribute("y2", adjustedToY);
+
+      // Создаем наконечник стрелки
+      const headLength = 15;
+      const headAngle = 30;
+      const angle = (Math.atan2(dy, dx) * 180) / Math.PI;
+
+      const head = document.createElementNS(
+        "http://www.w3.org/2000/svg",
+        "polygon"
+      );
+      head.classList.add("arrow-head");
+
+      const angleRad = (angle * Math.PI) / 180;
+      const x1 =
+        adjustedToX -
+        headLength * Math.cos(angleRad - (headAngle * Math.PI) / 180);
+      const y1 =
+        adjustedToY -
+        headLength * Math.sin(angleRad - (headAngle * Math.PI) / 180);
+      const x2 =
+        adjustedToX -
+        headLength * Math.cos(angleRad + (headAngle * Math.PI) / 180);
+      const y2 =
+        adjustedToY -
+        headLength * Math.sin(angleRad + (headAngle * Math.PI) / 180);
+
+      head.setAttribute(
+        "points",
+        `${adjustedToX},${adjustedToY} ${x1},${y1} ${x2},${y2}`
+      );
+
+      svg.appendChild(line);
+      svg.appendChild(head);
+
+      // Сохраняем ссылку на стрелку
+      this.currentArrow = svg;
+
+      // Добавляем стрелку на доску
+      board.appendChild(svg);
+
+      console.log(
+        `✅ Arrow drawn: distance ${Math.round(
+          distance
+        )}px, flipped: ${isFlipped}`
+      );
+
+      // Устанавливаем таймер для удаления стрелки
+      this.arrowTimeout = setTimeout(() => {
+        this.removeMoveArrow();
+      }, 3000);
+    } catch (error) {
+      console.log("❌ Error drawing arrow:", error);
     }
-
-    // Устанавливаем новый таймер для удаления стрелки
-    this.arrowTimeout = setTimeout(() => {
-      this.removeMoveArrow();
-    }, 3000);
   }
 
   removeMoveArrow() {
@@ -1692,6 +2133,9 @@ class CheckersGame {
     // Очищаем доску
     this.clearBoard();
 
+    // ★★★ ПЕРЕВОРАЧИВАЕМ ДОСКУ ПЕРЕД РАССТАНОВКОЙ ★★★
+    this.flipBoardIfNeeded();
+
     // Расставляем шашки согласно состоянию игры
     gameState.pieces.forEach((piece) => {
       this.placePiece(piece.row, piece.col, piece.color, piece.isKing);
@@ -1710,8 +2154,15 @@ class CheckersGame {
   }
 
   getCell(row, col) {
+    // ★★★ УЧИТЫВАЕМ ПЕРЕВОРОТ ДОСКИ ★★★
+    const board = document.getElementById("board");
+    const isFlipped = board.classList.contains("flipped");
+
+    const actualRow = isFlipped ? 7 - row : row;
+    const actualCol = isFlipped ? 7 - col : col;
+
     return document.querySelector(
-      `.cell[data-row="${row}"][data-col="${col}"]`
+      `.cell[data-row="${actualRow}"][data-col="${actualCol}"]`
     );
   }
 
