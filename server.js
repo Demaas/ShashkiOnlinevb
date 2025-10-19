@@ -62,19 +62,33 @@ class CheckersGameServer {
 
   addPlayer(ws, username) {
     if (this.players.length < 2) {
-      const color = this.players.length === 0 ? "white" : "black";
+      // ★★★ ПЕРВЫЙ ИГРОК - БЕЛЫЕ СНИЗУ, ВТОРОЙ - ЧЕРНЫЕ СНИЗУ ★★★
+      let color, playsFromBottom;
+
+      if (this.players.length === 0) {
+        // Первый игрок - белые снизу
+        color = "white";
+        playsFromBottom = true;
+      } else {
+        // Второй игрок - черные снизу (перевернутая доска)
+        color = "black";
+        playsFromBottom = false; // ★★★ ВТОРОЙ ИГРОК ИГРАЕТ СВЕРХУ ★★★
+      }
+
       const player = { ws, color, username };
       this.players.push(player);
 
+      // ★★★ ОТПРАВЛЯЕМ ИНФОРМАЦИЮ О РАСПОЛОЖЕНИИ ★★★
       ws.send(
         JSON.stringify({
           type: "playerAssigned",
           color: color,
+          playsFromBottom: playsFromBottom, // ★★★ ПЕРЕДАЕМ ИНФОРМАЦИЮ О ПОЗИЦИИ ★★★
         })
       );
 
       console.log(
-        `Player ${username} joined as ${color}. Total players: ${this.players.length}`
+        `Player ${username} joined as ${color}. Plays from bottom: ${playsFromBottom}. Total players: ${this.players.length}`
       );
 
       // ★★★ ОТПРАВЛЯЕМ ИСТОРИЮ ЧАТА НОВОМУ ИГРОКУ ★★★
@@ -525,25 +539,66 @@ class CheckersGameServer {
         this.checkGameOver();
       }
 
-      // Отправляем информацию о выполненном ходе
-      this.broadcast(
-        JSON.stringify({
-          type: "moveMade",
-          data: {
-            fromRow: moveData.fromRow,
-            fromCol: moveData.fromCol,
-            toRow: moveData.toRow,
-            toCol: moveData.toCol,
-            player: player.color,
-            currentPlayer: this.currentPlayer,
-            username: player.username,
-            isCapture: !!validation.capturedPiece,
-            canContinue:
-              !!validation.capturedPiece &&
-              this.canContinueCapture(moveData.toRow, moveData.toCol),
-          },
-        })
-      );
+      // ★★★ ОТПРАВЛЯЕМ ИНФОРМАЦИЮ О ВЫПОЛНЕННОМ ХОДЕ КАЖДОМУ ИГРОКУ ОТДЕЛЬНО ★★★
+      this.players.forEach((p) => {
+        const isViewerFlipped = p.color === "black"; // Для черных игроков доска перевернута
+
+        // ★★★ ПРОВЕРКА КООРДИНАТ ★★★
+        const viewerFromRow = isViewerFlipped
+          ? 7 - moveData.fromRow
+          : moveData.fromRow;
+        const viewerFromCol = isViewerFlipped
+          ? 7 - moveData.fromCol
+          : moveData.fromCol;
+        const viewerToRow = isViewerFlipped
+          ? 7 - moveData.toRow
+          : moveData.toRow;
+        const viewerToCol = isViewerFlipped
+          ? 7 - moveData.toCol
+          : moveData.toCol;
+
+        // ★★★ ПРОВЕРКА НА ВАЛИДНОСТЬ КООРДИНАТ ★★★
+        if (
+          viewerFromRow < 0 ||
+          viewerFromRow > 7 ||
+          viewerToRow < 0 ||
+          viewerToRow > 7 ||
+          viewerFromCol < 0 ||
+          viewerFromCol > 7 ||
+          viewerToCol < 0 ||
+          viewerToCol > 7
+        ) {
+          console.log(
+            `❌ Invalid coordinates for ${p.color}: from (${viewerFromRow},${viewerFromCol}) to (${viewerToRow},${viewerToCol})`
+          );
+          return; // Пропускаем этого игрока
+        }
+
+        p.ws.send(
+          JSON.stringify({
+            type: "moveMade",
+            data: {
+              fromRow: moveData.fromRow,
+              fromCol: moveData.fromCol,
+              toRow: moveData.toRow,
+              toCol: moveData.toCol,
+              player: player.color,
+              currentPlayer: this.currentPlayer,
+              username: player.username,
+              isCapture: !!validation.capturedPiece,
+              canContinue:
+                !!validation.capturedPiece &&
+                this.canContinueCapture(moveData.toRow, moveData.toCol),
+              // ★★★ КОРРЕКТНЫЕ КООРДИНАТЫ ДЛЯ КАЖДОГО ИГРОКА ★★★
+              viewerFromRow: viewerFromRow,
+              viewerFromCol: viewerFromCol,
+              viewerToRow: viewerToRow,
+              viewerToCol: viewerToCol,
+              isViewerFlipped: isViewerFlipped,
+            },
+          })
+        );
+      });
 
       ws.send(
         JSON.stringify({
