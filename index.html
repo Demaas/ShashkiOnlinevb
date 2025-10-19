@@ -72,48 +72,68 @@
       </h1>
 
       <!-- Обновленная информация об игроках с фото и индикатором хода -->
-<div class="players-info">
-  <div class="player-info" id="whitePlayer">
-    <img src="shabe.png" alt="Белые" class="player-icon" />
-    <span class="player-nickname" id="whiteNickname"
-      >Ожидание игрока...</span
-    >
-    <span class="turn-indicator">⬅️ Ход</span>
-  </div>
-  
-  <div class="player-info" id="blackPlayer">
-    <img src="shach.png" alt="Черные" class="player-icon" />
-    <span class="player-nickname" id="blackNickname"
-      >Ожидание игрока...</span
-    >
-    <span class="turn-indicator">⬅️ Ход</span>
-  </div>
-</div>
+      <div class="players-info">
+        <div class="player-info" id="whitePlayer">
+          <img src="shabe.png" alt="Белые" class="player-icon" />
+          <span class="player-nickname" id="whiteNickname"
+            >Ожидание игрока...</span
+          >
+          <span class="turn-indicator" id="whiteTurnIndicator">⬅️ Ход</span>
+        </div>
 
-<!-- ★★★ ОКНО СТАТУСА ИГРЫ ★★★ -->
-<div id="status">Загрузка...</div>
+        <!-- ★★★ ДОБАВЛЕН СЧЁТЧИК ХОДОВ ★★★ -->
+        <div class="moves-counter">
+          <div class="moves-counter-title">Счётчик ходов:</div>
+          <div class="moves-counter-value" id="movesCounter">0 Х 0</div>
+        </div>
 
-<div class="game-layout">
-  <!-- ★★★ КОЛОНКИ ВЫБИТЫХ ШАШЕК (СЛЕВА) ★★★ -->
-  <div class="captured-pieces-container">
-    <div class="captured-header">Выбитые<br>шашки:</div>
-    <div class="captured-columns">
-      <div class="captured-pieces white-captured" id="whiteCaptured">
-        <!-- Белые выбитые шашки будут здесь -->
+        <div class="player-info" id="blackPlayer">
+          <img src="shach.png" alt="Черные" class="player-icon" />
+          <span class="player-nickname" id="blackNickname"
+            >Ожидание игрока...</span
+          >
+          <span class="turn-indicator" id="blackTurnIndicator">➡️ Ход</span>
+        </div>
       </div>
-      <div class="captured-pieces black-captured" id="blackCaptured">
-        <!-- Черные выбитые шашки будут здесь -->
-      </div>
-    </div>
-  </div>
-      
+
+      <!-- ★★★ ОКНО СТАТУСА ИГРЫ ★★★ -->
+      <div id="status">Загрузка...</div>
+
+      <div class="game-layout">
+        <!-- ★★★ КОЛОНКИ ВЫБИТЫХ ШАШЕК (СЛЕВА) ★★★ -->
+        <div class="captured-pieces-container">
+          <div class="captured-header">Выбитые<br />шашки:</div>
+          <div class="captured-columns">
+            <div class="captured-pieces white-captured" id="whiteCaptured">
+              <!-- Белые выбитые шашки будут здесь -->
+            </div>
+            <div class="captured-pieces black-captured" id="blackCaptured">
+              <!-- Черные выбитые шашки будут здесь -->
+            </div>
+          </div>
+        </div>
+
         <!-- Левая колонка с доской -->
         <div class="board-column">
           <div class="board" id="board"></div>
         </div>
 
-          <!-- Правая колонка - смайлики и чат -->
-          <div class="sidebar">
+        <!-- Правая колонка - смайлики и чат -->
+        <div class="sidebar">
+          <!-- ★★★ КНОПКА СВОРАЧИВАНИЯ ★★★ -->
+          <div class="collapse-button-container">
+            <button
+              id="collapseSidebarButton"
+              class="collapse-btn"
+              title="Свернуть/развернуть чат"
+            >
+              <span class="collapse-icon">></span>
+              <span class="collapse-text">Чат</span>
+            </button>
+          </div>
+
+          <!-- ★★★ ОБЕРТКА ДЛЯ КОНТЕНТА ★★★ -->
+          <div class="sidebar-content" id="sidebarContent">
             <!-- ★★★ СТРОКА СМАЙЛИКОВ ★★★ -->
             <div class="smileys-container">
               <!-- Первый ряд - 5 смайликов -->
@@ -140,11 +160,11 @@
                 <button class="smiley-btn" data-smiley="😮" data-sound="smirk">
                   😮
                 </button>
-                <button class="smiley-btn" data-smiley="😫" data-sound="clown">
-                  😫
+                <button class="smiley-btn" data-smiley="👊" data-sound="clown">
+                  👊
                 </button>
-                <button class="smiley-btn" data-smiley="🔇" data-sound="mute">
-                  🔇
+                <button class="smiley-btn" data-smiley="😭" data-sound="mute">
+                  😭
                 </button>
                 <button class="smiley-btn" data-smiley="🤷" data-sound="pig">
                   🤷
@@ -173,134 +193,155 @@
             </div>
           </div>
         </div>
+      </div>
 
-        <!-- Кнопки управления игрой -->
-        <div class="game-controls" id="gameControls">
-          <button id="newGameButton" class="control-button new-game-btn">
-            Новая Игра
-          </button>
-          <button id="drawOfferButton" class="control-button draw-offer-btn">
-            Ничья?
-          </button>
-          <button id="surrenderButton" class="control-button surrender-btn">
-            Сдаться
-          </button>
-        </div>
-
-        <!-- Модальное окно для новой игры (ИСПОЛЬЗУЕМ ДЛЯ ОЖИДАНИЯ ОТВЕТА) -->
-        <div id="newGameModal" class="modal" style="display: none">
-          <div class="modal-content">
-            <h2 id="newGameModalTitle">Новая Игра</h2>
-            <p id="newGameModalMessage">
-              Вы уверены, что хотите начать Новую Игру?
-            </p>
-            <div class="modal-buttons">
-              <button id="confirmNewGame" class="modal-btn confirm-btn">
-                Да
-              </button>
-              <button id="cancelNewGame" class="modal-btn cancel-btn">
-                Нет
-              </button>
-            </div>
-          </div>
-        </div>
-
-        <!-- Модальное окно для предложения ничьи -->
-        <div id="drawOfferModal" class="modal" style="display: none">
-          <div class="modal-content">
-            <h2>Предложение ничьи</h2>
-            <p id="drawOfferText">Игрок предлагает ничью</p>
-            <div class="modal-buttons">
-              <button id="acceptDraw" class="modal-btn confirm-btn">Да</button>
-              <button id="rejectDraw" class="modal-btn cancel-btn">Нет</button>
-            </div>
-          </div>
-        </div>
-
-        <!-- ★★★ МОДАЛЬНОЕ ОКНО ДЛЯ ПЕРВОГО ПОДТВЕРЖДЕНИЯ СДАЧИ ★★★ -->
-        <div id="surrenderFirstModal" class="modal" style="display: none">
-          <div class="modal-content">
-            <h2>Серьёзно?</h2>
-            <p>Русские не сдаются!</p>
-            <div class="modal-buttons">
-              <button id="surrenderFirstConfirm" class="modal-btn confirm-btn">
-                Да!
-              </button>
-            </div>
-          </div>
-        </div>
-
-        <!-- ★★★ МОДАЛЬНОЕ ОКНО ДЛЯ ВТОРОГО ПОДТВЕРЖДЕНИЯ СДАЧИ ★★★ -->
-        <div id="surrenderSecondModal" class="modal" style="display: none">
-          <div class="modal-content">
-            <h2>Вы уверены, что хотите сдаться?</h2>
-            <p></p>
-            <div class="modal-buttons">
-              <button id="surrenderFinalConfirm" class="modal-btn confirm-btn">
-                Да
-              </button>
-              <button id="surrenderCancel" class="modal-btn cancel-btn">
-                Нет
-              </button>
-            </div>
-          </div>
-        </div>
-
-        <!-- Блок рестарта игры (скрываем, т.к. используем модальное окно) -->
-        <div
-          id="restartContainer"
-          class="restart-container"
-          style="display: none"
+      <!-- Кнопки управления игрой -->
+      <div class="game-controls" id="gameControls">
+        <!-- ★★★ ДОБАВЬТЕ ЭТУ КНОПКУ ПЕРЕВОРОТА ДОСКИ ★★★ -->
+        <button
+          id="flipBoardButton"
+          class="control-button flip-board-btn"
+          title="Перевернуть доску"
         >
-          <h2
-            style="
-              color: #ffeb3b;
-              margin-bottom: 20px;
-              text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
-            "
+          🔄
+        </button>
+
+        <button id="newGameButton" class="control-button new-game-btn">
+          Новая Игра
+        </button>
+        <button id="drawOfferButton" class="control-button draw-offer-btn">
+          Ничья?
+        </button>
+        <button id="surrenderButton" class="control-button surrender-btn">
+          Сдаться
+        </button>
+      </div>
+
+      <!-- Модальное окно для новой игры (ИСПОЛЬЗУЕМ ДЛЯ ОЖИДАНИЯ ОТВЕТА) -->
+      <div id="newGameModal" class="modal" style="display: none">
+        <div class="modal-content">
+          <h2 id="newGameModalTitle">Новая Игра</h2>
+          <p id="newGameModalMessage">
+            Вы уверены, что хотите начать Новую Игру?
+          </p>
+          <div class="modal-buttons">
+            <button id="confirmNewGame" class="modal-btn confirm-btn">
+              Да
+            </button>
+            <button id="cancelNewGame" class="modal-btn cancel-btn">Нет</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Модальное окно для предложения ничьи -->
+      <div id="drawOfferModal" class="modal" style="display: none">
+        <div class="modal-content">
+          <h2>Предложение ничьи</h2>
+          <p id="drawOfferText">Игрок предлагает ничью</p>
+
+          <!-- ★★★ ДОБАВЬТЕ ЭТОТ БЛОК С РОЗОЙ ★★★ -->
+          <div
+            class="rose-container"
+            style="text-align: center; margin: 15px 0"
           >
-            Игра Завершена!
-          </h2>
-          <button id="restartButton" class="restart-button">Новая Игра</button>
-          <div class="gif-container">
             <img
-              src="https://media1.tenor.com/m/w_PLu8IF2Y8AAAAd/sml-joseph.gif"
-              alt="Celebration"
-              class="celebration-gif"
+              src="роза.png"
+              alt="Роза"
+              class="rose-image"
+              style="max-width: 150px; border-radius: 10px; margin: 10px 0"
             />
           </div>
+
+          <div class="modal-buttons">
+            <button id="acceptDraw" class="modal-btn confirm-btn">Да</button>
+            <button id="rejectDraw" class="modal-btn cancel-btn">Нет</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- ★★★ МОДАЛЬНОЕ ОКНО ДЛЯ ПЕРВОГО ПОДТВЕРЖДЕНИЯ СДАЧИ ★★★ -->
+      <div id="surrenderFirstModal" class="modal" style="display: none">
+        <div class="modal-content">
+          <h2>Серьёзно?</h2>
+          <p>Русские не сдаются!</p>
+          <div class="modal-buttons">
+            <button id="surrenderFirstConfirm" class="modal-btn confirm-btn">
+              Да!
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- ★★★ МОДАЛЬНОЕ ОКНО ДЛЯ ВТОРОГО ПОДТВЕРЖДЕНИЯ СДАЧИ ★★★ -->
+      <div id="surrenderSecondModal" class="modal" style="display: none">
+        <div class="modal-content">
+          <h2>Вы уверены, что хотите сдаться?</h2>
+          <p></p>
+          <div class="modal-buttons">
+            <button id="surrenderFinalConfirm" class="modal-btn confirm-btn">
+              Да
+            </button>
+            <button id="surrenderCancel" class="modal-btn cancel-btn">
+              Нет
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Блок рестарта игры (скрываем, т.к. используем модальное окно) -->
+      <div
+        id="restartContainer"
+        class="restart-container"
+        style="display: none"
+      >
+        <h2
+          style="
+            color: #ffeb3b;
+            margin-bottom: 20px;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
+          "
+        >
+          Игра Завершена!
+        </h2>
+        <button id="restartButton" class="restart-button">Новая Игра</button>
+        <div class="gif-container">
+          <img
+            src="https://media1.tenor.com/m/w_PLu8IF2Y8AAAAd/sml-joseph.gif"
+            alt="Celebration"
+            class="celebration-gif"
+          />
         </div>
       </div>
     </div>
 
     <!-- ★★★ АУДИО ЭЛЕМЕНТЫ ДЛЯ ЗВУКОВ СМАЙЛИКОВ ★★★ -->
     <audio id="laughSound" preload="auto">
-      <source src="laught.wav" type="audio/mpeg" />
+      <source src="yoda.mp3" type="audio/mpeg" />
     </audio>
     <audio id="sadSound" preload="auto">
-      <source src="kurwa.flac" type="audio/mpeg" />
+      <source src="sosed.mp3" type="audio/mpeg" />
     </audio>
     <audio id="coolSound" preload="auto">
-      <source src="probitie1.mp3" type="audio/mpeg" />
+      <source src="okey.mp3" type="audio/mpeg" />
     </audio>
     <audio id="suckSound" preload="auto">
-      <source src="ne-probil.mp3" type="audio/mpeg" />
+      <source src="not.mp3" type="audio/mpeg" />
     </audio>
     <audio id="thinkSound" preload="auto">
-      <source src="waaa.mp3" type="audio/mpeg" />
+      <source src="waaa 2.mp3" type="audio/mpeg" />
     </audio>
     <audio id="smirkSound" preload="auto">
-      <source src="ukh-ty-bliadeg-deg.mp3" type="audio/mpeg" />
+      <source src="wow-mlg 2.mp3" type="audio/mpeg" />
     </audio>
     <!-- ★★★ НОВЫЕ АУДИО ЭЛЕМЕНТЫ ★★★ -->
     <audio id="clownSound" preload="auto">
-      <source src="da-bliat-ia-ne-mogu_uuXox0G.mp3" type="audio/mpeg" />
+      <source src="probitie1.mp3" type="audio/mpeg" />
     </audio>
     <audio id="muteSound" preload="auto">
-      <source src="bliaiaiat.mp3" type="audio/mpeg" />
+      <source src="zvuk-aaaay-bol.mp3" type="audio/mpeg" />
     </audio>
     <audio id="pigSound" preload="auto">
-      <source src="che-za-khuinia-bliat.mp3" type="audio/mpeg" />
+      <source src="chto-proiskhodit 1.mp3" type="audio/mpeg" />
     </audio>
     <audio id="duckSound" preload="auto">
       <source src="805297__jahjahjahjah__goose-honk.mp3" type="audio/mpeg" />
@@ -315,7 +356,7 @@
     </audio>
     <!-- ★★★ АУДИО ДЛЯ НИЧЬЕЙ ★★★ -->
     <audio id="drawSound" preload="auto">
-      <source src="galaxy-brain-meme.mp3" type="audio/mpeg" />
+      <source src="luchshe-imet-druga_xCZYGQu.mp3" type="audio/mpeg" />
     </audio>
 
     <!-- ★★★ АУДИО ДЛЯ ОТПРАВКИ СООБЩЕНИЯ ★★★ -->
