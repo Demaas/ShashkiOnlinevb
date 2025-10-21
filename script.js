@@ -669,8 +669,8 @@ class CheckersGame {
       "👎": "suck",
       "😤": "think",
       "😮": "smirk",
-      "😫": "clown",
-      "🔇": "mute",
+      "👊": "clown",
+      "😭": "mute",
       "🤷": "pig",
       "🦆": "duck",
     };
@@ -2345,3 +2345,4 @@ document.addEventListener("visibilitychange", () => {
     console.log("Page became visible, checking connection...");
   }
 });
+
