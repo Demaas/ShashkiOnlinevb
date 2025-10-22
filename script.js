@@ -1645,15 +1645,20 @@ class CheckersGame {
         this.playerColor = message.color;
         const colorText = this.playerColor === "white" ? "белые" : "чёрные";
 
-        // ★★★ АВТОМАТИЧЕСКИЙ ПЕРЕВОРОТ ДЛЯ ЧЕРНЫХ ИГРОКОВ ★★★
-        this.playsFromBottom = message.playsFromBottom !== false; // Используем значение с сервера
+        // ★★★ ПРОСТАЯ ЛОГИКА: ЕСЛИ ЧЕРНЫЙ - ПЕРЕВОРАЧИВАЕМ ДОСКУ ★★★
+        this.playsFromBottom = message.playsFromBottom;
 
-        // ★★★ ЕСЛИ ИГРОК ЧЕРНЫЙ - АВТОМАТИЧЕСКИ ПЕРЕВОРАЧИВАЕМ ДОСКУ ★★★
-        if (this.playerColor === "black" && this.playsFromBottom === false) {
-          console.log("🔄 Auto-flipping board for black player");
-          this.flipBoard(); // Автоматически переворачиваем доску для черных
+        console.log(
+          `🎯 Player assigned: ${this.playerColor}, should play from bottom: ${this.playsFromBottom}`
+        );
+
+        // ★★★ ПРИНУДИТЕЛЬНО ПЕРЕВОРАЧИВАЕМ ДЛЯ ЧЕРНЫХ ★★★
+        if (this.playerColor === "black") {
+          console.log("🔄 Forcing board flip for black player");
+          // Устанавливаем состояние и переворачиваем
+          this.playsFromBottom = false;
+          this.flipBoard(); // Используем существующий метод переворота
         } else {
-          // Для белых игроков обновляем индикаторы без переворота
           this.updateTurnIndicators();
         }
 
