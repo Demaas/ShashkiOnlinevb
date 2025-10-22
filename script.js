@@ -139,6 +139,9 @@ class CheckersGame {
     // Переключаем состояние переворота
     this.playsFromBottom = !this.playsFromBottom;
 
+    // ★★★ УДАЛЯЕМ ТЕКУЩУЮ СТРЕЛКУ ПРИ ПЕРЕВОРОТЕ ★★★
+    this.removeMoveArrow();
+
     // Применяем или убираем переворот
     if (!this.playsFromBottom) {
       // Переворачиваем доску
@@ -181,6 +184,24 @@ class CheckersGame {
 
     // ★★★ ОБНОВЛЯЕМ ТЕКСТ КНОПКИ ★★★
     this.updateFlipButtonText();
+
+    // ★★★ ДОБАВЛЕН ЛОГ ДЛЯ ОТЛАДКИ ★★★
+    console.log("🔄 Board flipped, arrow removed");
+  }
+
+  // ★★★ МЕТОД ДЛЯ ПОЛУЧЕНИЯ ТЕКУЩЕГО СОСТОЯНИЯ ПЕРЕВОРОТА ДОСКИ ★★★
+  getCurrentBoardFlipState() {
+    // Определяем состояние переворота на основе текущих CSS стилей
+    const board = document.getElementById("board");
+    if (!board) return false;
+
+    // Проверяем, перевернута ли доска через CSS трансформацию
+    const transform = window.getComputedStyle(board).transform;
+    return (
+      transform &&
+      transform !== "none" &&
+      transform !== "matrix(1, 0, 0, 1, 0, 0)"
+    );
   }
 
   // ★★★ МЕТОД ДЛЯ ОБНОВЛЕНИЯ СТРЕЛОК ИНДИКАТОРА ХОДА ★★★
@@ -1693,13 +1714,13 @@ class CheckersGame {
         this.updateMovesCounter();
 
         setTimeout(() => {
-          // ★★★ ИСПОЛЬЗУЕМ КОРРЕКТНЫЕ КООРДИНАТЫ ДЛЯ ДАННОГО ИГРОКА ★★★
+          // ★★★ ИСПРАВЛЕННАЯ ЛОГИКА: ИСПОЛЬЗУЕМ ТЕКУЩЕЕ СОСТОЯНИЕ ДОСКИ ★★★
           this.createMoveArrow(
-            message.data.viewerFromRow || message.data.fromRow,
-            message.data.viewerFromCol || message.data.fromCol,
-            message.data.viewerToRow || message.data.toRow,
-            message.data.viewerToCol || message.data.toCol,
-            message.data.isViewerFlipped || false
+            message.data.fromRow,
+            message.data.fromCol,
+            message.data.toRow,
+            message.data.toCol,
+            this.getCurrentBoardFlipState() // Всегда используем текущее состояние доски
           );
         }, 100);
 
@@ -1928,29 +1949,25 @@ class CheckersGame {
         return;
       }
 
-      // ★★★ ПОЛУЧАЕМ КЛЕТКИ С УЧЕТОМ ПЕРЕВОРОТА ★★★
-      const actualFromRow = isFlipped ? 7 - fromRow : fromRow;
-      const actualFromCol = isFlipped ? 7 - fromCol : fromCol;
-      const actualToRow = isFlipped ? 7 - toRow : toRow;
-      const actualToCol = isFlipped ? 7 - toCol : toCol;
-
+      // ★★★ ИСПРАВЛЕННАЯ ЛОГИКА: ВСЕГДА ИСПОЛЬЗУЕМ ПРЯМЫЕ КООРДИНАТЫ ★★★
+      // Не преобразуем координаты, так как DOM уже отображает правильное положение
       const fromCell = document.querySelector(
-        `.cell[data-row="${actualFromRow}"][data-col="${actualFromCol}"]`
+        `.cell[data-row="${fromRow}"][data-col="${fromCol}"]`
       );
       const toCell = document.querySelector(
-        `.cell[data-row="${actualToRow}"][data-col="${actualToCol}"]`
+        `.cell[data-row="${toRow}"][data-col="${toCol}"]`
       );
 
       if (!fromCell || !toCell) {
         console.log(
-          `❌ Cells not found for arrow: from (${actualFromRow},${actualFromCol}) to (${actualToRow},${actualToCol})`
+          `❌ Cells not found for arrow: from (${fromRow},${fromCol}) to (${toRow},${toCol})`
         );
         return;
       }
 
       // ★★★ ДОЖИДАЕМСЯ ОБНОВЛЕНИЯ DOM ★★★
       requestAnimationFrame(() => {
-        this.drawArrow(fromCell, toCell, board, isFlipped);
+        this.drawArrow(fromCell, toCell, board, isFlipped); // Передаем isFlipped в drawArrow
       });
     }, 50);
   }
@@ -1963,14 +1980,32 @@ class CheckersGame {
       const toRect = toCell.getBoundingClientRect();
       const boardRect = board.getBoundingClientRect();
 
-      // Вычисляем координаты относительно доски
-      let fromX = fromRect.left + fromRect.width / 2 - boardRect.left;
-      let fromY = fromRect.top + fromRect.height / 2 - boardRect.top;
-      let toX = toRect.left + toRect.width / 2 - boardRect.left;
-      let toY = toRect.top + toRect.height / 2 - boardRect.top;
+      // ★★★ ИСПРАВЛЕННАЯ ЛОГИКА: ИНВЕРТИРУЕМ КООРДИНАТЫ ДЛЯ ПЕРЕВЕРНУТОЙ ДОСКИ ★★★
+      let fromX, fromY, toX, toY;
 
-      // ★★★ ВАЖНО: НЕ ИНВЕРТИРУЕМ КООРДИНАТЫ ДЛЯ ПЕРЕВЕРНУТОЙ ДОСКИ ★★★
-      // Координаты уже правильные, потому что мы использовали actualFromRow/actualToRow
+      if (isFlipped) {
+        // Для перевернутой доски инвертируем координаты относительно центра доски
+        const boardCenterX = boardRect.width / 2;
+        const boardCenterY = boardRect.height / 2;
+
+        // Получаем стандартные координаты
+        let standardFromX = fromRect.left + fromRect.width / 2 - boardRect.left;
+        let standardFromY = fromRect.top + fromRect.height / 2 - boardRect.top;
+        let standardToX = toRect.left + toRect.width / 2 - boardRect.left;
+        let standardToY = toRect.top + toRect.height / 2 - boardRect.top;
+
+        // Инвертируем координаты относительно центра доски
+        fromX = boardCenterX * 2 - standardFromX;
+        fromY = boardCenterY * 2 - standardFromY;
+        toX = boardCenterX * 2 - standardToX;
+        toY = boardCenterY * 2 - standardToY;
+      } else {
+        // Для обычной доски используем стандартные координаты
+        fromX = fromRect.left + fromRect.width / 2 - boardRect.left;
+        fromY = fromRect.top + fromRect.height / 2 - boardRect.top;
+        toX = toRect.left + toRect.width / 2 - boardRect.left;
+        toY = toRect.top + toRect.height / 2 - boardRect.top;
+      }
 
       // ★★★ ПРОВЕРКА РАССТОЯНИЯ ★★★
       const distance = Math.sqrt(
@@ -1994,10 +2029,8 @@ class CheckersGame {
       svg.style.pointerEvents = "none";
       svg.style.zIndex = "1000";
 
-      // ★★★ ЕСЛИ ДОСКА ПЕРЕВЕРНУТА - ПОВОРАЧИВАЕМ ВСЮ СТРЕЛКУ ★★★
-      if (isFlipped) {
-        svg.style.transform = "rotate(180deg)";
-      }
+      // ★★★ ИСПРАВЛЕННАЯ ЛОГИКА: НЕ ПОВОРАЧИВАЕМ СТРЕЛКУ ★★★
+      // Координаты уже правильные благодаря нашей логике инвертирования
 
       // Вычисляем длину и угол стрелки
       const dx = toX - fromX;
@@ -2345,4 +2378,3 @@ document.addEventListener("visibilitychange", () => {
     console.log("Page became visible, checking connection...");
   }
 });
-
