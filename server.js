@@ -68,7 +68,7 @@ class CheckersGameServer {
       if (this.players.length === 0) {
         // Первый игрок - белые снизу (обычная доска)
         color = "white";
-        playsFromBottom = true;
+        playsFromBottom = true; // Обычное положение
       } else {
         // Второй игрок - черные сверху (перевернутая доска)
         color = "black";
