@@ -118,80 +118,49 @@
           <div class="board" id="board"></div>
         </div>
 
-        <!-- Правая колонка - смайлики и чат -->
+        <!-- Правая колонка - смайлики (вертикальные) -->
         <div class="sidebar">
-          <!-- ★★★ КНОПКА СВОРАЧИВАНИЯ ★★★ -->
-          <div class="collapse-button-container">
-            <button
-              id="collapseSidebarButton"
-              class="collapse-btn"
-              title="Свернуть/развернуть чат"
-            >
-              <span class="collapse-icon">></span>
-              <span class="collapse-text">Чат</span>
-            </button>
-          </div>
-
-          <!-- ★★★ ОБЕРТКА ДЛЯ КОНТЕНТА ★★★ -->
-          <div class="sidebar-content" id="sidebarContent">
-            <!-- ★★★ СТРОКА СМАЙЛИКОВ ★★★ -->
-            <div class="smileys-container">
-              <!-- Первый ряд - 5 смайликов -->
-              <div class="smileys-row">
-                <button class="smiley-btn" data-smiley="😂" data-sound="laugh">
-                  😂
-                </button>
-                <button class="smiley-btn" data-smiley="😡" data-sound="sad">
-                  😡
-                </button>
-                <button class="smiley-btn" data-smiley="👍" data-sound="cool">
-                  👍
-                </button>
-                <button class="smiley-btn" data-smiley="👎" data-sound="suck">
-                  👎
-                </button>
-                <button class="smiley-btn" data-smiley="😤" data-sound="think">
-                  😤
-                </button>
-              </div>
-
-              <!-- Второй ряд - 5 смайликов -->
-              <div class="smileys-row">
-                <button class="smiley-btn" data-smiley="😮" data-sound="smirk">
-                  😮
-                </button>
-                <button class="smiley-btn" data-smiley="👊" data-sound="clown">
-                  👊
-                </button>
-                <button class="smiley-btn" data-smiley="😭" data-sound="mute">
-                  😭
-                </button>
-                <button class="smiley-btn" data-smiley="🤷" data-sound="pig">
-                  🤷
-                </button>
-                <button class="smiley-btn" data-smiley="🦆" data-sound="duck">
-                  🦆
-                </button>
-              </div>
+          <!-- ★★★ ВЕРТИКАЛЬНЫЕ СМАЙЛИКИ ВМЕСТО КНОПКИ ★★★ -->
+          <div class="vertical-smileys-container">
+            <!-- Первая колонка - 5 смайликов -->
+            <div class="smileys-column">
+              <button class="smiley-btn" data-smiley="😂" data-sound="laugh">
+                😂
+              </button>
+              <button class="smiley-btn" data-smiley="👊" data-sound="clown">
+                👊
+              </button>
+              <button class="smiley-btn" data-smiley="👍" data-sound="cool">
+                👍
+              </button>
+              <button class="smiley-btn" data-smiley="😮" data-sound="smirk">
+                😮
+              </button>
+              <button class="smiley-btn" data-smiley="🤷" data-sound="pig">
+                🤷
+              </button>
             </div>
 
-            <!-- ★★★ ЧАТ ★★★ -->
-            <div class="chat-container">
-              <div class="chat-history" id="chatHistory">
-                <!-- Сообщения будут здесь -->
-                <div class="chat-message system">Добро пожаловать в игру!</div>
-              </div>
-              <div class="chat-input-container">
-                <input
-                  type="text"
-                  id="chatInput"
-                  placeholder="Введите сообщение..."
-                  maxlength="100"
-                />
-                <button type="button" id="sendMessageBtn">Отправить</button>
-              </div>
+            <!-- Вторая колонка - 5 смайликов -->
+            <div class="smileys-column">
+              <button class="smiley-btn" data-smiley="😡" data-sound="sad">
+                😡
+              </button>
+              <button class="smiley-btn" data-smiley="😭" data-sound="mute">
+                😭
+              </button>
+              <button class="smiley-btn" data-smiley="👎" data-sound="suck">
+                👎</button
+              ><button class="smiley-btn" data-smiley="😤" data-sound="think">
+                😤
+              </button>
+              <button class="smiley-btn" data-smiley="🦆" data-sound="duck">
+                🦆
+              </button>
             </div>
           </div>
+
+          <!-- ★★★ УБИРАЕМ ЧАТ И ОБЕРТКУ КОНТЕНТА ★★★ -->
         </div>
       </div>
 
