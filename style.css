@@ -38,6 +38,48 @@ body {
   gap: 15px;
 }
 
+/* ★★★ ОБНОВЛЕННЫЕ СТИЛИ ДЛЯ ПРАВОЙ КОЛОНКИ ★★★ */
+.sidebar {
+  flex: 0 0 130px; /* Такая же ширина как у captured-pieces-container */
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+}
+
+/* ★★★ СТИЛИ ДЛЯ ВЕРТИКАЛЬНЫХ СМАЙЛИКОВ ★★★ */
+.vertical-smileys-container {
+  display: flex;
+  flex-direction: row;
+  gap: 15px;
+  width: 130px;
+  height: 488px;
+  background: rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(10px);
+  border-radius: 12px;
+  padding: 15px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+  align-items: flex-start;
+  justify-content: center;
+}
+
+.smileys-column {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  align-items: center;
+}
+
+.smileys-column .smiley-btn {
+  width: 45px;
+  height: 45px;
+  font-size: 20px;
+  padding: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
 /* ★★★ ОБНОВЛЕННЫЕ СТИЛИ СМАЙЛИКОВ ДЛЯ САЙДБАРА ★★★ */
 .smileys-container {
   width: 100%;
@@ -85,132 +127,6 @@ body {
 
 .smiley-btn:active {
   transform: scale(1.05);
-}
-
-/* ★★★ ОБНОВЛЕННЫЕ СТИЛИ ЧАТА ДЛЯ САЙДБАРА ★★★ */
-.chat-container {
-  width: 100%;
-  height: 333px;
-  background-color: rgba(255, 255, 255, 0.1);
-  backdrop-filter: blur(10px);
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  border-radius: 12px;
-  overflow: hidden;
-  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
-  display: flex;
-  flex-direction: column;
-}
-
-.chat-history {
-  flex: 1;
-  min-height: 250px;
-  overflow-y: auto;
-  padding: 15px;
-  background-color: rgba(0, 0, 0, 0.3);
-  border-bottom: 1px solid rgba(255, 255, 255, 0.2);
-  font-size: 14px;
-  scrollbar-width: thin;
-  scrollbar-color: rgba(255, 255, 255, 0.3) transparent;
-  font-size: 16px; /* Увеличиваем базовый размер всего чата */
-}
-
-/* Стили для скроллбара в Chrome */
-.chat-history::-webkit-scrollbar {
-  width: 6px;
-}
-
-.chat-history::-webkit-scrollbar-track {
-  background: transparent;
-}
-
-.chat-history::-webkit-scrollbar-thumb {
-  background: rgba(255, 255, 255, 0.3);
-  border-radius: 3px;
-}
-
-.chat-history::-webkit-scrollbar-thumb:hover {
-  background: rgba(255, 255, 255, 0.5);
-}
-
-.chat-message {
-  margin: 8px 0;
-  padding: 8px 12px;
-  border-radius: 8px;
-  word-wrap: break-word;
-  font-size: 16px; /* Увеличиваем сообщения */
-  line-height: 1.5;
-}
-
-.chat-message.system {
-  color: #b0b0b0;
-  font-style: italic;
-  font-size: 13px;
-  text-align: center;
-  background: rgba(255, 255, 255, 0.05);
-}
-
-.chat-message.player1 {
-  background-color: rgba(33, 150, 243, 0.3);
-  border-left: 3px solid #2196f3;
-}
-
-.chat-message.player2 {
-  background-color: rgba(156, 39, 176, 0.3);
-  border-left: 3px solid #9c27b0;
-}
-
-.chat-input-container {
-  display: flex;
-  padding: 15px;
-  gap: 10px;
-  background: rgba(0, 0, 0, 0.2);
-  border-top: 1px solid rgba(255, 255, 255, 0.2);
-}
-
-#chatInput {
-  flex-grow: 1;
-  padding: 10px 15px;
-  border: 1px solid rgba(255, 255, 255, 0.3);
-  border-radius: 8px;
-  background: rgba(255, 255, 255, 0.9);
-  color: #333;
-  font-size: 14px;
-  transition: all 0.3s ease;
-}
-
-#chatInput:focus {
-  outline: none;
-  border-color: #4caf50;
-  box-shadow: 0 0 8px rgba(76, 175, 80, 0.3);
-  background: rgba(255, 255, 255, 0.95);
-}
-
-#chatInput::placeholder {
-  color: #888;
-}
-
-#sendMessageBtn {
-  padding: 10px 20px;
-  background: linear-gradient(45deg, #4caf50, #45a049);
-  color: white;
-  border: none;
-  border-radius: 8px;
-  cursor: pointer;
-  font-size: 14px;
-  font-weight: bold;
-  transition: all 0.3s ease;
-  white-space: nowrap;
-  min-width: 80px;
-}
-
-#sendMessageBtn:hover {
-  background: linear-gradient(45deg, #45a049, #4caf50);
-  transform: translateY(-1px);
-  box-shadow: 0 3px 8px rgba(0, 0, 0, 0.3);
-}
-
-#sendMessageBtn:active {
-  transform: translateY(0);
 }
 
 /* Стили для модальных окон */
@@ -482,7 +398,7 @@ body {
   text-align: center;
   background: rgba(255, 255, 255, 0.1);
   backdrop-filter: blur(15px);
-  padding: 40px 25px; /* ★★★ УВЕЛИЧИЛИ ВЕРТИКАЛЬНЫЙ PADDING ★★★ */
+  padding: 40px 25px;
   border-radius: 20px;
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
   border: 1px solid rgba(255, 255, 255, 0.2);
@@ -490,7 +406,7 @@ body {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 25px; /* ★★★ ДОБАВИЛИ РАССТОЯНИЕ МЕЖДУ ЭЛЕМЕНТАМИ ★★★ */
+  gap: 25px;
 }
 
 .game-container {
@@ -503,7 +419,7 @@ body {
 
 h1 {
   color: white;
-  margin-bottom: 1px; /* ★★★ УВЕЛИЧИЛИ ОТСТУП СНИЗУ ★★★ */
+  margin-bottom: 1px;
   text-shadow: 2px 2px 8px rgba(0, 0, 0, 0.8);
   font-size: 2.5em;
   font-weight: bold;
@@ -536,7 +452,7 @@ h1 {
   justify-content: center;
   text-align: center;
   min-width: 300px;
-  display: block !important; /* ★★★ ВАЖНО: УБЕДИТЕСЬ ЧТО ОТОБРАЖАЕТСЯ ★★★ */
+  display: block !important;
 }
 
 /* Стили для информации об игроках */
@@ -649,7 +565,7 @@ h1 {
   padding: 12px;
   border: 1px solid rgba(255, 255, 255, 0.2);
   box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
-  height: 488px; /* ★★★ УВЕЛИЧИЛИ ВЫСОТУ ОКНА ★★★ */
+  height: 488px;
 }
 
 .captured-header {
@@ -666,7 +582,7 @@ h1 {
   display: flex;
   gap: 12px;
   justify-content: space-between;
-  height: 420px; /* ★★★ УВЕЛИЧИЛИ ВЫСОТУ КОЛОНОК ★★★ */
+  height: 420px;
 }
 
 .captured-pieces {
@@ -674,12 +590,12 @@ h1 {
   flex-direction: column;
   gap: 4px;
   align-items: center;
-  min-height: 420px; /* ★★★ УВЕЛИЧИЛИ МИНИМАЛЬНУЮ ВЫСОТУ ★★★ */
-  max-height: 500px; /* ★★★ УВЕЛИЧИЛИ МАКСИМАЛЬНУЮ ВЫСОТУ ★★★ */
+  min-height: 420px;
+  max-height: 500px;
   overflow-y: auto;
   padding: 6px;
   border-radius: 8px;
-  width: 50px; /* ★★★ НЕМНОГО УМЕНЬШИЛИ ШИРИНУ ★★★ */
+  width: 50px;
 }
 
 .white-captured {
@@ -693,7 +609,7 @@ h1 {
 }
 
 .captured-piece {
-  width: 30px; /* ★★★ НЕМНОГО УМЕНЬШИЛИ РАЗМЕР ШАШЕК ★★★ */
+  width: 30px;
   height: 30px;
   border-radius: 50%;
   display: flex;
@@ -702,7 +618,7 @@ h1 {
   position: relative;
   box-shadow: 0 2px 6px rgba(0, 0, 0, 0.4);
   transition: all 0.3s ease;
-  flex-shrink: 0; /* ★★★ ЗАПРЕТИЛИ СЖИМАНИЕ ★★★ */
+  flex-shrink: 0;
 }
 
 .captured-piece img {
@@ -716,7 +632,7 @@ h1 {
 .captured-piece.king::after {
   content: "♔";
   position: absolute;
-  font-size: 12px; /* ★★★ УМЕНЬШИЛИ РАЗМЕР КОРОНЫ ★★★ */
+  font-size: 12px;
   color: gold;
   text-shadow: 1px 1px 3px rgba(0, 0, 0, 0.8);
   font-weight: bold;
@@ -740,38 +656,6 @@ h1 {
 
 .captured-pieces::-webkit-scrollbar {
   width: 3px;
-}
-
-.captured-pieces::-webkit-scrollbar-track {
-  background: transparent;
-}
-
-.captured-pieces::-webkit-scrollbar-thumb {
-  background: rgba(255, 255, 255, 0.3);
-  border-radius: 2px;
-}
-
-.captured-pieces::-webkit-scrollbar-thumb:hover {
-  background: rgba(255, 255, 255, 0.5);
-}
-
-@keyframes capturedAppear {
-  0% {
-    opacity: 0;
-    transform: scale(0.5) translateY(-10px);
-  }
-  100% {
-    opacity: 1;
-    transform: scale(1) translateY(0);
-  }
-}
-
-.captured-piece.new {
-  animation: capturedAppear 0.5s ease-out;
-}
-
-.captured-pieces::-webkit-scrollbar {
-  width: 4px;
 }
 
 .captured-pieces::-webkit-scrollbar-track {
@@ -1064,16 +948,14 @@ h1 {
   color: white;
   border: 2px solid rgba(255, 255, 255, 0.3);
   backdrop-filter: blur(10px);
-
-  /* ★★★ РАЗМЕР КНОПКИ ★★★ */
-  width: 60px; /* Ширина кнопки */
-  height: 60px; /* Высота кнопки */
-  font-size: 24px; /* Размер иконки */
-  padding: 0; /* Убираем отступы */
-  display: flex; /* Центрируем иконку */
+  width: 60px;
+  height: 60px;
+  font-size: 24px;
+  padding: 0;
+  display: flex;
   align-items: center;
   justify-content: center;
-  border-radius: 12px; /* Закругление углов */
+  border-radius: 12px;
 }
 
 .flip-board-btn:hover {
@@ -1126,88 +1008,12 @@ h1 {
   font-family: "Arial", sans-serif;
 }
 
-/* ★★★ ОБНОВЛЕННЫЕ СТИЛИ ДЛЯ КНОПКИ СВОРАЧИВАНИЯ ★★★ */
-.collapse-button-container {
-  display: flex;
-  justify-content: center;
-  margin-bottom: 10px;
-  height: 488px; /* Такая же высота как у captured-pieces-container */
-}
-
-.collapse-btn {
-  background: rgba(255, 255, 255, 0.1);
-  border: 2px solid rgba(255, 255, 255, 0.3);
-  border-radius: 12px;
-  color: white;
-  cursor: pointer;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  transition: all 0.3s ease;
-  backdrop-filter: blur(10px);
-  width: 130px; /* Такая же ширина как у captured-pieces-container */
-  height: 488px; /* Такая же высота как у captured-pieces-container */
-  padding: 15px;
-  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
-}
-
-.collapse-btn:hover {
-  background: rgba(255, 255, 255, 0.2);
-  transform: translateY(-2px);
-  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.4);
-  border-color: rgba(255, 255, 255, 0.5);
-}
-
-.collapse-icon {
-  font-size: 32px;
-  font-weight: bold;
-  transition: transform 0.3s ease;
-}
-
-.collapse-text {
-  font-size: 16px;
-  font-weight: bold;
-  text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.7);
-  writing-mode: vertical-rl;
-  text-orientation: mixed;
-  transform: rotate(180deg);
-}
-
-/* ★★★ ЧАТ ДОЛЖЕН ОТКРЫВАТЬСЯ СПРАВА ОТ КНОПКИ ★★★ */
-.sidebar {
-  position: relative;
-  transition: all 0.3s ease;
-  display: flex;
-  flex-direction: row;
-  gap: 15px;
-  align-items: flex-start;
-  flex: 0 0 130px; /* Только ширина кнопки по умолчанию */
-}
-
-.sidebar-content {
-  transition: all 0.3s ease;
-  overflow: hidden;
-  width: 350px; /* Фиксированная ширина контента */
-}
-
-.sidebar.collapsed .sidebar-content {
-  width: 0;
-  opacity: 0;
-  pointer-events: none;
-}
-
-.sidebar:not(.collapsed) {
-  flex: 0 0 495px; /* 130px (кнопка) + 350px (контент) + 15px (gap) */
-}
-
 /* ★★★ АДАПТИВНОСТЬ ДЛЯ СЧЁТЧИКА ★★★ */
 @media (max-width: 768px) {
   .moves-counter {
     padding: 8px 12px;
     min-width: 100px;
-    order: -1; /* Счётчик будет сверху на мобильных */
+    order: -1;
     margin-bottom: 10px;
   }
 
@@ -1246,30 +1052,11 @@ h1 {
   }
 }
 
-@keyframes arrowDraw {
-  from {
-    stroke-dasharray: 1000;
-    stroke-dashoffset: 1000;
-  }
-  to {
-    stroke-dasharray: 1000;
-    stroke-dashoffset: 0;
-  }
-}
-
 /* ★★★ АДАПТИВНОСТЬ ДЛЯ МОБИЛЬНЫХ УСТРОЙСТВ ★★★ */
 @media (max-width: 768px) {
   .game-layout {
     flex-direction: column;
     gap: 15px;
-  }
-
-  .sidebar {
-    flex: 0 0 auto;
-    width: 100%;
-    max-width: 480px;
-    min-height: auto;
-    order: -1; /* Смайлики и чат будут сверху на мобильных */
   }
 
   .board-column {
@@ -1281,7 +1068,27 @@ h1 {
     margin: 10px;
   }
 
-  /* ★★★ АДАПТИВНОСТЬ ДЛЯ СМАЙЛИКОВ И ЧАТА ★★★ */
+  /* ★★★ АДАПТИВНОСТЬ ДЛЯ ВЕРТИКАЛЬНЫХ СМАЙЛИКОВ ★★★ */
+  .vertical-smileys-container {
+    width: 100%;
+    height: auto;
+    flex-direction: column;
+    gap: 10px;
+    padding: 10px;
+  }
+
+  .smileys-column {
+    flex-direction: row;
+    gap: 10px;
+    justify-content: center;
+  }
+
+  .sidebar {
+    flex: 0 0 auto;
+    width: 100%;
+    max-width: 480px;
+  }
+
   .smileys-container {
     padding: 12px;
     gap: 8px;
@@ -1292,30 +1099,6 @@ h1 {
     width: 45px;
     height: 45px;
     padding: 8px;
-  }
-
-  .chat-container {
-    height: 300px;
-  }
-
-  .chat-history {
-    min-height: 200px;
-    font-size: 13px;
-    padding: 12px;
-  }
-
-  .chat-input-container {
-    padding: 12px;
-  }
-
-  #chatInput {
-    padding: 8px 12px;
-    font-size: 13px;
-  }
-
-  #sendMessageBtn {
-    padding: 8px 16px;
-    font-size: 13px;
   }
 
   .modal-content {
@@ -1441,47 +1224,15 @@ h1 {
 }
 
 @media (max-width: 480px) {
-  /* ★★★ АДАПТИВНОСТЬ ДЛЯ СМАЙЛИКОВ И ЧАТА ★★★ */
-  .smileys-container {
-    padding: 10px;
-    gap: 6px;
-  }
-
-  .smileys-row {
-    gap: 6px;
-  }
-
-  .smiley-btn {
-    font-size: 20px;
-    width: 40px;
-    height: 40px;
-    padding: 6px;
-  }
-
-  .chat-container {
-    height: 250px;
-  }
-
-  .chat-history {
-    min-height: 160px;
-    font-size: 12px;
-    padding: 10px;
-  }
-
-  .chat-input-container {
-    padding: 10px;
+  .vertical-smileys-container {
+    padding: 8px;
     gap: 8px;
   }
 
-  #chatInput {
-    padding: 6px 10px;
-    font-size: 12px;
-  }
-
-  #sendMessageBtn {
-    padding: 6px 12px;
-    font-size: 12px;
-    min-width: 70px;
+  .smileys-column .smiley-btn {
+    width: 40px;
+    height: 40px;
+    font-size: 18px;
   }
 
   .modal-content {
