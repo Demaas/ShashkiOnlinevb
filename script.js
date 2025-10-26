@@ -46,9 +46,6 @@ class CheckersGame {
     this.newGameModalMessage = document.getElementById("newGameModalMessage");
 
     // ★★★ ДОБАВЛЕНЫ ЭЛЕМЕНТЫ ДЛЯ ЧАТА И СМАЙЛИКОВ ★★★
-    this.chatHistory = document.getElementById("chatHistory");
-    this.chatInput = document.getElementById("chatInput");
-    this.sendMessageBtn = document.getElementById("sendMessageBtn");
     this.smileyBtns = document.querySelectorAll(".smiley-btn");
 
     // ★★★ ДОБАВЛЕНЫ СЧЁТЧИКИ ХОДОВ ★★★
@@ -58,20 +55,6 @@ class CheckersGame {
 
     // ★★★ ДОБАВЛЕНЫ СВОЙСТВА ДЛЯ СВОРАЧИВАНИЯ ★★★
     this.sidebar = document.querySelector(".sidebar");
-    this.collapseSidebarButton = document.getElementById(
-      "collapseSidebarButton"
-    );
-    this.sidebarContent = document.getElementById("sidebarContent");
-    this.isSidebarCollapsed = true; // По умолчанию свёрнут
-
-    console.log("💬 Chat elements state:", {
-      chatHistory: this.chatHistory ? "found" : "not found",
-      chatInput: this.chatInput
-        ? `found (value: "${this.chatInput.value}")`
-        : "not found",
-      sendMessageBtn: this.sendMessageBtn ? "found" : "not found",
-      smileyBtns: `found ${this.smileyBtns.length} buttons`,
-    });
 
     // Звуки для смайликов
     this.sounds = {
@@ -117,6 +100,26 @@ class CheckersGame {
     this.updatePlayersInfo();
     // ★★★ ДОБАВЬТЕ ВЫЗОВ МЕТОДА ДЛЯ НАСТРОЙКИ КНОПКИ ★★★
     this.setupFlipBoardButton();
+  }
+
+  // ★★★ МЕТОДЫ ДЛЯ ЧАТА И СМАЙЛИКОВ ★★★
+  setupChatAndSmileys() {
+    console.log("💬 Setting up smileys...");
+
+    // Обработчики для смайликов
+    if (this.smileyBtns && this.smileyBtns.length > 0) {
+      this.smileyBtns.forEach((btn) => {
+        btn.addEventListener("click", () => {
+          const smiley = btn.getAttribute("data-smiley");
+          const soundType = btn.getAttribute("data-sound");
+          console.log("😊 Smiley clicked:", smiley, soundType);
+          this.sendSmiley(smiley, soundType);
+        });
+      });
+      console.log("✅ Smiley event listeners set up");
+    } else {
+      console.log("❌ Smiley buttons not found");
+    }
   }
 
   // ★★★ МЕТОД ДЛЯ НАСТРОЙКИ КНОПКИ ПЕРЕВОРОТА ДОСКИ ★★★
@@ -228,67 +231,6 @@ class CheckersGame {
     );
   }
 
-  // ★★★ МЕТОД ДЛЯ СВОРАЧИВАНИЯ/РАЗВОРАЧИВАНИЯ ПРАВОГО БЛОКА ★★★
-  toggleSidebar() {
-    // Проверяем, что элементы существуют
-    if (!this.sidebar || !this.collapseSidebarButton || !this.sidebarContent) {
-      console.log("❌ Sidebar elements not found");
-      return;
-    }
-
-    // Переключаем состояние
-    this.isSidebarCollapsed = !this.isSidebarCollapsed;
-
-    if (this.isSidebarCollapsed) {
-      // Сворачиваем сайдбар
-      this.sidebar.classList.add("collapsed");
-
-      // Обновляем текст кнопки и статус
-      const collapseText =
-        this.collapseSidebarButton.querySelector(".collapse-text");
-      if (collapseText) {
-        collapseText.textContent = "Чат";
-      }
-
-      // ★★★ ИКОНКА ">" КОГДА ЧАТ СВЁРНУТ ★★★
-      const collapseIcon =
-        this.collapseSidebarButton.querySelector(".collapse-icon");
-      if (collapseIcon) {
-        collapseIcon.textContent = ">";
-      }
-
-      this.updateStatus("💬 Чат свёрнут - больше места для игры!");
-      console.log("🔽 Sidebar collapsed");
-    } else {
-      // Разворачиваем сайдбар
-      this.sidebar.classList.remove("collapsed");
-
-      // Обновляем текст кнопки
-      const collapseText =
-        this.collapseSidebarButton.querySelector(".collapse-text");
-      if (collapseText) {
-        collapseText.textContent = "Чат";
-      }
-
-      // ★★★ ИКОНКА "<" КОГДА ЧАТ РАЗВЁРНУТ ★★★
-      const collapseIcon =
-        this.collapseSidebarButton.querySelector(".collapse-icon");
-      if (collapseIcon) {
-        collapseIcon.textContent = "<";
-      }
-
-      this.updateStatus("💬 Чат развёрнут - общайтесь с противником!");
-      console.log("🔼 Sidebar expanded");
-    }
-
-    // ★★★ ОБНОВЛЯЕМ ЛAYOUT ★★★
-    setTimeout(() => {
-      if (typeof window.dispatchEvent === "function") {
-        window.dispatchEvent(new Event("resize"));
-      }
-    }, 300);
-  }
-
   // ★★★ МЕТОД ДЛЯ ОБНОВЛЕНИЯ СЧЁТЧИКА ХОДОВ ★★★
   updateMovesCounter() {
     const movesCounter = document.getElementById("movesCounter");
@@ -313,52 +255,6 @@ class CheckersGame {
     }
   }
 
-  // ★★★ МЕТОДЫ ДЛА ЧАТА И СМАЙЛИКОВ ★★★
-  setupChatAndSmileys() {
-    console.log("💬 Setting up chat and smileys...");
-
-    // Обработчики для отправки сообщений
-    if (this.sendMessageBtn && this.chatInput) {
-      this.sendMessageBtn.addEventListener("click", () => {
-        console.log("🖱️ Send button clicked");
-        const message = this.chatInput.value.trim();
-        console.log("📝 Message to send:", message);
-        this.sendChatMessage(message, false);
-      });
-
-      this.chatInput.addEventListener("keypress", (e) => {
-        if (e.key === "Enter") {
-          console.log("⌨️ Enter key pressed");
-          const message = this.chatInput.value.trim();
-          console.log("📝 Message to send:", message);
-          this.sendChatMessage(message, false);
-        }
-      });
-
-      console.log("✅ Chat event listeners set up");
-    } else {
-      console.log("❌ Chat elements not found:", {
-        sendMessageBtn: !!this.sendMessageBtn,
-        chatInput: !!this.chatInput,
-      });
-    }
-
-    // Обработчики для смайликов
-    if (this.smileyBtns && this.smileyBtns.length > 0) {
-      this.smileyBtns.forEach((btn) => {
-        btn.addEventListener("click", () => {
-          const smiley = btn.getAttribute("data-smiley");
-          const soundType = btn.getAttribute("data-sound");
-          console.log("😊 Smiley clicked:", smiley, soundType);
-          this.sendSmiley(smiley, soundType);
-        });
-      });
-      console.log("✅ Smiley event listeners set up");
-    } else {
-      console.log("❌ Smiley buttons not found");
-    }
-  }
-
   // Отправка обычного сообщения
   sendChatMessage(message, isSmiley = false) {
     console.log("📤 sendChatMessage called with:", { message, isSmiley });
@@ -368,11 +264,9 @@ class CheckersGame {
       return;
     }
 
-    const trimmedMessage = message.trim();
+    const trimmedMessage = message.trim(); // ★★★ ДОБАВИТЬ ЭТУ СТРОКУ ★★★
     if (!trimmedMessage) {
       console.log("❌ Empty message after trimming, not sending");
-      this.chatInput.placeholder = "Введите сообщение...";
-      this.chatInput.focus();
       return;
     }
 
@@ -384,7 +278,7 @@ class CheckersGame {
     }
 
     console.log("📤 Sending chat message to server:", {
-      message: trimmedMessage,
+      message: trimmedMessage, // ✅ Теперь переменная существует
       isSmiley,
       username: this.username,
     });
@@ -411,11 +305,19 @@ class CheckersGame {
   sendSmiley(smiley, soundType) {
     console.log(`Sending smiley: ${smiley} with sound: ${soundType}`);
 
-    // Воспроизведение звука (заглушка - добавим позже файлы)
+    // Воспроизведение звука
     this.playSmileySound(soundType);
 
-    // Отправляем смайлик как сообщение
-    this.sendChatMessage(smiley, true);
+    // ★★★ ОТПРАВЛЯЕМ СМАЙЛИК НА СЕРВЕР ★★★
+    if (this.ws && this.ws.readyState === WebSocket.OPEN) {
+      this.ws.send(
+        JSON.stringify({
+          type: "chatMessage",
+          message: smiley,
+          isSmiley: true,
+        })
+      );
+    }
   }
 
   // ★★★ МЕТОД ДЛЯ ВОСПРОИЗВЕДЕНИЯ ФИНАЛЬНОГО ЗВУКА ★★★
@@ -612,72 +514,6 @@ class CheckersGame {
       }
     } catch (error) {
       console.log("Sound play error:", error);
-    }
-  }
-
-  // Отображение сообщения в чате
-  displayChatMessage(playerName, message, isSmiley = false, isSystem = false) {
-    console.log("🎯 displayChatMessage called with:", {
-      playerName,
-      message,
-      isSmiley,
-      isSystem,
-    });
-
-    console.log("💬 Displaying chat message:", {
-      playerName,
-      message,
-      isSmiley,
-      isSystem,
-    });
-
-    const messageDiv = document.createElement("div");
-
-    if (isSystem || playerName === "system") {
-      messageDiv.className = "chat-message system";
-      messageDiv.textContent = message;
-      console.log("🔧 System message created");
-    } else {
-      // Определяем класс для стилизации сообщения
-      const messageClass = playerName === this.username ? "player1" : "player2";
-      messageDiv.className = `chat-message ${messageClass}`;
-
-      if (isSmiley) {
-        messageDiv.innerHTML = `<strong>${playerName}:</strong> ${message}`;
-        console.log("😊 Smiley message created");
-      } else {
-        messageDiv.textContent = `${playerName}: ${message}`;
-        console.log("📝 Regular message created");
-      }
-    }
-
-    this.chatHistory.appendChild(messageDiv);
-    console.log("✅ Message added to chat history");
-
-    // Прокручиваем к последнему сообщению
-    this.chatHistory.scrollTop = this.chatHistory.scrollHeight;
-    console.log("📜 Scrolled to bottom");
-
-    // Ограничиваем количество сообщений (последние 20)
-    this.limitChatMessages();
-  }
-
-  // Ограничение количества сообщений в чате
-  limitChatMessages() {
-    if (!this.chatHistory) return;
-
-    const messages = this.chatHistory.querySelectorAll(".chat-message");
-    if (messages.length > 20) {
-      messages[0].remove();
-    }
-  }
-
-  // Очистка истории чата
-  clearChatHistory() {
-    if (this.chatHistory) {
-      this.chatHistory.innerHTML = "";
-      // Добавляем системное сообщение
-      this.displayChatMessage("", "Чат очищен", false, true);
     }
   }
 
@@ -1003,28 +839,6 @@ class CheckersGame {
       this.rejectDrawOffer();
     });
 
-    // ★★★ ОБРАБОТЧИК ДЛЯ КНОПКИ СВОРАЧИВАНИЯ САЙДБАРА ★★★
-    if (this.collapseSidebarButton) {
-      this.collapseSidebarButton.addEventListener("click", () => {
-        console.log("🔄 Collapse sidebar button clicked");
-        this.toggleSidebar();
-      });
-
-      // ★★★ ТАКЖЕ ДОБАВИМ ОБРАБОТЧИК КЛАВИАТУРЫ ДЛЯ БЫСТРОГО ДОСТУПА ★★★
-      document.addEventListener("keydown", (e) => {
-        // Ctrl+H или Cmd+H для сворачивания/разворачивания
-        if ((e.ctrlKey || e.metaKey) && e.key === "h") {
-          e.preventDefault();
-          console.log("⌨️ Keyboard shortcut detected: Ctrl+H");
-          this.toggleSidebar();
-        }
-      });
-
-      console.log("✅ Sidebar collapse button setup complete");
-    } else {
-      console.log("❌ Collapse sidebar button not found");
-    }
-
     // ★★★ ДОБАВЛЕНЫ ОБРАБОТЧИКИ ДЛЯ КНОПКИ "СДАТЬСЯ" ★★★
     this.surrenderButton.addEventListener("click", () => {
       this.offerSurrender();
@@ -1344,7 +1158,6 @@ class CheckersGame {
     this.possibleMoves = [];
     this.continueCapturePiece = null;
     // ★★★ НЕ СБРАСЫВАЕМ opponentName! ★★★
-    // this.opponentName = ""; // ★★★ УБРАТЬ ЭТУ СТРОКУ ★★★
 
     // ★★★ НЕ СБРАСЫВАЕМ playerColor и username ★★★
 
@@ -1354,9 +1167,6 @@ class CheckersGame {
     // Очищаем доску и пересоздаем с начальной расстановкой
     this.clearBoard();
     this.createBoard();
-
-    // ★★★ ОЧИЩАЕМ ЧАТ ПРИ НОВОЙ ИГРЕ ★★★
-    this.clearChatHistory();
 
     // ★★★ ВАЖНО: ПОКАЗЫВАЕМ КНОПКИ УПРАВЛЕНИЯ ★★★
     if (this.gameControls) {
@@ -1631,10 +1441,7 @@ class CheckersGame {
         console.log("✅ Game is ready to play!");
         this.gameReady = true;
         this.updateStatus("✅ Оба игроки подключены! Ваш ход!");
-
-        // ★★★ ДОБАВЛЯЕМ СООБЩЕНИЕ В ЧАТ ★★★
-        this.displayChatMessage("", "Игра началась! Удачи!", false, true);
-        break;
+        break; // ★★★ ДОБАВИТЬ break ★★★
 
       case "playerDisconnected":
         this.gameReady = false;
@@ -1755,15 +1562,8 @@ class CheckersGame {
 
       // ★★★ ИСПРАВЛЕННЫЙ КОД - ЗАМЕНИТЕ СТАРЫЙ БЛОК ★★★
       case "chatMessage":
-        console.log("💬 Received chat message:", message);
-        this.displayChatMessage(
-          message.player,
-          message.message,
-          message.isSmiley,
-          message.player === "system"
-        );
-
-        // Воспроизводим звук если это смайлик от другого игрока
+        console.log("💬 Received smiley:", message);
+        // ★★★ ТОЛЬКО ВОСПРОИЗВОДИМ ЗВУК ДЛЯ СМАЙЛИКОВ ОТ ДРУГОГО ИГРОКА ★★★
         if (message.isSmiley && message.player !== this.username) {
           const soundType = this.getSoundTypeBySmiley(message.message);
           if (soundType) {
@@ -1772,22 +1572,6 @@ class CheckersGame {
           }
         }
         break; // ★★★ ВАЖНО: break ДОЛЖЕН БЫТЬ ЗДЕСЬ ★★★
-
-      case "chatHistory":
-        if (message.messages && Array.isArray(message.messages)) {
-          if (this.chatHistory) {
-            this.chatHistory.innerHTML = "";
-          }
-          message.messages.forEach((msg) => {
-            this.displayChatMessage(
-              msg.player,
-              msg.message,
-              msg.isSmiley,
-              msg.player === "system"
-            );
-          });
-        }
-        break;
 
       // ★★★ ОБРАБОТКА НОВЫХ СООБЩЕНИЙ ДЛЯ НОВОЙ ИГРЫ ★★★
       case "newGameRequest":
@@ -1876,16 +1660,6 @@ class CheckersGame {
     if (opponent) {
       const oldOpponentName = this.opponentName;
       this.opponentName = opponent.username;
-
-      // ★★★ ДОБАВЛЯЕМ СООБЩЕНИЕ В ЧАТ ПРИ ПОДКЛЮЧЕНИИ ПРОТИВНИКА ★★★
-      if (!oldOpponentName && this.opponentName) {
-        this.displayChatMessage(
-          "",
-          `Игрок ${this.opponentName} присоединился к игре`,
-          false,
-          true
-        );
-      }
 
       console.log(`Playing against: ${this.opponentName} (${opponent.color})`);
     } else if (players.length === 1) {
